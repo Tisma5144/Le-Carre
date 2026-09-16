@@ -1,0 +1,23 @@
+{
+  "name": "site-carte",
+  "version": "0.1.0",
+  "description": "Jeu de cartes en ligne - salons a code 4 lettres, jeux predefinis et personnalises",
+  "main": "server/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js",
+    "test:menteur": "node test/simulate-menteur.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.7.5"
+  },
+  "license": "UNLICENSED"
+}

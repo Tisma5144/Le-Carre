@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Site Carte - Menteur</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- ECRAN ACCUEIL -->
+  <section id="screen-home" class="screen">
+    <div class="card-panel home-panel">
+      <h1>🃏 Site Carte</h1>
+      <p class="subtitle">Joue aux cartes avec tes amis, sans paquet physique.</p>
+
+      <label class="field">
+        <span>Ton pseudo</span>
+        <input id="input-name" type="text" maxlength="20" placeholder="Ton pseudo" autocomplete="off" />
+      </label>
+
+      <div id="home-actions" class="home-actions">
+        <button id="btn-show-create" class="btn btn-primary">Créer une partie</button>
+        <button id="btn-show-join" class="btn btn-secondary">Rejoindre avec un code</button>
+      </div>
+
+      <div id="join-form" class="hidden">
+        <label class="field">
+          <span>Code du salon</span>
+          <input id="input-code" type="text" maxlength="4" placeholder="ABCD" autocomplete="off" class="code-input" />
+        </label>
+        <button id="btn-join" class="btn btn-primary">Rejoindre</button>
+        <button id="btn-cancel-join" class="btn btn-link">Annuler</button>
+      </div>
+
+      <p id="home-error" class="error-text hidden"></p>
+    </div>
+  </section>
+
+  <!-- ECRAN SALLE D'ATTENTE -->
+  <section id="screen-lobby" class="screen hidden">
+    <div class="card-panel">
+      <p class="eyebrow">Code du salon</p>
+      <h1 id="lobby-code" class="room-code">ABCD</h1>
+      <p class="hint">Donne ce code aux autres joueurs pour qu'ils te rejoignent.</p>
+
+      <h2 class="section-title">Joueurs</h2>
+      <ul id="lobby-players" class="player-list"></ul>
+
+      <p id="lobby-status" class="hint"></p>
+      <button id="btn-start" class="btn btn-primary hidden">Lancer la partie</button>
+      <button id="btn-leave-lobby" class="btn btn-link">Quitter le salon</button>
+    </div>
+  </section>
+
+  <!-- ECRAN DE JEU -->
+  <section id="screen-game" class="screen hidden">
+    <div id="game-board">
+
+      <div id="opponents-row" class="opponents-row"></div>
+
+      <div class="table-area">
+        <button id="pile-sorties" class="side-pile">
+          <div class="side-pile-stack"></div>
+          <span class="side-pile-label">Cartes sorties</span>
+          <span id="sorties-count" class="side-pile-count">0</span>
+        </button>
+
+        <button id="pile-center" class="center-pile">
+          <div class="center-pile-mat">
+            <div id="pile-stack" class="pile-stack"></div>
+            <div id="pile-info" class="pile-info">Pile vide</div>
+          </div>
+        </button>
+
+        <div class="turn-banner" id="turn-banner">En attente...</div>
+      </div>
+
+      <div id="rank-picker" class="rank-picker hidden"></div>
+
+      <div id="action-bar" class="action-bar"></div>
+
+      <div id="hand-area" class="hand-area">
+        <div class="hand-toolbar">
+          <button id="btn-sort-hand" class="btn-link">🔀 Trier mes cartes</button>
+        </div>
+        <div id="hand" class="hand"></div>
+      </div>
+    </div>
+
+    <!-- Overlay: revelation d'une accusation -->
+    <div id="overlay-reveal" class="overlay hidden">
+      <div class="overlay-panel">
+        <h2 id="reveal-title">Révélation !</h2>
+        <div id="reveal-cards" class="reveal-cards"></div>
+        <p id="reveal-text"></p>
+        <button id="btn-pickup" class="btn btn-primary hidden">Ramasser la pile</button>
+        <p id="reveal-waiting" class="hint hidden"></p>
+      </div>
+    </div>
+
+    <!-- Overlay: fin de partie -->
+    <div id="overlay-end" class="overlay hidden">
+      <div class="overlay-panel">
+        <h2>Partie terminée 🎉</h2>
+        <ol id="end-ranking" class="end-ranking"></ol>
+        <button id="btn-play-again" class="btn btn-primary hidden">Rejouer</button>
+        <p id="end-waiting" class="hint hidden">En attente que l'hôte relance une partie...</p>
+      </div>
+    </div>
+
+    <!-- Modal: historique de la pile -->
+    <div id="modal-history" class="modal hidden">
+      <div class="modal-panel">
+        <div class="modal-header">
+          <h3>Historique de la manche</h3>
+          <button class="btn-close" data-close="modal-history">✕</button>
+        </div>
+        <ul id="history-list" class="history-list"></ul>
+      </div>
+    </div>
+
+    <!-- Modal: cartes sorties -->
+    <div id="modal-quads" class="modal hidden">
+      <div class="modal-panel">
+        <div class="modal-header">
+          <h3>Cartes sorties du jeu</h3>
+          <button class="btn-close" data-close="modal-quads">✕</button>
+        </div>
+        <ul id="quads-list" class="quads-list"></ul>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
