@@ -81,6 +81,18 @@ illustrées (figures dessinées, As ornés, dos au masque vénitien).
 - Historique de la manche, cartes sorties, règles, son on/off, revanche.
 - Reconnexion automatique si on recharge la page.
 
+## Plein écran sur téléphone
+
+- Android : le jeu passe en plein écran dès le premier bouton touché (bouton
+  « Plein écran » sur l'accueil et dans le menu ☰ pour sortir / revenir). On
+  peut aussi l'installer (« Ajouter à l'écran d'accueil ») : il s'ouvre alors
+  comme une appli, sans barre d'adresse.
+- iPhone : Safari ne permet pas le plein écran d'une page. Le bouton explique
+  comment ajouter Le Carré à l'écran d'accueil (Partager → « Sur l'écran
+  d'accueil ») : ouvert depuis l'icône, le jeu est en plein écran.
+- Fichiers : `public/manifest.webmanifest`, `public/sw.js`, `public/icons/`,
+  `public/js/ui/fullscreen.js`.
+
 ## Lancer en local
 
 Prérequis : Node.js 18 ou plus récent.

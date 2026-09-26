@@ -10,6 +10,7 @@ import menteurUi from "./games/menteur.js";
 import presidentUi from "./games/president.js";
 import ascenseurUi from "./games/ascenseur.js";
 import qrcode from "/vendor/qrcode.mjs";
+import * as FS from "./ui/fullscreen.js";
 
 const ADAPTERS = { menteur: menteurUi, president: presidentUi, ascenseur: ascenseurUi };
 const SESSION_KEY = "menteurSession";
@@ -393,6 +394,7 @@ function bindUi() {
   codeInput.addEventListener("keydown", (e) => { if (e.key === "Enter") $("btn-join").click(); });
   nameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") (codeInput.value.length === 4 ? $("btn-join") : $("btn-create")).click(); });
 
+  $("btn-fullscreen-home").addEventListener("click", fullscreenAction);
   $("btn-rules-home").addEventListener("click", () => {
     hud.openModal("Les règles de la maison", Object.values(ADAPTERS).map((A) => `<h4 class="rules-game">${A.emoji} ${A.name}</h4>${A.rulesHtml()}`).join(""));
   });
@@ -441,6 +443,7 @@ function bindUi() {
       <button class="btn wood" data-act="history">📜 Historique</button>
       <button class="btn wood" data-act="tray">🗃️ ${A ? A.trayTitle : "Cartes sorties"}</button>
       <button class="btn wood" data-act="rules">📖 Règles ${A ? "du " + A.name.replace(/^Le /, "") : ""}</button>
+      ${FS.isStandalone() ? "" : `<button class="btn wood" data-act="fs" data-no-fs>${fsLabel()}</button>`}
       ${isHost ? `<button class="btn wood" data-act="lobby">🎲 Changer de jeu</button>` : ""}
       <button class="btn brass" data-act="leave">🚪 Quitter la table</button>
     </div>`);
@@ -448,6 +451,7 @@ function bindUi() {
       const act = b.dataset.act;
       if (act === "history") openHistory();
       else if (act === "tray") openTray();
+      else if (act === "fs") fullscreenAction();
       else if (act === "rules") hud.openModal(`Règles · ${A ? A.name : ""}`, A ? A.rulesHtml() : "");
       else if (act === "lobby") {
         hud.closeModal();
@@ -455,6 +459,31 @@ function bindUi() {
       } else if (act === "leave") leaveTable();
     }));
   });
+}
+
+// ------------------------------------------------------------------ plein ecran
+
+function fsLabel() {
+  if (FS.isFullscreen() && !FS.isStandalone()) return "⛶ Quitter le plein écran";
+  if (!FS.canFullscreen() && FS.canInstall()) return "📲 Installer l'appli";
+  return FS.isIOS() ? "📲 Plein écran" : "⛶ Plein écran";
+}
+
+function updateFsButton() {
+  const b = $("btn-fullscreen-home");
+  b.classList.toggle("hidden", FS.isStandalone());
+  b.textContent = fsLabel();
+}
+
+function fullscreenAction() {
+  if (FS.canFullscreen()) {
+    FS.toggleFullscreen();
+    hud.closeModal();
+  } else if (FS.canInstall()) {
+    FS.promptInstall();
+  } else {
+    hud.openModal("Jouer en plein écran", FS.helpHtml());
+  }
 }
 
 function openHistory() {
@@ -557,7 +586,10 @@ async function boot() {
   };
   updateHandCssVar();
   world.onFrame(hudFrame);
+  FS.setupFullscreen();
   bindUi();
+  FS.onChange(updateFsButton);
+  updateFsButton();
 
   socket = io();
   socket.on("state", onState);

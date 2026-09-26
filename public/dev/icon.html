@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8" /><title>Icone</title>
+<link rel="stylesheet" href="/vendor/fonts/playfair-display/latin-900.css" />
+<style>body{margin:0;background:#222}canvas{display:block}</style></head>
+<body>
+<script type="module">
+import { createCardBackCanvas, createCardFaceCanvas, ensureCardFonts } from "/js/cards/cardArt.js";
+await (ensureCardFonts ? ensureCardFonts() : Promise.resolve());
+await document.fonts.load('900 20px "Playfair Display"');
+// Icone : deux cartes en eventail (dos au masque + As de pique) sur fond bois sombre
+function icon(size, maskable) {
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const g = c.getContext("2d");
+  const bg = g.createRadialGradient(size / 2, size * 0.42, size * 0.05, size / 2, size / 2, size * 0.75);
+  bg.addColorStop(0, "#6b3b1c");
+  bg.addColorStop(1, "#1a0e07");
+  g.fillStyle = bg;
+  g.fillRect(0, 0, size, size);
+  const k = maskable ? 0.72 : 0.9; // zone sure des icones "maskable"
+  const ch = size * k * 0.78;
+  const cw = ch * (360 / 504);
+  const back = createCardBackCanvas(1);
+  const ace = createCardFaceCanvas({ rank: "A", suit: "pique" }, 1);
+  const draw = (img, angle, dx) => {
+    g.save();
+    g.translate(size / 2 + dx * size, size / 2 + size * 0.04);
+    g.rotate(angle);
+    g.shadowColor = "rgba(0,0,0,.55)";
+    g.shadowBlur = size * 0.04;
+    g.shadowOffsetY = size * 0.015;
+    g.drawImage(img, -cw / 2, -ch / 2, cw, ch);
+    g.restore();
+  };
+  draw(back, -0.2, -0.09 * k);
+  draw(ace, 0.14, 0.09 * k);
+  return c;
+}
+window.icons = {};
+for (const [name, size, m] of [["icon-192", 192, false], ["icon-512", 512, false], ["icon-maskable-512", 512, true], ["apple-touch-icon", 180, false]]) {
+  window.icons[name] = icon(size, m).toDataURL("image/png");
+}
+window.done = true;
+</script>
+</body></html>

@@ -1082,3 +1082,7 @@ body.shake #scene { animation: screenShake .45s; }
 .opt-row.wide { flex-direction: column; align-items: stretch; gap: 5px; }
 .opt-row.wide .opt-seg { display: grid; grid-template-columns: 1fr 1fr; justify-content: stretch; }
 .qr-wrap .chalk-tiny { max-width: 118px; text-align: center; line-height: 1.1; margin-top: 4px; }
+
+/* ---------------------------------------------------------------- plein ecran */
+.home-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 18px; }
+.fs-link.hidden { display: none; }
