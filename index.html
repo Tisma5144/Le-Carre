@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#1a0e07" />
+<title>Le Carré · bar à cartes</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎭</text></svg>" />
+<link rel="stylesheet" href="/vendor/fonts/playfair-display/latin-700.css" />
+<link rel="stylesheet" href="/vendor/fonts/playfair-display/latin-900.css" />
+<link rel="stylesheet" href="/vendor/fonts/playfair-display/latin-900-italic.css" />
+<link rel="stylesheet" href="/vendor/fonts/nunito/latin-600.css" />
+<link rel="stylesheet" href="/vendor/fonts/nunito/latin-800.css" />
+<link rel="stylesheet" href="/vendor/fonts/nunito/latin-900.css" />
+<link rel="stylesheet" href="/vendor/fonts/cabin-sketch/latin-400.css" />
+<link rel="stylesheet" href="/vendor/fonts/cabin-sketch/latin-700.css" />
+<link rel="stylesheet" href="/css/main.css" />
+<script type="importmap">
+  { "imports": { "three": "/vendor/three/three.module.js", "three/addons/": "/vendor/three-addons/" } }
+</script>
+</head>
+<body>
+<canvas id="scene" aria-label="Table de jeu en 3D"></canvas>
+<div id="vignette"></div>
+
+<div id="loader">
+  <div class="loader-cards"><span></span><span></span><span></span></div>
+  <p>Le bar ouvre ses portes…</p>
+</div>
+
+<!-- ============ ACCUEIL ============ -->
+<section id="home" class="screen hidden">
+  <div class="sign">
+    <div class="sign-chains"><i></i><i></i></div>
+    <div class="sign-board">
+      <div class="sign-top">Bar à cartes · depuis 2026</div>
+      <h1 class="sign-title">Le Carré</h1>
+      <div class="sign-sub">Pas de paquet ? Pas de problème. Sortez vos téléphones.</div>
+    </div>
+  </div>
+
+  <div class="chalk panel home-panel">
+    <label class="chalk-label" for="in-name">Ton blaze</label>
+    <input id="in-name" class="chalk-input" type="text" maxlength="16" placeholder="Ton pseudo" autocomplete="off" />
+    <button id="btn-create" class="btn brass">Ouvrir une table</button>
+    <div class="chalk-or"><span>ou rejoins tes potes</span></div>
+    <div class="join-row">
+      <input id="in-code" class="chalk-input code" type="text" maxlength="4" placeholder="CODE" autocomplete="off" autocapitalize="characters" />
+      <button id="btn-join" class="btn wood">Rejoindre</button>
+    </div>
+  </div>
+  <button id="btn-rules-home" class="text-link">📜 Les règles de la maison</button>
+</section>
+
+<!-- ============ SALLE D'ATTENTE ============ -->
+<section id="lobby" class="screen hidden">
+  <div class="chalk panel lobby-panel">
+    <div class="lobby-head">
+      <div>
+        <div class="chalk-small">Table n°</div>
+        <div id="lobby-code" class="chalk-code">····</div>
+      </div>
+      <div class="qr-wrap">
+        <div id="qr" class="qr"></div>
+        <div class="chalk-tiny">Scanne pour t'asseoir</div>
+      </div>
+    </div>
+    <button id="btn-share" class="btn wood small">📲 Envoyer le lien aux potes</button>
+    <div class="lobby-games">
+      <div id="game-menu-hint" class="chalk-small lobby-sub">Choisis le jeu de la soirée :</div>
+      <div id="game-menu" class="game-menu"></div>
+    </div>
+    <div class="chalk-small lobby-sub lobby-players-title">Autour de la table</div>
+    <ul id="lobby-players" class="chalk-list"></ul>
+    <p id="lobby-status" class="chalk-small"></p>
+    <button id="btn-start" class="btn brass hidden">Distribuer les cartes</button>
+    <button id="btn-leave" class="text-link">Quitter la table</button>
+  </div>
+</section>
+
+<div id="plates"></div>
+
+<!-- ============ HUD DE JEU ============ -->
+<section id="hud" class="hidden">
+  <div class="topbar">
+    <button id="btn-menu" class="icon-btn" aria-label="Menu">☰</button>
+    <div id="announce" class="announce">
+      <img id="announce-card" alt="" />
+      <div class="announce-text">
+        <span id="announce-label" class="announce-label">Annonce</span>
+        <span id="announce-value" class="announce-value">—</span>
+        <span id="announce-sub" class="announce-sub"></span>
+      </div>
+    </div>
+    <button id="btn-sound" class="icon-btn" aria-label="Son">🔊</button>
+  </div>
+
+  <button id="pile-chip" class="pile-chip hidden"></button>
+  <button id="tray-chip" class="tray-chip hidden"></button>
+
+  <div id="turn-banner" class="turn-banner"><div class="ribbon"><span id="turn-banner-text">À toi de jouer !</span></div></div>
+
+  <div id="hint" class="hint"></div>
+  <div id="quad-bar" class="quad-bar"></div>
+  <div id="my-bubble" class="bubble mine"></div>
+  <div class="rail">
+    <div class="rail-left">
+      <div id="my-plate" class="my-plate"></div>
+      <button id="btn-sort" class="pill">🔀 Trier</button>
+    </div>
+    <div class="rail-right">
+      <button id="btn-play" class="btn brass play-btn hidden">Poser</button>
+    </div>
+  </div>
+  <button id="btn-liar" class="liar-btn hidden" aria-label="Crier menteur">MENTEUR&nbsp;!</button>
+  <button id="btn-pass" class="pass-btn hidden">Je passe</button>
+</section>
+
+<!-- Choix de la valeur annoncee -->
+<div id="exchange" class="exchange hidden">
+  <div class="exchange-card wood-panel">
+    <div id="exchange-title" class="exchange-title">Échange des cartes</div>
+    <div id="exchange-text" class="exchange-text"></div>
+  </div>
+</div>
+
+<div id="rank-picker" class="overlay hidden">
+  <div class="panel wood-panel picker">
+    <h2>Tu annonces…</h2>
+    <p class="picker-sub">Quelle valeur prétends-tu poser ? <em>(personne ne vérifie… sauf s'ils crient MENTEUR)</em></p>
+    <div id="rank-grid" class="rank-grid"></div>
+    <button id="rank-cancel" class="text-link light">Annuler</button>
+  </div>
+</div>
+
+<!-- Revelation -->
+<div id="reveal" class="reveal hidden">
+  <div id="stamp" class="stamp">MENTEUR !</div>
+  <div class="reveal-bottom">
+    <div id="reveal-top" class="reveal-top"></div>
+    <p id="reveal-text"></p>
+    <button id="btn-pickup" class="btn brass hidden">Ramasser la pile</button>
+    <p id="reveal-wait" class="reveal-wait"></p>
+  </div>
+</div>
+
+<!-- Fin de partie -->
+<div id="end" class="overlay hidden">
+  <div class="panel wood-panel end-panel">
+    <div id="end-title" class="end-title">Fin de la partie</div>
+    <ol id="end-list" class="end-list"></ol>
+    <button id="btn-again" class="btn brass hidden">🔁 Revanche !</button>
+    <button id="btn-end-alt" class="btn wood hidden">🎲 Changer de jeu</button>
+    <p id="end-wait" class="end-wait"></p>
+    <button id="btn-end-leave" class="text-link light">Quitter la table</button>
+  </div>
+</div>
+
+<!-- Modale generique (menu, historique, cartes sorties, regles) -->
+<div id="modal" class="overlay hidden">
+  <div class="chalk panel modal-panel">
+    <div class="modal-head">
+      <h3 id="modal-title"></h3>
+      <button id="modal-close" class="icon-btn small" aria-label="Fermer">✕</button>
+    </div>
+    <div id="modal-body" class="modal-body"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script type="module" src="/js/main.js"></script>
+</body>
+</html>
