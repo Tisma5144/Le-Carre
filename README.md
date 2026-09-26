@@ -38,8 +38,10 @@ illustrées (figures dessinées, As ornés, dos au masque vénitien).
   à poser cette valeur ou à passer.
 - Le 2 ferme le pli. Un carré (4 cartes identiques qui se suivent) ferme le pli.
 - Carré magique : n'importe qui peut compléter un carré au sommet du pli en
-  ajoutant 2 ou 3 cartes (jamais une seule), même hors de son tour ; il rejoue
-  ensuite.
+  ajoutant 2 ou 3 cartes, même hors de son tour ; il rejoue ensuite.
+- Un carré se ferme toujours avec au moins 2 cartes : si 3 cartes identiques
+  sont au sommet, personne (même le joueur dont c'est le tour) ne peut poser
+  la 4e seule.
 - Interdit de finir sur un 2 : on finit Trou du cul.
 - Première manche : la Dame de cœur ouvre. Ensuite, le Trou du cul ouvre.
 - Échange : le Trou du cul donne ses 2 meilleures cartes au Président qui en

@@ -457,15 +457,38 @@ export class CardTable {
         let y = hm.bottom + cardH * 0.4 + rowFromFront * cardH * 0.36 - Math.abs(u) * Math.abs(u) * cardH * 0.22;
         const selected = this.selected.has(e.id);
         const pressed = this.press && this.press.entity === e && !this.drag;
-        if (selected) y += cardH * 0.24;
-        else if (pressed) y += cardH * 0.12;
-        else if (this.hoverId === e.id) y += cardH * 0.07;
+        // Rangee du fond : la carte choisie monte franchement. Rangees de
+        // devant : elle monte moins, pour ne pas recouvrir la rangee du fond.
+        const liftMax = rowFromFront === rows - 1 ? 0.24 : 0.12;
+        let lift = 0;
+        if (selected) lift = cardH * liftMax;
+        else if (pressed) lift = cardH * Math.min(0.12, liftMax);
+        else if (this.hoverId === e.id) lift = cardH * 0.07;
+        y += lift; // elevation purement verticale
+        const rot = -u * spread * 2;
+        // Profondeur : chaque carte est nettement plus proche de la camera que
+        // sa voisine de gauche (et la rangee de devant plus proche que celle
+        // du fond). La position et la taille sont corrigees de la perspective,
+        // donc a l'ecran rien ne change, mais l'ordre d'affichage est garanti
+        // sur tous les telephones : une carte soulevee reste derriere ses
+        // voisines de droite et ne les masque jamais.
+        const k = r * per + i;
+        const d = hm.dist - k * 0.012;
+        const f = d / hm.dist;
         e.space = "camera";
-        e.tPos.set(x, y, -hm.dist - rowFromFront * 0.03 + i * 0.0025);
-        e.tQuat.setFromEuler(new THREE.Euler(-0.05, 0, -u * spread * 2));
-        e.tScale = s;
+        e.tPos.set(x * f, y * f, -d);
+        e.tQuat.setFromEuler(new THREE.Euler(0, 0, rot));
+        e.tScale = s * f;
         e.emissive = 0.62;
       });
+    }
+    // Hauteur occupee par la main (carte soulevee comprise), en fraction
+    // de l'ecran : l'interface HTML se place au-dessus pour ne rien masquer.
+    const topY = hm.bottom + cardH * 0.4 + (rows - 1) * cardH * 0.36 + cardH * 0.24 + cardH * 0.5;
+    const frac = (topY + hm.visH / 2) / hm.visH;
+    if (Math.abs(frac - (this.handTopFrac || 0)) > 0.002) {
+      this.handTopFrac = frac;
+      if (this.hooks.onHandTop) this.hooks.onHandTop(frac);
     }
   }
 

@@ -107,6 +107,10 @@ function updateHandCssVar() {
   if (!world) return;
   const px = Math.round(world.handFraction() * window.innerHeight);
   document.documentElement.style.setProperty("--hand-h", `${px}px`);
+  // Haut reel de la main (2 rangees, carte soulevee) : les bulles et
+  // messages se placent au-dessus pour ne pas cacher les cartes.
+  const top = table && table.handTopFrac ? Math.round(table.handTopFrac * window.innerHeight) + 4 : 0;
+  document.documentElement.style.setProperty("--hand-top", `${Math.max(px, top)}px`);
 }
 
 // ------------------------------------------------------------------ sieges
@@ -494,6 +498,7 @@ async function boot() {
   table = new CardTable(world, {
     canDrop: (ids) => !!(S.adapter && S.game && S.adapter.canDrop(ids, S.game, app)),
     onDrop: (ids) => { if (S.adapter && S.game) S.adapter.commitPlay(ids, S.game, app); },
+    onHandTop: () => updateHandCssVar(),
     onSelectionChange: () => {
       sfx.play("select");
       updatePlayButton();

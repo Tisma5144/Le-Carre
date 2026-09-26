@@ -5,6 +5,7 @@
 
 :root {
   --hand-h: 280px;
+  --hand-top: 280px;
   --rail-h: 66px;
   --gold: #e9c46a;
   --gold-deep: #c9962b;
@@ -475,7 +476,7 @@ body.revealing #vignette {
 .bubble.liar.show { animation: shake .45s; }
 .bubble.gold { background: linear-gradient(180deg, #fde8a4, #d9a845); }
 .bubble.gold::after { border-top-color: #d9a845; }
-.bubble.mine { position: fixed; bottom: calc(var(--hand-h) + 58px); left: 50%; }
+.bubble.mine { position: fixed; bottom: calc(var(--hand-top) + 58px); left: 50%; }
 @keyframes shake {
   0%, 100% { transform: translateX(-50%) rotate(0); }
   20% { transform: translateX(-54%) rotate(-5deg); }
@@ -538,7 +539,7 @@ body.revealing #vignette {
 .hint {
   position: absolute;
   left: 50%;
-  bottom: calc(var(--hand-h) + 8px);
+  bottom: calc(var(--hand-top) + 8px);
   transform: translateX(-50%);
   max-width: min(94vw, 580px);
   width: max-content;
@@ -626,7 +627,7 @@ body.revealing #vignette {
 .quad-bar {
   position: absolute;
   right: 12px;
-  bottom: calc(var(--hand-h) + 52px);
+  bottom: calc(var(--hand-top) + 52px);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -933,7 +934,7 @@ body.shake #scene { animation: screenShake .45s; }
 .exchange {
   position: fixed;
   left: 50%;
-  bottom: calc(var(--hand-h) + 52px);
+  bottom: calc(var(--hand-top) + 52px);
   z-index: 6;
   transform: translateX(-50%);
   width: min(92vw, 440px);
@@ -956,7 +957,7 @@ body.shake #scene { animation: screenShake .45s; }
   .lobby-panel > .lobby-games { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; }
   .lobby-panel > .lobby-players-title, .lobby-panel > .chalk-list { grid-column: 2; grid-row: auto; }
   .gt-text b { font-size: 18px; }
-  .exchange { bottom: calc(var(--hand-h) + 44px); }
+  .exchange { bottom: calc(var(--hand-top) + 44px); }
 }
 
 /* salon sur grand ecran : deux colonnes */

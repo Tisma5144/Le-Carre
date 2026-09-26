@@ -245,10 +245,11 @@ function findCards(hand, ids) {
   return out;
 }
 
-// Verifie si la pose serait un "carre magique" (complete un carre au sommet).
+// Verifie si la pose serait un "carre magique" : on complete le carre au
+// sommet du pli en ajoutant 2 ou 3 cartes (jamais une seule).
 function isMagic(state, cards) {
   const run = topRun(state);
-  if (!run.rank || run.rank === "2") return false;
+  if (!run.rank || run.rank === "2" || cards.length < 2) return false;
   return cards.every((c) => c.rank === run.rank) && run.count + cards.length === 4;
 }
 
@@ -263,6 +264,12 @@ function doPlay(state, playerId, action) {
   if (!cards.every((c) => c.rank === rank)) return { ok: false, error: "Les cartes posées doivent avoir la même valeur." };
 
   const top = topPlay(state);
+  // Un carre (quel qu'il soit) se ferme toujours avec au moins 2 cartes :
+  // si 3 cartes identiques sont au sommet, personne ne peut poser la 4e seule.
+  const run0 = topRun(state);
+  if (cards.length === 1 && run0.rank === rank && run0.count >= 3) {
+    return { ok: false, error: "Un carré se ferme avec au moins 2 cartes : impossible de poser la 4e seule." };
+  }
   const magic = isMagic(state, cards);
   if (!magic) {
     if (state.currentTurn !== playerId) return { ok: false, error: "Ce n'est pas ton tour." };

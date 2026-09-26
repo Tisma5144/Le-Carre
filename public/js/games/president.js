@@ -67,7 +67,7 @@ export default {
   magicCards(v) {
     if (v.phase !== "playing" || v.you.isFinished || !v.run || !v.run.rank || v.run.rank === "2") return null;
     const need = 4 - v.run.count;
-    if (need < 1) return null;
+    if (need < 2) return null; // un carre magique se ferme avec 2 ou 3 cartes
     const mine = v.hand.filter((c) => c.rank === v.run.rank);
     return mine.length === need ? mine : null;
   },
@@ -80,7 +80,8 @@ export default {
     if (!cards.length || cards.length > 4) return { ok: false, why: "Pose 1 à 4 cartes." };
     const rank = cards[0].rank;
     if (!cards.every((c) => c.rank === rank)) return { ok: false, why: "Les cartes doivent avoir la même valeur." };
-    if (v.run && v.run.rank === rank && rank !== "2" && v.run.count + cards.length === 4) return { ok: true, magic: true };
+    if (cards.length === 1 && v.run && v.run.rank === rank && v.run.count >= 3) return { ok: false, why: "Un carré se ferme avec au moins 2 cartes : impossible de poser la 4e seule." };
+    if (v.run && v.run.rank === rank && rank !== "2" && cards.length >= 2 && v.run.count + cards.length === 4) return { ok: true, magic: true };
     if (!v.you.isYourTurn) return { ok: false, why: `Pas si vite ! C'est au tour de ${v.currentTurnName}.` };
     if (v.you.passed) return { ok: false, why: "Tu as passé : attends le prochain pli." };
     if (v.top) {
@@ -357,7 +358,8 @@ export default {
       <p class="rule"><i>⬆️</i><span>On pose 1 à 4 cartes de même valeur. Pour suivre : <b>le même nombre</b>, de valeur égale ou supérieure. Sinon on passe… et on est hors du pli jusqu'à ce qu'il soit ramassé.</span></p>
       <p class="rule"><i>🎯</i><span><b>« Ou rien »</b> : si tu poses la même valeur que le joueur d'avant, le suivant doit poser cette valeur ou passer.</span></p>
       <p class="rule"><i>💥</i><span>Un <b>2</b> ferme le pli : tu rejoues ce que tu veux. Mais <b>interdit de finir sur un 2</b> : sinon tu finis Trou du cul !</span></p>
-      <p class="rule"><i>✨</i><span><b>Carré magique</b> : si tu as les cartes qui complètent un carré au sommet du pli, pose-les, même hors de ton tour. Le pli est fermé et tu rejoues.</span></p>
+      <p class="rule"><i>✨</i><span><b>Carré magique</b> : si tu as 2 ou 3 cartes qui complètent un carré au sommet du pli, pose-les, même hors de ton tour. Le pli est fermé et tu rejoues.</span></p>
+      <p class="rule"><i>✋</i><span><b>Jamais la 4e seule</b> : un carré se ferme toujours avec au moins 2 cartes. Si 3 cartes identiques sont au sommet, personne ne peut poser la 4e toute seule, même à son tour.</span></p>
       <p class="rule"><i>🔄</i><span>Nouvelle manche : le Trou du cul donne ses 2 meilleures cartes au Président qui lui en rend 2 au choix (1 carte entre Vice-trou et Vice-président).</span></p>
       <p class="rule"><i>📊</i><span>Points : Président +2, Vice +1, Neutre 0, Vice-trou −1, Trou du cul −2.</span></p>`;
   }
