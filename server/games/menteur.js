@@ -40,6 +40,8 @@ function createGame(playerIds) {
 
   return {
     id: "menteur",
+    uid: Math.random().toString(36).slice(2, 10),
+    eventSeq: 0,
     seatOrder,
     hands,
     finishedOrder: [],
@@ -115,6 +117,14 @@ function lockPreviousPlayIfAny(state) {
   state.canChallengeLastPlay = false;
 }
 
+// Chaque evenement recoit un identifiant croissant : le client s'en sert
+// pour savoir ce qui vient de se passer (bulles, sons, animations).
+function logEvent(state, entry) {
+  state.eventSeq = (state.eventSeq || 0) + 1;
+  state.history.push({ id: state.eventSeq, at: Date.now(), ...entry });
+  if (state.history.length > 200) state.history.splice(0, state.history.length - 200);
+}
+
 function findCardsInHand(hand, cardIds) {
   const found = [];
   for (const id of cardIds) {
@@ -178,7 +188,7 @@ function doPlay(state, playerId, action) {
   state.lastPlay = { playerId, cards };
   state.canChallengeLastPlay = true;
 
-  state.history.push({
+  logEvent(state, {
     type: "play",
     playerId,
     count: cards.length,
@@ -217,7 +227,7 @@ function doQuadDiscard(state, playerId, action) {
   state.hands[playerId] = hand.filter((c) => !matchingIds.has(c.id));
   state.removedQuads.push({ playerId, rank, cards: matching });
 
-  state.history.push({ type: "quad_discard", playerId, rank });
+  logEvent(state, { type: "quad_discard", playerId, rank });
 
   // Sortir un carre n'est jamais un bluff : si la main est vide, c'est
   // gagne immediatement, sans possibilite de contestation.
@@ -248,7 +258,7 @@ function doAccuse(state, playerId) {
     pileCount: state.pileCards.length
   };
 
-  state.history.push({
+  logEvent(state, {
     type: "accuse",
     accuserId: playerId,
     accusedId,
@@ -280,7 +290,7 @@ function doPickup(state, playerId) {
   state.pendingReveal = null;
   state.phase = "playing";
 
-  state.history.push({ type: "pickup", playerId: loserId, count: pickedUpCount });
+  logEvent(state, { type: "pickup", playerId: loserId, count: pickedUpCount });
 
   // Si l'accusation etait fausse, la pose precedente (deja verifiee comme
   // sincere) est maintenant definitivement validee.
@@ -347,6 +357,8 @@ function getViewForPlayer(state, playerId, players) {
 
   return {
     gameId: "menteur",
+    uid: state.uid,
+    lastEventId: state.eventSeq || 0,
     phase: state.phase,
     seatOrder: state.seatOrder,
     currentTurn: state.currentTurn,

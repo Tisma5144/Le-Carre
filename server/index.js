@@ -16,6 +16,17 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, "..", "public")));
 
+// Bibliotheques front servies depuis node_modules (pas de CDN : le jeu
+// fonctionne meme si un CDN externe est bloque sur le reseau du bar).
+const NODE_MODULES = path.join(__dirname, "..", "node_modules");
+const vendorCache = { maxAge: "7d" };
+app.use("/vendor/three", express.static(path.join(NODE_MODULES, "three", "build"), vendorCache));
+app.use("/vendor/three-addons", express.static(path.join(NODE_MODULES, "three", "examples", "jsm"), vendorCache));
+app.use("/vendor/fonts", express.static(path.join(NODE_MODULES, "@fontsource"), vendorCache));
+app.get("/vendor/qrcode.mjs", (_req, res) => {
+  res.sendFile(path.join(NODE_MODULES, "qrcode-generator", "dist", "qrcode.mjs"));
+});
+
 const rooms = new RoomManager();
 
 function roomSummary(room) {
@@ -118,6 +129,28 @@ io.on("connection", (socket) => {
     if (room.hostId !== playerId) return ack && ack({ ok: false, error: "Seul l'hote peut relancer une partie." });
     room.status = "lobby";
     room.game = null;
+    ack && ack({ ok: true });
+    broadcastRoom(room);
+  });
+
+  // Revanche immediate avec les joueurs encore connectes.
+  socket.on("room:rematch", (_payload, ack) => {
+    const link = rooms.getBySocket(socket.id);
+    if (!link) return ack && ack({ ok: false, error: "Salon introuvable." });
+    const { room, playerId } = link;
+    if (room.hostId !== playerId) return ack && ack({ ok: false, error: "Seul l'hote peut relancer une partie." });
+    const game = GAMES[room.gameType];
+    const connected = room.order.filter((id) => room.players[id] && room.players[id].connected);
+    if (connected.length < game.minPlayers) {
+      room.status = "lobby";
+      room.game = null;
+      broadcastRoom(room);
+      return ack && ack({ ok: false, error: `Il faut au moins ${game.minPlayers} joueurs connectes.` });
+    }
+    for (const id of room.order) if (!connected.includes(id)) delete room.players[id];
+    room.order = connected;
+    room.game = game.createGame(room.order);
+    room.status = "playing";
     ack && ack({ ok: true });
     broadcastRoom(room);
   });

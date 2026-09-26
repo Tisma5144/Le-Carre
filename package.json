@@ -1,7 +1,7 @@
 {
   "name": "site-carte",
-  "version": "0.1.0",
-  "description": "Jeu de cartes en ligne - salons a code 4 lettres, jeux predefinis et personnalises",
+  "version": "0.2.0",
+  "description": "Le Menteur en 3D - jeu de cartes en ligne entre amis, salons a code 4 lettres",
   "main": "server/index.js",
   "type": "commonjs",
   "scripts": {
@@ -13,8 +13,13 @@
     "node": ">=18"
   },
   "dependencies": {
+    "@fontsource/cabin-sketch": "^5.3.0",
+    "@fontsource/nunito": "^5.3.0",
+    "@fontsource/playfair-display": "^5.3.0",
     "express": "^4.19.2",
-    "socket.io": "^4.7.5"
+    "qrcode-generator": "^2.0.4",
+    "socket.io": "^4.7.5",
+    "three": "^0.186.1"
   },
   "devDependencies": {
     "socket.io-client": "^4.7.5"
