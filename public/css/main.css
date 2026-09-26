@@ -990,3 +990,95 @@ body.shake #scene { animation: screenShake .45s; }
   .rail .pill { padding: 7px 9px; font-size: 11px; }
   .play-btn { padding: 11px 10px; font-size: 11.5px; max-width: 118px; white-space: normal; line-height: 1.15; }
 }
+
+/* ---------------------------------------------------------------- Ascenseur : annonces */
+
+.bid-bar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--hand-top) + 10px);
+  z-index: 7;
+  transform: translateX(-50%);
+  width: min(94vw, 520px);
+  animation: popIn .35s cubic-bezier(.2,1.4,.4,1);
+}
+.bid-card { border-radius: 16px; padding: 10px 12px 12px; text-align: center; }
+.bid-title { font: 900 italic 22px "Playfair Display", Georgia, serif; color: #ffe39a; }
+.bid-sub { font: 800 13px "Nunito", sans-serif; margin: 2px 0 8px; opacity: .92; }
+.bid-sub b { color: #fff; }
+.bid-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; }
+.bid-btn {
+  min-width: 46px;
+  height: 46px;
+  padding: 0 8px;
+  border-radius: 12px;
+  border: 2px solid #5b3b0c;
+  background: linear-gradient(180deg, #f8e19a 0%, #d9a845 55%, #a37220 100%);
+  color: #3a2206;
+  font: 900 21px "Playfair Display", Georgia, serif;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 4px 0 #5b3b0c, 0 6px 12px rgba(0,0,0,.45);
+  cursor: pointer;
+  transition: transform .1s;
+}
+.bid-btn:active { transform: translateY(3px); box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 1px 0 #5b3b0c; }
+.bid-btn.forbidden {
+  background: rgba(40,20,10,.6);
+  color: rgba(255,230,190,.45);
+  border-color: rgba(255,120,100,.5);
+  box-shadow: none;
+  text-decoration: line-through;
+  text-decoration-color: #ff6a5a;
+  text-decoration-thickness: 3px;
+  cursor: not-allowed;
+}
+@media (max-height: 520px) {
+  .bid-bar { bottom: calc(var(--hand-top) + 4px); }
+  .bid-card { padding: 6px 10px 8px; }
+  .bid-title { font-size: 18px; }
+  .bid-btn { min-width: 40px; height: 40px; font-size: 18px; }
+}
+
+/* ---------------------------------------------------------------- reglages du jeu (salon) */
+
+.game-options {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 2px solid rgba(243,210,122,.35);
+  background: rgba(0,0,0,.18);
+  font-family: "Cabin Sketch", "Nunito", sans-serif;
+}
+.game-options.hidden { display: none; }
+.opt-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 0; flex-wrap: wrap; }
+.opt-row > span { font: 700 18px "Cabin Sketch", sans-serif; }
+.opt-seg { display: flex; flex-wrap: wrap; gap: 5px; justify-content: flex-end; }
+.opt-seg button, .opt-step button {
+  border-radius: 999px;
+  padding: 5px 11px;
+  border: 2px solid rgba(255,255,255,.3);
+  background: rgba(255,255,255,.05);
+  color: #f3f1e8;
+  font: 700 15px "Cabin Sketch", sans-serif;
+  cursor: pointer;
+}
+.opt-seg button.on { border-color: #f3d27a; background: rgba(243,210,122,.2); color: #ffe39a; }
+.opt-step { display: flex; align-items: center; gap: 8px; }
+.opt-step button { width: 34px; height: 34px; padding: 0; font-size: 20px; }
+.opt-step b { min-width: 34px; text-align: center; font: 700 24px "Cabin Sketch", sans-serif; color: #ffe39a; }
+.opt-seq { font: 400 15px "Cabin Sketch", sans-serif; opacity: .8; margin-top: 4px; word-break: break-word; }
+.game-options button:disabled { opacity: .5; cursor: default; }
+
+/* ---------------------------------------------------------------- tableau des scores */
+
+.score-table { width: 100%; border-collapse: collapse; font: 700 15px "Nunito", sans-serif; }
+.score-table th, .score-table td { padding: 5px 6px; text-align: center; border-bottom: 1px dashed rgba(255,255,255,.18); }
+.score-table th { font: 700 16px "Cabin Sketch", sans-serif; opacity: .85; }
+.score-table td:first-child, .score-table th:first-child { text-align: left; }
+.score-table .ok { color: #8dffb0; }
+.score-table .ko { color: #ff9a8a; }
+.score-table tr.me td { color: #ffe39a; }
+.score-seq { font: 400 15px "Cabin Sketch", sans-serif; opacity: .8; margin-top: 10px; }
+.score-seq b { color: #ffe39a; font-size: 18px; }
+.opt-row.wide { flex-direction: column; align-items: stretch; gap: 5px; }
+.opt-row.wide .opt-seg { display: grid; grid-template-columns: 1fr 1fr; justify-content: stretch; }
+.qr-wrap .chalk-tiny { max-width: 118px; text-align: center; line-height: 1.1; margin-top: 4px; }

@@ -165,6 +165,10 @@ export class CardTable {
   //   tray: [{card,quad,j}]  cartes sorties (carres du Menteur)
   //   table: [{card,play,j}] pli face visible au centre (President)
   //   discard: n             defausse face cachee (President)
+  //   trick: [{card,owner,win}] pli en cours, chaque carte devant son joueur (Ascenseur)
+  //   won: Map(id -> n)       plis remportes, en tas devant chaque joueur (Ascenseur)
+  //   talon: n               cartes non distribuees, dans la boite (Ascenseur)
+  //   trump: [carte]         carte d'atout retournee (Ascenseur)
   normalizeDesired(d) {
     return {
       me: d.me || [],
@@ -173,7 +177,11 @@ export class CardTable {
       reveal: d.reveal || [],
       tray: d.tray || [],
       table: d.table || [],
-      discard: d.discard || 0
+      discard: d.discard || 0,
+      trick: d.trick || [],
+      won: d.won || new Map(),
+      talon: d.talon || 0,
+      trump: d.trump || []
     };
   }
 
@@ -196,6 +204,20 @@ export class CardTable {
       }
       if (destZone === "table") {
         if (z === "me" || z === "opp") return 0;
+        return 2;
+      }
+      if (destZone === "trick") {
+        if (z === "opp" && e.owner === destOwner) return 0;
+        if (z === "opp") return 1;
+        return 2;
+      }
+      if (destZone === "won") {
+        if (z === "trick") return 0 - e.slot * 0.0001;
+        return 2;
+      }
+      if (destZone === "talon" || destZone === "trump") {
+        if (z === "deck") return 0;
+        if (z === "talon") return 0.5;
         return 2;
       }
       if (destZone === "discard") {
@@ -258,11 +280,14 @@ export class CardTable {
     desired.reveal.forEach((c, i) => knownDest.push({ zone: "reveal", card: c, slot: i }));
     desired.tray.forEach((t, i) => knownDest.push({ zone: "tray", card: t.card, slot: i, quad: t.quad, j: t.j, owner: t.owner }));
     desired.table.forEach((t, i) => knownDest.push({ zone: "table", card: t.card, slot: i, quad: t.play, j: t.j, owner: t.owner, size: t.size }));
+    desired.trick.forEach((t, i) => knownDest.push({ zone: "trick", card: t.card, slot: i, owner: t.owner, win: !!t.win, keepOwner: true }));
+    desired.trump.forEach((c, i) => knownDest.push({ zone: "trump", card: c, slot: i }));
     const pendingKnown = [];
     for (const d of knownDest) {
       const e = byId.get(d.card.id);
       if (e && e.zone === d.zone && !assigned.has(e)) {
         e.slot = d.slot;
+        e.win = !!d.win;
         e.quad = d.quad || 0;
         e.qj = d.j || 0;
         e.qsize = d.size || 1;
@@ -282,6 +307,9 @@ export class CardTable {
     for (const [pid, n] of desired.opp) oppDeficit.set(pid, keep("opp", pid, n));
     const pileDeficit = keep("pile", null, desired.pile);
     const discardDeficit = keep("discard", null, desired.discard);
+    const wonDeficit = new Map();
+    for (const [pid, n] of desired.won) wonDeficit.set(pid, keep("won", pid, n));
+    const talonDeficit = keep("talon", null, desired.talon);
 
     // 3. cartes libres (celles qui doivent bouger)
     const free = E.filter((e) => !assigned.has(e));
@@ -300,8 +328,9 @@ export class CardTable {
       e.quad = d.quad || 0;
       e.qj = d.j || 0;
       e.qsize = d.size || 1;
-      if (d.zone === "table") e.jitter = { dx: (Math.random() - 0.5) * 0.08, dz: (Math.random() - 0.5) * 0.08, yaw: (Math.random() - 0.5) * 0.18 };
-      setZone(e, d.zone, null, d.slot);
+      if (d.zone === "table" || d.zone === "trick") e.jitter = { dx: (Math.random() - 0.5) * 0.08, dz: (Math.random() - 0.5) * 0.08, yaw: (Math.random() - 0.5) * 0.18 };
+      e.win = !!d.win;
+      setZone(e, d.zone, d.keepOwner ? d.owner : null, d.slot);
     }
 
     // 5. destinations anonymes
@@ -326,6 +355,21 @@ export class CardTable {
       this.clearIdentity(e);
       e.jitter = { dx: (Math.random() - 0.5) * 0.3, dz: (Math.random() - 0.5) * 0.2, yaw: (Math.random() - 0.5) * 0.5 };
       setZone(e, "discard", null, this.nextSlot("discard", null));
+    }
+    for (const [pid, def] of wonDeficit) {
+      for (let k = 0; k < def; k += 1) {
+        const e = this.takeFree(free, "won", pid);
+        if (!e) break;
+        this.clearIdentity(e);
+        e.jitter = { dx: (Math.random() - 0.5) * 0.03, dz: (Math.random() - 0.5) * 0.03, yaw: (Math.random() - 0.5) * 0.12 };
+        setZone(e, "won", pid, this.nextSlot("won", pid));
+      }
+    }
+    for (let k = 0; k < talonDeficit; k += 1) {
+      const e = this.takeFree(free, "talon", null);
+      if (!e) break;
+      this.clearIdentity(e);
+      setZone(e, "talon", null, this.nextSlot("talon", null));
     }
     for (const e of free) {
       this.clearIdentity(e);
@@ -385,7 +429,8 @@ export class CardTable {
       let dur = 0.6;
       let arc = 1.1;
       let sound = "flick";
-      if (to === "pile" || to === "table") { step = 0.14; dur = 0.55; arc = 0.9; sound = "flick"; }
+      if (to === "pile" || to === "table" || to === "trick") { step = 0.14; dur = 0.55; arc = 0.9; sound = "flick"; }
+      else if (to === "won") { step = 0.035; dur = 0.6; arc = 0.45; sound = "pickup"; }
       else if (to === "discard") { step = 0.025; dur = 0.55; arc = 0.5; sound = "pickup"; }
       else if (to === "reveal") { step = 0.16; dur = 0.7; arc = 0.5; sound = "flip"; }
       else if (to === "tray") { step = 0.09; dur = 0.75; arc = 1.2; sound = "flick"; }
@@ -402,17 +447,19 @@ export class CardTable {
   layoutAll() {
     const world = this.world;
     if (!world.dims) return;
-    const zones = { me: [], opp: new Map(), pile: [], reveal: [], tray: [], table: [], discard: [], deck: [], decor: [] };
+    const zones = { me: [], opp: new Map(), pile: [], reveal: [], tray: [], table: [], discard: [], deck: [], decor: [], trick: [], won: new Map(), talon: [], trump: [] };
     for (const e of this.entities) {
-      if (e.zone === "opp") {
-        if (!zones.opp.has(e.owner)) zones.opp.set(e.owner, []);
-        zones.opp.get(e.owner).push(e);
+      if (e.zone === "opp" || e.zone === "won") {
+        const m = zones[e.zone];
+        if (!m.has(e.owner)) m.set(e.owner, []);
+        m.get(e.owner).push(e);
       } else {
         (zones[e.zone] || zones.deck).push(e);
       }
     }
     Object.values(zones).forEach((z) => Array.isArray(z) && z.sort((a, b) => a.slot - b.slot));
     for (const list of zones.opp.values()) list.sort((a, b) => a.slot - b.slot);
+    for (const list of zones.won.values()) list.sort((a, b) => a.slot - b.slot);
 
     this.layoutHand(zones.me);
     for (const [pid, list] of zones.opp) this.layoutFan(pid, list);
@@ -423,6 +470,10 @@ export class CardTable {
     this.layoutDiscard(zones.discard);
     this.layoutDeck(zones.deck);
     this.layoutDecor(zones.decor);
+    this.layoutTrick(zones.trick);
+    for (const [pid, list] of zones.won) this.layoutWon(pid, list);
+    this.layoutTalon(zones.talon);
+    this.layoutTrump(zones.trump);
     this.zones = zones;
   }
 
@@ -479,7 +530,7 @@ export class CardTable {
         e.tPos.set(x * f, y * f, -d);
         e.tQuat.setFromEuler(new THREE.Euler(0, 0, rot));
         e.tScale = s * f;
-        e.emissive = 0.62;
+        e.emissive = this.dimIds && this.dimIds.has(e.id) ? 0.12 : 0.62;
       });
     }
     // Hauteur occupee par la main (carte soulevee comprise), en fraction
@@ -665,6 +716,87 @@ export class CardTable {
     });
   }
 
+  // Angle du siege d'un joueur (0 = moi, en bas).
+  phiOf(pid) {
+    return this.seatPhi.has(pid) ? this.seatPhi.get(pid) : 0;
+  }
+
+  // Pli de l'Ascenseur : chaque carte est posee face visible sur le tapis,
+  // devant le joueur qui l'a jouee. La carte gagnante brille.
+  layoutTrick(list) {
+    const p = this.world.anchors.pile;
+    const fr = this.world.feltRadius;
+    list.forEach((e, k) => {
+      const phi = this.phiOf(e.owner);
+      const r = 0.6;
+      e.space = "world";
+      e.tPos.set(p.x + Math.sin(phi) * fr.x * r * 0.92 + e.jitter.dx * 0.5, 0.016 + k * 0.006, p.z + Math.cos(phi) * fr.z * r + e.jitter.dz * 0.5);
+      e.tQuat.copy(yawQuat(phi * 0.25 + e.jitter.yaw * 0.6)).multiply(Q_FACE_UP);
+      e.tScale = 0.82;
+      e.emissive = e.win ? 0.42 : 0.26;
+      e.glowTarget = e.win ? 0.95 : 0;
+      e.glowColor.set(e.win ? 0x7dffa8 : 0xffd35a);
+    });
+  }
+
+  // Plis remportes : petit tas face cachee devant chaque joueur, un pli sur
+  // deux croise pour qu'on puisse les compter d'un coup d'oeil.
+  wonAnchor(pid) {
+    const p = this.world.anchors.pile;
+    const fr = this.world.feltRadius;
+    if (!this.seatPhi.has(pid)) return V(p.x + fr.x * 0.86, 0, p.z + fr.z * 0.92);
+    const phi = this.seatPhi.get(pid);
+    const s = this.world.seatPoint(phi, 0.8);
+    // entre le tapis et l'eventail du joueur, un peu decale sur le cote
+    const c = V(p.x + Math.sin(phi) * fr.x * 0.98, 0, p.z + Math.cos(phi) * fr.z * 0.98);
+    return c.lerp(s, 0.62);
+  }
+
+  layoutWon(pid, list) {
+    const a = this.wonAnchor(pid);
+    const per = this.trickSize || 4;
+    list.forEach((e, k) => {
+      const t = Math.floor(k / per);
+      e.space = "world";
+      e.tPos.set(a.x + e.jitter.dx, 0.014 + k * 0.0042, a.z + e.jitter.dz);
+      e.tQuat.copy(yawQuat((t % 2 ? 0.55 : -0.1) + e.jitter.yaw)).multiply(Q_FACE_DOWN);
+      e.tScale = 0.62;
+      e.emissive = 0.12;
+      e.glowTarget = 0;
+    });
+  }
+
+  layoutTalon(list) {
+    const tray = this.world.tray;
+    if (!tray) return list.forEach((e) => this.layoutHidden(e));
+    const rot = yawQuat(tray.rotation.y);
+    list.forEach((e, k) => {
+      const local = V(-0.24 + Math.sin(k * 1.7) * 0.01, 0.07 + k * 0.0035, Math.cos(k * 2.1) * 0.01).applyQuaternion(rot);
+      e.space = "world";
+      e.tPos.copy(tray.position).add(local);
+      e.tQuat.copy(rot).multiply(yawQuat(0.05)).multiply(Q_FACE_DOWN);
+      e.tScale = 0.6;
+      e.emissive = 0.1;
+      e.glowTarget = 0;
+    });
+  }
+
+  layoutTrump(list) {
+    const tray = this.world.tray;
+    if (!tray) return list.forEach((e) => this.layoutHidden(e));
+    const rot = yawQuat(tray.rotation.y);
+    list.forEach((e) => {
+      const local = V(0.26, 0.09, 0.02).applyQuaternion(rot);
+      e.space = "world";
+      e.tPos.copy(tray.position).add(local);
+      e.tQuat.copy(rot).multiply(yawQuat(-0.12)).multiply(Q_FACE_UP);
+      e.tScale = 0.64;
+      e.emissive = 0.4;
+      e.glowTarget = 0.45;
+      e.glowColor.set(0xffd35a);
+    });
+  }
+
   layoutHidden(e) {
     e.space = "world";
     e.tPos.set(0, -3, 0);
@@ -798,6 +930,15 @@ export class CardTable {
   // Pendant une revelation : halo vert pour les cartes sinceres, rouge pour les bluffs.
   setRevealClaim(rank) {
     this.revealClaim = rank;
+    this.layoutAll();
+  }
+
+  // Cartes de ma main assombries (ex : celles qu'on n'a pas le droit de jouer).
+  setDimmed(ids) {
+    const next = new Set(ids || []);
+    const same = this.dimIds && this.dimIds.size === next.size && [...next].every((id) => this.dimIds.has(id));
+    if (same) return;
+    this.dimIds = next;
     this.layoutAll();
   }
 
@@ -988,7 +1129,10 @@ export class CardTable {
       const e = this.press.entity;
       this.press = null;
       if (this.selected.has(e.id)) this.selected.delete(e.id);
-      else if (this.selected.size < this.maxSelect) this.selected.add(e.id);
+      else if (this.maxSelect === 1) {
+        this.selected.clear();
+        this.selected.add(e.id);
+      } else if (this.selected.size < this.maxSelect) this.selected.add(e.id);
       else if (this.hooks.onSelectLimit) this.hooks.onSelectLimit();
       if (this.hooks.onSelectionChange) this.hooks.onSelectionChange(this.getSelected());
       this.layoutAll();

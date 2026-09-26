@@ -4,8 +4,8 @@ Jeu de cartes en ligne entre amis, façon Kahoot : un code de table à 4 lettres
 (ou un QR code), pas d'inscription, tout se passe dans le navigateur — sur
 téléphone comme sur ordinateur.
 
-Deux jeux sont disponibles, choisis par le patron de la table dans le salon :
-**Le Menteur** et **Le Président**.
+Trois jeux sont disponibles, choisis par le patron de la table dans le salon :
+**Le Menteur**, **Le Président** et **L'Ascenseur**.
 
 Le jeu se joue autour d'une **table de bar en 3D** : plateau en
 lattes de bois, tapis de feutre, lampe suspendue, pintes sur leurs sous-bocks,
@@ -37,16 +37,33 @@ illustrées (figures dessinées, As ornés, dos au masque vénitien).
 - « Ou rien » : poser la même valeur que le joueur précédent oblige le suivant
   à poser cette valeur ou à passer.
 - Le 2 ferme le pli. Un carré (4 cartes identiques qui se suivent) ferme le pli.
-- Carré magique : n'importe qui peut compléter un carré au sommet du pli en
-  ajoutant 2 ou 3 cartes, même hors de son tour ; il rejoue ensuite.
-- Un carré se ferme toujours avec au moins 2 cartes : si 3 cartes identiques
-  sont au sommet, personne (même le joueur dont c'est le tour) ne peut poser
-  la 4e seule.
+- Carré magique : n'importe qui peut compléter un carré au sommet du pli avec
+  1, 2 ou 3 cartes, même hors de son tour ; il rejoue ensuite.
+- Sauf en triple : quand on joue des brelans, personne ne peut fermer le carré
+  avec la 4e carte seule.
 - Interdit de finir sur un 2 : on finit Trou du cul.
 - Première manche : la Dame de cœur ouvre. Ensuite, le Trou du cul ouvre.
 - Échange : le Trou du cul donne ses 2 meilleures cartes au Président qui en
   rend 2 au choix ; 1 carte entre Vice-trou et Vice-président (dès 4 joueurs).
 - Points : Président +2, Vice +1, Neutre 0, Vice-trou −1, Trou du cul −2.
+
+## Règles de l'Ascenseur (règles maison)
+
+- 3 à 8 joueurs. Le nombre de cartes change à chaque manche : par défaut on
+  monte de 1 jusqu'au maximum (52 ÷ nombre de joueurs) puis on redescend
+  jusqu'à 1. Dans le salon, le patron règle le maximum, le sens (monte puis
+  descend, descend puis monte, monte seulement, descend seulement) et le pas
+  (de 1 en 1 ou de 2 en 2).
+- On retourne la carte du dessus du talon : sa couleur est l'atout. S'il ne
+  reste aucune carte, la manche est sans atout.
+- Chacun annonce à son tour le nombre de plis qu'il pense faire, en commençant
+  à gauche du donneur. Le donneur, dernier à annoncer, ne peut pas faire tomber
+  le total juste.
+- Il faut fournir la couleur demandée si on l'a ; sinon on joue ce qu'on veut.
+- Le plus gros atout gagne le pli, sinon la plus forte carte de la couleur
+  demandée (2 < … < Roi < As). Le gagnant entame le pli suivant.
+- Points : pari réussi = 40 points par pli (20 points pour une annonce de 0
+  réussie) ; pari raté = −40 points par pli d'écart.
 
 ## Ce que fait l'interface
 
@@ -83,6 +100,7 @@ Test automatique de la logique serveur (4 robots jouent une partie complète) :
 ```bash
 npm run test:menteur
 npm run test:president
+npm run test:ascenseur
 ```
 
 ## Déploiement (Render)
@@ -100,12 +118,14 @@ server/
   deck.js             paquet de 52 cartes générique
   games/menteur.js    moteur du Menteur (règles, tours, événements numérotés)
   games/president.js  moteur du Président (plis, ou rien, carré magique, manches)
+  games/ascenseur.js  moteur de l'Ascenseur (annonces, atout, plis, scores)
 public/
   index.html          structure de la page
   css/main.css        thème bar : bois, laiton, ardoise
   js/main.js          chef d'orchestre : réseau, écrans, salon, tours
   js/games/menteur.js   interface propre au Menteur (annonce, révélation…)
   js/games/president.js interface propre au Président (pli, échange, scores)
+  js/games/ascenseur.js interface propre à l'Ascenseur (annonces, pli, réglages)
   js/cards/cardArt.js dessin procédural des cartes (canvas)
   js/scene/world.js   scène 3D : table, lampe, pintes, caméra adaptative
   js/scene/textures.js textures procédurales (bois, feutre, sous-bocks…)
@@ -117,6 +137,7 @@ public/
 test/
   simulate-menteur.js   simulation d'une partie complète de Menteur
   simulate-president.js 60 parties de Président avec vérification des règles
+  simulate-ascenseur.js 40 parties d'Ascenseur avec vérification des règles
 ```
 
 Le principe clé côté client : les 52 cartes existent en permanence dans la

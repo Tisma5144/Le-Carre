@@ -6,8 +6,9 @@ const { Server } = require("socket.io");
 const { RoomManager } = require("./rooms");
 const menteur = require("./games/menteur");
 const president = require("./games/president");
+const ascenseur = require("./games/ascenseur");
 
-const GAMES = { [menteur.id]: menteur, [president.id]: president };
+const GAMES = { [menteur.id]: menteur, [president.id]: president, [ascenseur.id]: ascenseur };
 
 const PORT = process.env.PORT || 3000;
 
@@ -35,6 +36,7 @@ function roomSummary(room) {
     code: room.code,
     status: room.status,
     gameType: room.gameType,
+    options: room.options || {},
     hostId: room.hostId,
     players: room.order.map((id) => ({
       id,
@@ -48,6 +50,30 @@ function roomSummary(room) {
 // Envoie a chaque joueur du salon son propre point de vue de la partie
 // (main cachee aux autres, etc). Si la partie n'a pas commence, tout le
 // monde recoit juste le resume du salon (lobby).
+// Certains jeux ont besoin d'une pause automatique (ex : laisser le pli
+// visible avant de le ramasser). Le moteur renvoie { schedule: ms } et le
+// serveur rappelle game.tick() apres ce delai.
+function scheduleTick(room, ms) {
+  clearTimeout(room.tickTimer);
+  const uid = room.game && room.game.uid;
+  room.tickTimer = setTimeout(() => {
+    const game = GAMES[room.gameType];
+    if (!room.game || room.game.uid !== uid || !game || !game.tick) return;
+    const r = game.tick(room.game);
+    if (r && r.ok) {
+      broadcastRoom(room);
+      if (r.schedule) scheduleTick(room, r.schedule);
+    }
+  }, ms);
+}
+
+function newGame(room) {
+  const game = GAMES[room.gameType];
+  clearTimeout(room.tickTimer);
+  const opts = (room.options || {})[room.gameType];
+  return game.createGame(room.order, opts);
+}
+
 function broadcastRoom(room) {
   const game = room.game ? GAMES[room.gameType] : null;
   for (const playerId of room.order) {
@@ -119,6 +145,24 @@ io.on("connection", (socket) => {
     broadcastRoom(room);
   });
 
+  // Reglages du jeu choisis par le patron (ex : manches de l'Ascenseur).
+  socket.on("room:setOptions", ({ options }, ack) => {
+    const link = rooms.getBySocket(socket.id);
+    if (!link) return ack && ack({ ok: false, error: "Salon introuvable." });
+    const { room, playerId } = link;
+    if (room.hostId !== playerId) return ack && ack({ ok: false, error: "Seul le patron règle la partie." });
+    if (room.status !== "lobby") return ack && ack({ ok: false, error: "Une partie est en cours." });
+    if (!options || typeof options !== "object") return ack && ack({ ok: false, error: "Réglages invalides." });
+    const clean = {};
+    for (const [k, v] of Object.entries(options).slice(0, 8)) {
+      if (["number", "string", "boolean"].includes(typeof v)) clean[k] = typeof v === "string" ? v.slice(0, 20) : v;
+    }
+    room.options = room.options || {};
+    room.options[room.gameType] = clean;
+    ack && ack({ ok: true });
+    broadcastRoom(room);
+  });
+
   socket.on("room:start", (_payload, ack) => {
     const link = rooms.getBySocket(socket.id);
     if (!link) return ack && ack({ ok: false, error: "Salon introuvable." });
@@ -130,7 +174,7 @@ io.on("connection", (socket) => {
     if (room.order.length < game.minPlayers) {
       return ack && ack({ ok: false, error: `Il faut au moins ${game.minPlayers} joueurs.` });
     }
-    room.game = game.createGame(room.order);
+    room.game = newGame(room);
     room.status = "playing";
     ack && ack({ ok: true });
     broadcastRoom(room);
@@ -142,6 +186,7 @@ io.on("connection", (socket) => {
     const { room, playerId } = link;
     if (room.hostId !== playerId) return ack && ack({ ok: false, error: "Seul l'hote peut relancer une partie." });
     room.status = "lobby";
+    clearTimeout(room.tickTimer);
     room.game = null;
     ack && ack({ ok: true });
     broadcastRoom(room);
@@ -163,7 +208,7 @@ io.on("connection", (socket) => {
     }
     for (const id of room.order) if (!connected.includes(id)) delete room.players[id];
     room.order = connected;
-    room.game = game.createGame(room.order);
+    room.game = newGame(room);
     room.status = "playing";
     ack && ack({ ok: true });
     broadcastRoom(room);
@@ -184,6 +229,7 @@ io.on("connection", (socket) => {
       if (!result.ok) return ack && ack({ ok: false, error: result.error });
       ack && ack({ ok: true });
       broadcastRoom(room);
+      if (result.schedule) scheduleTick(room, result.schedule);
     };
   }
 
@@ -194,6 +240,7 @@ io.on("connection", (socket) => {
   socket.on("game:pass", handleGameAction("pass", []));
   socket.on("game:give", handleGameAction("give", ["cardIds"]));
   socket.on("game:nextRound", handleGameAction("next_round", []));
+  socket.on("game:bid", handleGameAction("bid", ["bid"]));
 
   socket.on("disconnect", () => {
     const room = rooms.handleDisconnect(socket.id);

@@ -245,11 +245,18 @@ function findCards(hand, ids) {
   return out;
 }
 
+// Quand on joue en triple (brelans), on ne peut pas fermer le carre avec
+// la 4e carte seule. Dans tous les autres cas, 1, 2 ou 3 cartes suffisent.
+function singleCloseForbidden(state, cards) {
+  const top = topPlay(state);
+  return !!top && top.cards.length === 3 && cards.length === 1 && top.cards[0].rank === cards[0].rank;
+}
+
 // Verifie si la pose serait un "carre magique" : on complete le carre au
-// sommet du pli en ajoutant 2 ou 3 cartes (jamais une seule).
+// sommet du pli avec 1, 2 ou 3 cartes (sauf la 4e seule sur un triple).
 function isMagic(state, cards) {
   const run = topRun(state);
-  if (!run.rank || run.rank === "2" || cards.length < 2) return false;
+  if (!run.rank || run.rank === "2" || singleCloseForbidden(state, cards)) return false;
   return cards.every((c) => c.rank === run.rank) && run.count + cards.length === 4;
 }
 
@@ -264,11 +271,8 @@ function doPlay(state, playerId, action) {
   if (!cards.every((c) => c.rank === rank)) return { ok: false, error: "Les cartes posées doivent avoir la même valeur." };
 
   const top = topPlay(state);
-  // Un carre (quel qu'il soit) se ferme toujours avec au moins 2 cartes :
-  // si 3 cartes identiques sont au sommet, personne ne peut poser la 4e seule.
-  const run0 = topRun(state);
-  if (cards.length === 1 && run0.rank === rank && run0.count >= 3) {
-    return { ok: false, error: "Un carré se ferme avec au moins 2 cartes : impossible de poser la 4e seule." };
+  if (singleCloseForbidden(state, cards)) {
+    return { ok: false, error: "On joue en triple : impossible de fermer le carré avec la 4e carte seule." };
   }
   const magic = isMagic(state, cards);
   if (!magic) {
@@ -428,5 +432,5 @@ module.exports = {
   createGame,
   applyAction,
   getViewForPlayer,
-  _internals: { STRENGTH, topRun, isMagic }
+  _internals: { STRENGTH, topRun, isMagic, singleCloseForbidden }
 };

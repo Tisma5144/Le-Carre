@@ -36,8 +36,6 @@ function legalPlays(state, id) {
       if (cards.length < k) continue;
       if (state.ouRien && rank !== state.ouRien) continue;
       if (STRENGTH[rank] < STRENGTH[top.cards[0].rank]) continue;
-      const run = topRun(state);
-      if (k === 1 && run.rank === rank && run.count >= 3) continue; // jamais la 4e seule
       out.push(cards.slice(0, k));
     }
   }
@@ -51,7 +49,8 @@ function magicPlays(state) {
   const out = [];
   for (const id of state.seatOrder) {
     const cards = (state.hands[id] || []).filter((c) => c.rank === run.rank);
-    if (cards.length === need && need >= 2) out.push({ id, cards });
+    const top = state.trick[state.trick.length - 1];
+    if (cards.length === need && need > 0 && !(need === 1 && top && top.cards.length === 3)) out.push({ id, cards });
   }
   return out;
 }
@@ -188,69 +187,53 @@ for (let game = 0; game < 60; game += 1) {
 }
 
 {
-  // carre magique : 2 ou 3 cartes, jamais une seule
-  const s = president.createGame(["a", "b", "c"]);
+  // regles du carre : 1, 2 ou 3 cartes pour fermer, sauf la 4e seule en triple
   const card = (rank, suit) => ({ id: `${rank}-${suit}-${Math.random()}`, rank, suit });
-  s.hands = {
-    a: [card("7", "coeur"), card("R", "pique")],
-    b: [card("7", "pique"), card("9", "pique")],
-    c: [card("7", "trefle"), card("7", "carreau"), card("A", "pique")]
+  const setup = (hands) => {
+    const s = president.createGame(Object.keys(hands));
+    s.hands = hands;
+    s.seatOrder = Object.keys(hands);
+    s.currentTurn = s.seatOrder[0];
+    s.trick = [];
+    s.discardCount = 52 - Object.values(hands).reduce((n, h) => n + h.length, 0);
+    return s;
   };
-  s.seatOrder = ["a", "b", "c"];
-  s.currentTurn = "a";
-  s.trick = [];
-  s.discardCount = 52 - 7;
-  let r = president.applyAction(s, "a", { type: "play", cardIds: [s.hands.a[0].id] });
-  assert.ok(r.ok);
-  // c coupe avec deux 7 hors de son tour : carre magique (1 + 2 = 3, pas encore 4) -> refuse
-  r = president.applyAction(s, "c", { type: "play", cardIds: s.hands.c.filter((c) => c.rank === "7").map((c) => c.id) });
-  assert.ok(!r.ok, "1 + 2 cartes ne font pas un carre");
-  r = president.applyAction(s, "b", { type: "play", cardIds: [s.hands.b[0].id] });
-  assert.ok(r.ok, "7 sur 7");
-  // c complete avec deux 7 hors de son tour -> carre magique
-  const save = JSON.parse(JSON.stringify(s));
-  r = president.applyAction(s, "c", { type: "play", cardIds: s.hands.c.filter((c) => c.rank === "7").map((c) => c.id) });
-  assert.ok(r.ok, "carre magique avec 2 cartes");
-  assert.strictEqual(s.trick.length, 0, "le carre magique ferme le pli");
-  // meme situation mais avec seulement 3 sept poses et une seule carte en main
-  const t = save;
-  t.trick.push({ playerId: "c", cards: [t.hands.c[0]] });
-  t.hands.c = t.hands.c.slice(1);
-  t.currentTurn = "a";
-  t.lastPlayerId = "c";
-  const oneSeven = t.hands.c.find((c) => c.rank === "7");
-  t.hands.b.push(card("7", "x"));
-  const bSeven = t.hands.b.find((c) => c.rank === "7");
-  r = president.applyAction(t, "b", { type: "play", cardIds: [bSeven.id] });
-  assert.ok(!r.ok, "impossible de fermer un carre magique avec une seule carte hors de son tour");
-  assert.ok(oneSeven);
-}
+  const play = (s, id, rank, n) => president.applyAction(s, id, { type: "play", cardIds: s.hands[id].filter((c) => c.rank === rank).slice(0, n).map((c) => c.id) });
 
-{
-  // un carre ne se ferme jamais avec une seule carte, meme a son tour
-  const s = president.createGame(["a", "b", "c", "d"]);
-  const card = (rank, suit) => ({ id: `${rank}-${suit}-${Math.random()}`, rank, suit });
-  s.hands = {
-    a: [card("8", "coeur"), card("R", "pique")],
-    b: [card("8", "pique"), card("9", "pique")],
-    c: [card("8", "trefle"), card("A", "pique")],
-    d: [card("8", "carreau"), card("V", "pique")]
-  };
-  s.seatOrder = ["a", "b", "c", "d"];
-  s.currentTurn = "a";
-  s.trick = [];
-  s.discardCount = 52 - 8;
-  for (const id of ["a", "b", "c"]) {
-    const r = president.applyAction(s, id, { type: "play", cardIds: [s.hands[id][0].id] });
-    assert.ok(r.ok, r.error);
-  }
+  // A. en simple : la 4e carte seule ferme le carre, a son tour
+  let s = setup({ a: [card("8", "c"), card("R", "p")], b: [card("8", "p"), card("9", "p")], c: [card("8", "t"), card("A", "p")], d: [card("8", "k"), card("V", "p")] });
+  assert.ok(play(s, "a", "8", 1).ok && play(s, "b", "8", 1).ok && play(s, "c", "8", 1).ok);
+  let r = play(s, "d", "8", 1);
+  assert.ok(r.ok, "en simple, la 4e seule ferme le carre : " + r.error);
+  assert.strictEqual(s.trick.length, 0);
   assert.strictEqual(s.currentTurn, "d");
-  let r = president.applyAction(s, "d", { type: "play", cardIds: [s.hands.d[0].id] });
-  assert.ok(!r.ok, "la 4e carte seule est refusee, meme a son tour");
-  r = president.applyAction(s, "d", { type: "play", cardIds: [s.hands.d[1].id] });
-  assert.ok(!r.ok, "ou rien : le valet est refuse aussi");
-  r = president.applyAction(s, "d", { type: "pass" });
-  assert.ok(r.ok, "d doit passer");
+
+  // B. en simple : carre magique avec une seule carte, hors de son tour
+  s = setup({ a: [card("8", "c"), card("R", "p")], b: [card("8", "p"), card("9", "p")], c: [card("8", "t"), card("A", "p")], d: [card("8", "k"), card("V", "p")] });
+  assert.ok(play(s, "a", "8", 1).ok && play(s, "b", "8", 1).ok && play(s, "c", "8", 1).ok);
+  s.currentTurn = "d";
+  r = play(s, "a", "R", 1);
+  assert.ok(!r.ok, "hors de son tour, pas de roi");
+  s.hands.b.push(card("8", "x"));
+  r = play(s, "b", "8", 1);
+  assert.ok(r.ok, "carre magique a une carte hors de son tour : " + r.error);
+  assert.strictEqual(s.trick.length, 0, "le carre magique ferme le pli");
+  assert.strictEqual(s.currentTurn, "b");
+
+  // C. en paire : carre magique avec deux cartes
+  s = setup({ a: [card("7", "c"), card("7", "p"), card("R", "p")], b: [card("9", "p"), card("9", "c")], c: [card("7", "t"), card("7", "k"), card("A", "p")] });
+  assert.ok(play(s, "a", "7", 2).ok);
+  r = play(s, "c", "7", 2);
+  assert.ok(r.ok, "carre magique en paire : " + r.error);
+  assert.strictEqual(s.trick.length, 0);
+
+  // D. en triple : impossible de fermer avec la 4e seule, meme hors tour
+  s = setup({ a: [card("5", "c"), card("5", "p"), card("5", "t"), card("R", "p")], b: [card("5", "k"), card("9", "p")], c: [card("V", "t"), card("A", "p")] });
+  assert.ok(play(s, "a", "5", 3).ok);
+  assert.strictEqual(s.currentTurn, "b");
+  r = play(s, "b", "5", 1);
+  assert.ok(!r.ok, "en triple, la 4e seule est refusee");
+  assert.ok(!president._internals.isMagic(s, [s.hands.b[0]]), "pas de carre magique a une carte en triple");
 }
 
 console.log("SUCCES Président :", JSON.stringify(stats));

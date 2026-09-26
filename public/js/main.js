@@ -8,9 +8,10 @@ import { Sfx } from "./ui/audio.js";
 import { ensureCardFonts, createCardBackCanvas, createCardFaceCanvas } from "./cards/cardArt.js";
 import menteurUi from "./games/menteur.js";
 import presidentUi from "./games/president.js";
+import ascenseurUi from "./games/ascenseur.js";
 import qrcode from "/vendor/qrcode.mjs";
 
-const ADAPTERS = { menteur: menteurUi, president: presidentUi };
+const ADAPTERS = { menteur: menteurUi, president: presidentUi, ascenseur: ascenseurUi };
 const SESSION_KEY = "menteurSession";
 const SUIT_INDEX = { pique: 0, coeur: 1, trefle: 2, carreau: 3 };
 const $ = (id) => document.getElementById(id);
@@ -96,6 +97,7 @@ function buildCatalog() {
   CATALOG = [
     { ...pick(menteurUi), art: createCardBackCanvas(0.22).toDataURL() },
     { ...pick(presidentUi), art: createCardFaceCanvas({ rank: "R", suit: "coeur" }, 0.22).toDataURL() },
+    { ...pick(ascenseurUi), art: createCardFaceCanvas({ rank: "A", suit: "pique" }, 0.22).toDataURL() },
     { id: "custom", name: "Tes propres jeux", emoji: "🛠️", tagline: "Bientôt : invente tes règles", players: "", soon: true }
   ];
 }
@@ -206,11 +208,20 @@ function showLobby() {
   });
   const A = ADAPTERS[room.gameType] || menteurUi;
   $("btn-start").textContent = `Distribuer · ${A.name}`;
+  const optEl = $("game-options");
+  if (A.renderLobbyOptions) {
+    optEl.classList.remove("hidden");
+    A.renderLobbyOptions(optEl, room, isHost, app);
+  } else {
+    optEl.classList.add("hidden");
+    optEl.dataset.key = "";
+  }
   hud.syncPlates(seats.map((s) => ({ id: s.id, name: playerName(s.id), connected: isConnected(s.id), statusText: "s'installe" })));
 }
 
 function handOrder(hand) {
   if (!S.sorted || !S.adapter) return hand.map((c) => c.id);
+  if (S.adapter.sortHand) return S.adapter.sortHand(hand, S.game).map((c) => c.id);
   const idx = Object.fromEntries(S.adapter.rankOrder.map((r, i) => [r, i]));
   return hand.slice().sort((a, b) => idx[a.rank] - idx[b.rank] || SUIT_INDEX[a.suit] - SUIT_INDEX[b.suit]).map((c) => c.id);
 }
@@ -255,17 +266,17 @@ function showGame() {
       S.dealing = true;
       table.gatherToDeck(true);
       setTimeout(() => {
-        table.applyState(A.desired(S.game, handOrder(S.game.hand)), { deal: true });
+        table.applyState(A.desired(S.game, handOrder(S.game.hand), app), { deal: true });
         setTimeout(() => {
           S.dealing = false;
           refreshGameUi();
         }, 1900);
       }, 750);
     } else {
-      table.applyState(A.desired(g, handOrder(g.hand)), { instant: true });
+      table.applyState(A.desired(g, handOrder(g.hand), app), { instant: true });
     }
   } else if (!S.dealing) {
-    table.applyState(A.desired(g, handOrder(g.hand)));
+    table.applyState(A.desired(g, handOrder(g.hand), app));
   }
   processEvents(g);
   refreshGameUi();
@@ -297,7 +308,8 @@ function refreshGameUi() {
   } else if (g.phase === "finished" || g.phase === "round_end" || g.phase === "exchange") {
     world.hideToken();
   }
-  if (!table.drag) world.setPileRing(myTurn ? "idle" : "hidden");
+  const ring = myTurn && (!A.showRing || A.showRing(g));
+  if (!table.drag) world.setPileRing(ring ? "idle" : "hidden");
 
   if (myTurn && !S.wasMyTurn) {
     hud.showTurnBanner(A.turnBanner(g));

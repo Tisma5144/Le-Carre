@@ -10,7 +10,7 @@ export function rankBadgeUrl(rank) {
   return badgeCache.get(rank);
 }
 const miniCache = new Map();
-function miniCardUrl(card) {
+export function miniCardUrl(card) {
   const key = card.rank + card.suit;
   if (!miniCache.has(key)) miniCache.set(key, createCardFaceCanvas(card, 0.25).toDataURL());
   return miniCache.get(key);
@@ -214,13 +214,14 @@ export class Hud {
 
   // ------------------------------------------------------------ annonce / aide
 
-  setAnnounce({ label, value, sub, rank, key }) {
+  setAnnounce({ label, value, sub, rank, img, key }) {
     const box = $("announce");
     $("announce-label").textContent = label;
     $("announce-value").textContent = value;
     $("announce-sub").textContent = sub || "";
-    box.classList.toggle("no-card", !rank);
-    if (rank) $("announce-card").src = rankBadgeUrl(rank);
+    box.classList.toggle("no-card", !rank && !img);
+    const src = img || (rank ? rankBadgeUrl(rank) : null);
+    if (src && $("announce-card").getAttribute("src") !== src) $("announce-card").src = src;
     if (key !== this.lastAnnounceKey) {
       this.lastAnnounceKey = key;
       box.classList.remove("pulse");
@@ -262,6 +263,40 @@ export class Hud {
       b.addEventListener("click", it.onClick);
       bar.appendChild(b);
     });
+  }
+
+  // ------------------------------------------------------------ annonces (Ascenseur)
+
+  // Barre de choix d'un nombre (0..max) au-dessus de la main : on voit ses
+  // cartes pendant qu'on reflechit.
+  showBidBar({ title, sub, max, forbidden, key, onPick }) {
+    const bar = $("bid-bar");
+    $("bid-title").textContent = title;
+    $("bid-sub").innerHTML = sub || "";
+    if (bar.dataset.key !== key) {
+      bar.dataset.key = key;
+      const grid = $("bid-grid");
+      grid.innerHTML = "";
+      for (let i = 0; i <= max; i += 1) {
+        const b = document.createElement("button");
+        b.className = "bid-btn" + (i === forbidden ? " forbidden" : "");
+        b.textContent = String(i);
+        if (i === forbidden) {
+          b.disabled = true;
+          b.title = "Interdit : le total tomberait juste";
+        } else {
+          b.addEventListener("click", () => onPick(i));
+        }
+        grid.appendChild(b);
+      }
+    }
+    bar.classList.remove("hidden");
+  }
+
+  hideBidBar() {
+    const bar = $("bid-bar");
+    bar.classList.add("hidden");
+    bar.dataset.key = "";
   }
 
   // ------------------------------------------------------------ choix de valeur
