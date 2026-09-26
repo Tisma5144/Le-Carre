@@ -1,13 +1,14 @@
 {
   "name": "site-carte",
-  "version": "0.2.0",
-  "description": "Le Menteur en 3D - jeu de cartes en ligne entre amis, salons a code 4 lettres",
+  "version": "0.3.0",
+  "description": "Le Carre - bar a cartes en 3D (Menteur, President), salons a code 4 lettres",
   "main": "server/index.js",
   "type": "commonjs",
   "scripts": {
     "start": "node server/index.js",
     "dev": "node server/index.js",
-    "test:menteur": "node test/simulate-menteur.js"
+    "test:menteur": "node test/simulate-menteur.js",
+    "test:president": "node test/simulate-president.js"
   },
   "engines": {
     "node": ">=18"

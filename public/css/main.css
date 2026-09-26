@@ -855,3 +855,137 @@ body.shake #scene { animation: screenShake .45s; }
   .chalk-code { font-size: 42px; }
   .home-panel { padding: 12px 16px; }
 }
+
+/* ---------------------------------------------------------------- menu des jeux (salon) */
+
+.lobby-games { margin-top: 14px; }
+.game-menu { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.game-tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 12px 8px 8px;
+  border-radius: 12px;
+  border: 2px dashed rgba(255,255,255,.25);
+  background: rgba(255,255,255,.04);
+  color: #f3f1e8;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .15s, border-color .2s, background .2s;
+  font-family: "Cabin Sketch", "Nunito", sans-serif;
+}
+.game-tile:disabled { cursor: default; }
+.game-tile:not(:disabled):hover { transform: translateY(-2px); border-color: rgba(243,210,122,.7); }
+.game-tile.selected {
+  border: 2px solid #f3d27a;
+  background: rgba(243,210,122,.12);
+  box-shadow: 0 0 0 3px rgba(243,210,122,.18), 0 0 22px rgba(243,210,122,.25);
+}
+.game-tile.soon { opacity: .45; }
+.gt-art { flex: 0 0 auto; width: 42px; height: 59px; display: grid; place-items: center; }
+.gt-art img { width: 42px; height: 59px; border-radius: 5px; box-shadow: 0 3px 8px rgba(0,0,0,.5); transform: rotate(-4deg); }
+.gt-art i { font-style: normal; font-size: 30px; }
+.gt-text { display: flex; flex-direction: column; min-width: 0; }
+.gt-text b { font: 700 22px "Cabin Sketch", sans-serif; line-height: 1.05; }
+.gt-text small { font: 400 15px "Cabin Sketch", sans-serif; opacity: .85; }
+.gt-text em { font: 400 13px "Cabin Sketch", sans-serif; opacity: .6; font-style: normal; }
+.gt-check {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #f3d27a;
+  color: #3a2206;
+  font: 900 15px "Nunito", sans-serif;
+}
+.lobby-players-title { margin-top: 14px; }
+
+/* ---------------------------------------------------------------- bouton "je passe" */
+
+.pass-btn {
+  pointer-events: auto;
+  position: absolute;
+  left: 50%;
+  bottom: calc(8px + var(--safe-b));
+  z-index: 2;
+  width: 160px;
+  height: 62px;
+  margin-left: -80px;
+  border-radius: 50%;
+  border: 4px solid #24110a;
+  background: linear-gradient(rgba(255,255,255,.08), rgba(0,0,0,.35)), var(--wood-img) center / 300px, #6b4426;
+  box-shadow: 0 6px 0 #1e0d05, 0 12px 26px rgba(0,0,0,.6), inset 0 2px 0 rgba(255,220,170,.35);
+  color: #fbeed4;
+  font: 900 italic 21px "Playfair Display", Georgia, serif;
+  text-shadow: 0 2px 2px rgba(0,0,0,.7);
+  cursor: pointer;
+}
+.pass-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #1e0d05, 0 6px 14px rgba(0,0,0,.6); }
+
+/* ---------------------------------------------------------------- echange (President) */
+
+.exchange {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--hand-h) + 52px);
+  z-index: 6;
+  transform: translateX(-50%);
+  width: min(92vw, 440px);
+  pointer-events: none;
+  animation: popIn .35s cubic-bezier(.2,1.4,.4,1);
+}
+.exchange-card { border-radius: 14px; padding: 10px 16px; text-align: center; }
+.exchange-title { font: 900 italic 21px "Playfair Display", Georgia, serif; color: #ffe39a; }
+.exchange-text { font: 800 13.5px "Nunito", sans-serif; margin-top: 2px; }
+
+/* ---------------------------------------------------------------- fin de manche */
+
+.end-list .who small { display: block; font: 700 12px "Nunito", sans-serif; opacity: .75; }
+.end-panel #btn-end-alt { margin-top: 8px; }
+.rules-game { font: 700 26px "Cabin Sketch", sans-serif; margin: 14px 0 4px; color: #ffe39a; }
+.rules-game:first-child { margin-top: 0; }
+
+@media (max-height: 520px) {
+  .pass-btn { width: 140px; height: 52px; margin-left: -70px; font-size: 18px; bottom: calc(6px + var(--safe-b)); }
+  .lobby-panel > .lobby-games { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; }
+  .lobby-panel > .lobby-players-title, .lobby-panel > .chalk-list { grid-column: 2; grid-row: auto; }
+  .gt-text b { font-size: 18px; }
+  .exchange { bottom: calc(var(--hand-h) + 44px); }
+}
+
+/* salon sur grand ecran : deux colonnes */
+@media (min-width: 900px) and (min-height: 521px) {
+  .lobby-panel { width: min(820px, 100%); display: grid; grid-template-columns: 1fr 1fr; column-gap: 26px; align-items: start; }
+  .lobby-panel > .lobby-head, .lobby-panel > #btn-share, .lobby-panel > .lobby-players-title, .lobby-panel > .chalk-list,
+  .lobby-panel > #lobby-status, .lobby-panel > #btn-start, .lobby-panel > #btn-leave { grid-column: 1; }
+  .lobby-panel > .lobby-games { grid-column: 2; grid-row: 1 / span 7; margin-top: 0; }
+}
+
+/* rail sur telephone etroit : on compacte la gauche pour laisser la place au bouton central */
+.my-plate .avatar { position: relative; }
+.me-count { display: none; }
+@media (max-width: 480px) {
+  .me-text { display: none; }
+  .me-count {
+    display: block;
+    position: absolute;
+    right: -8px;
+    bottom: -6px;
+    min-width: 20px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--gold);
+    color: #3a2206;
+    font: 900 11px/18px "Nunito", sans-serif;
+    text-align: center;
+    border: 1px solid #6b470f;
+  }
+  .rail .pill { padding: 7px 9px; font-size: 11px; }
+  .play-btn { padding: 11px 10px; font-size: 11.5px; max-width: 118px; white-space: normal; line-height: 1.15; }
+}

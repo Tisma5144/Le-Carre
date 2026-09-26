@@ -5,8 +5,9 @@ const { Server } = require("socket.io");
 
 const { RoomManager } = require("./rooms");
 const menteur = require("./games/menteur");
+const president = require("./games/president");
 
-const GAMES = { [menteur.id]: menteur };
+const GAMES = { [menteur.id]: menteur, [president.id]: president };
 
 const PORT = process.env.PORT || 3000;
 
@@ -105,6 +106,19 @@ io.on("connection", (socket) => {
     ack && ack({ ok: true });
   });
 
+  // Le patron choisit le jeu dans le salon (menu de selection).
+  socket.on("room:setGame", ({ gameType }, ack) => {
+    const link = rooms.getBySocket(socket.id);
+    if (!link) return ack && ack({ ok: false, error: "Salon introuvable." });
+    const { room, playerId } = link;
+    if (room.hostId !== playerId) return ack && ack({ ok: false, error: "Seul le patron choisit le jeu." });
+    if (room.status !== "lobby") return ack && ack({ ok: false, error: "Une partie est en cours." });
+    if (!GAMES[gameType]) return ack && ack({ ok: false, error: "Jeu inconnu." });
+    room.gameType = gameType;
+    ack && ack({ ok: true });
+    broadcastRoom(room);
+  });
+
   socket.on("room:start", (_payload, ack) => {
     const link = rooms.getBySocket(socket.id);
     if (!link) return ack && ack({ ok: false, error: "Salon introuvable." });
@@ -166,7 +180,7 @@ io.on("connection", (socket) => {
       const game = GAMES[room.gameType];
       const action = { type: actionType };
       for (const field of extraFields) action[field] = payload[field];
-      const result = game.applyAction(room.game, playerId, action);
+      const result = game.applyAction(room.game, playerId, action, { isHost: room.hostId === playerId });
       if (!result.ok) return ack && ack({ ok: false, error: result.error });
       ack && ack({ ok: true });
       broadcastRoom(room);
@@ -177,6 +191,9 @@ io.on("connection", (socket) => {
   socket.on("game:quadDiscard", handleGameAction("quad_discard", ["rank"]));
   socket.on("game:accuse", handleGameAction("accuse", []));
   socket.on("game:pickup", handleGameAction("pickup", []));
+  socket.on("game:pass", handleGameAction("pass", []));
+  socket.on("game:give", handleGameAction("give", ["cardIds"]));
+  socket.on("game:nextRound", handleGameAction("next_round", []));
 
   socket.on("disconnect", () => {
     const room = rooms.handleDisconnect(socket.id);
@@ -185,5 +202,5 @@ io.on("connection", (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Site carte en ecoute sur le port ${PORT}`);
+  console.log(`Le Carre en ecoute sur le port ${PORT}`);
 });

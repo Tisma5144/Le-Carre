@@ -157,14 +157,24 @@ export class CardTable {
 
   // ------------------------------------------------------------ reconciliation
 
-  computeDesired(view, handOrder) {
-    const byId = new Map(view.hand.map((c) => [c.id, c]));
-    const me = handOrder.map((id) => byId.get(id)).filter(Boolean);
-    const reveal = view.phase === "reveal_pending" && view.pendingReveal ? view.pendingReveal.cards : [];
-    const opp = new Map(view.opponents.map((o) => [o.id, o.cardCount]));
-    const tray = [];
-    view.removedQuads.forEach((q, qi) => q.cards.forEach((c, j) => tray.push({ card: c, quad: qi, j, owner: q.playerId })));
-    return { me, reveal, opp, pile: Math.max(0, view.pileCount - reveal.length), tray };
+  // Chaque jeu fournit un "desir" : quelles cartes dans quelles zones.
+  //   me: [cartes]           ma main (ordre d'affichage)
+  //   opp: Map(id -> n)      nombre de cartes de chaque adversaire
+  //   pile: n                cartes face cachee au centre (Menteur)
+  //   reveal: [cartes]       cartes retournees en grand (Menteur)
+  //   tray: [{card,quad,j}]  cartes sorties (carres du Menteur)
+  //   table: [{card,play,j}] pli face visible au centre (President)
+  //   discard: n             defausse face cachee (President)
+  normalizeDesired(d) {
+    return {
+      me: d.me || [],
+      opp: d.opp || new Map(),
+      pile: d.pile || 0,
+      reveal: d.reveal || [],
+      tray: d.tray || [],
+      table: d.table || [],
+      discard: d.discard || 0
+    };
   }
 
   nextSlot(zone, owner) {
@@ -180,7 +190,18 @@ export class CardTable {
         if (z === "reveal") return 0;
         if (z === "pile") return 1 - e.slot * 0.0001;
         if (z === "deck") return 2;
-        return 3;
+        if (z === "discard") return 2.5 - e.slot * 0.0001;
+        if (destZone === "me" && z === "opp") return 3;
+        return 4;
+      }
+      if (destZone === "table") {
+        if (z === "me" || z === "opp") return 0;
+        return 2;
+      }
+      if (destZone === "discard") {
+        if (z === "table") return 0 - e.slot * 0.0001;
+        if (z === "me" || z === "opp") return 1;
+        return 2;
       }
       if (destZone === "reveal") {
         if (z === "pile") return 0 - e.slot * 0.0001;
@@ -213,8 +234,8 @@ export class CardTable {
     return free.splice(best, 1)[0];
   }
 
-  applyState(view, { handOrder, deal = false, instant = false } = {}) {
-    const desired = this.computeDesired(view, handOrder || view.hand.map((c) => c.id));
+  applyState(rawDesired, { deal = false, instant = false } = {}) {
+    const desired = this.normalizeDesired(rawDesired);
     const E = this.entities;
     const assigned = new Set();
     const moves = [];
@@ -236,6 +257,7 @@ export class CardTable {
     desired.me.forEach((c, i) => knownDest.push({ zone: "me", card: c, slot: i }));
     desired.reveal.forEach((c, i) => knownDest.push({ zone: "reveal", card: c, slot: i }));
     desired.tray.forEach((t, i) => knownDest.push({ zone: "tray", card: t.card, slot: i, quad: t.quad, j: t.j, owner: t.owner }));
+    desired.table.forEach((t, i) => knownDest.push({ zone: "table", card: t.card, slot: i, quad: t.play, j: t.j, owner: t.owner, size: t.size }));
     const pendingKnown = [];
     for (const d of knownDest) {
       const e = byId.get(d.card.id);
@@ -243,6 +265,7 @@ export class CardTable {
         e.slot = d.slot;
         e.quad = d.quad || 0;
         e.qj = d.j || 0;
+        e.qsize = d.size || 1;
         assigned.add(e);
       } else {
         pendingKnown.push(d);
@@ -258,6 +281,7 @@ export class CardTable {
     const oppDeficit = new Map();
     for (const [pid, n] of desired.opp) oppDeficit.set(pid, keep("opp", pid, n));
     const pileDeficit = keep("pile", null, desired.pile);
+    const discardDeficit = keep("discard", null, desired.discard);
 
     // 3. cartes libres (celles qui doivent bouger)
     const free = E.filter((e) => !assigned.has(e));
@@ -275,6 +299,8 @@ export class CardTable {
       this.setCard(e, d.card);
       e.quad = d.quad || 0;
       e.qj = d.j || 0;
+      e.qsize = d.size || 1;
+      if (d.zone === "table") e.jitter = { dx: (Math.random() - 0.5) * 0.08, dz: (Math.random() - 0.5) * 0.08, yaw: (Math.random() - 0.5) * 0.18 };
       setZone(e, d.zone, null, d.slot);
     }
 
@@ -294,6 +320,13 @@ export class CardTable {
       e.jitter = { dx: (Math.random() - 0.5) * 0.7, dz: (Math.random() - 0.5) * 0.55, yaw: (Math.random() - 0.5) * 1.6 };
       setZone(e, "pile", null, this.nextSlot("pile", null));
     }
+    for (let k = 0; k < discardDeficit; k += 1) {
+      const e = this.takeFree(free, "discard", null);
+      if (!e) break;
+      this.clearIdentity(e);
+      e.jitter = { dx: (Math.random() - 0.5) * 0.3, dz: (Math.random() - 0.5) * 0.2, yaw: (Math.random() - 0.5) * 0.5 };
+      setZone(e, "discard", null, this.nextSlot("discard", null));
+    }
     for (const e of free) {
       this.clearIdentity(e);
       setZone(e, "deck", null, this.nextSlot("deck", null));
@@ -304,7 +337,7 @@ export class CardTable {
       E.forEach((e) => this.snap(e));
       return moves;
     }
-    this.scheduleFlights(moves, { deal, seatOrder: view.seatOrder });
+    this.scheduleFlights(moves, { deal });
     return moves;
   }
 
@@ -352,7 +385,8 @@ export class CardTable {
       let dur = 0.6;
       let arc = 1.1;
       let sound = "flick";
-      if (to === "pile") { step = 0.14; dur = 0.55; arc = 0.9; sound = "flick"; }
+      if (to === "pile" || to === "table") { step = 0.14; dur = 0.55; arc = 0.9; sound = "flick"; }
+      else if (to === "discard") { step = 0.025; dur = 0.55; arc = 0.5; sound = "pickup"; }
       else if (to === "reveal") { step = 0.16; dur = 0.7; arc = 0.5; sound = "flip"; }
       else if (to === "tray") { step = 0.09; dur = 0.75; arc = 1.2; sound = "flick"; }
       else if (to === "me" && (from === "pile" || from === "reveal")) { step = 0.05; dur = 0.62; arc = 0.25; sound = "pickup"; }
@@ -368,7 +402,7 @@ export class CardTable {
   layoutAll() {
     const world = this.world;
     if (!world.dims) return;
-    const zones = { me: [], opp: new Map(), pile: [], reveal: [], tray: [], deck: [], decor: [] };
+    const zones = { me: [], opp: new Map(), pile: [], reveal: [], tray: [], table: [], discard: [], deck: [], decor: [] };
     for (const e of this.entities) {
       if (e.zone === "opp") {
         if (!zones.opp.has(e.owner)) zones.opp.set(e.owner, []);
@@ -385,6 +419,8 @@ export class CardTable {
     this.layoutPile(zones.pile);
     this.layoutReveal(zones.reveal);
     this.layoutTray(zones.tray);
+    this.layoutTable(zones.table);
+    this.layoutDiscard(zones.discard);
     this.layoutDeck(zones.deck);
     this.layoutDecor(zones.decor);
     this.zones = zones;
@@ -451,20 +487,33 @@ export class CardTable {
     const da = m > 1 ? Math.min(0.13, 1.25 / m) : 0;
     const radius = CARD_WORLD_H * s * 1.15;
     const seatQ = yawQuat(yaw).multiply(new THREE.Quaternion().setFromAxisAngle(V(1, 0, 0), tilt));
-    const lift = CARD_WORLD_H * s * 0.5 * Math.cos(tilt) + 0.06;
     const glow = this.turnGlowOwner === pid;
+    const qa = new THREE.Quaternion();
+    const corner = V();
+    let minY = Infinity;
+    const hw = (CARD_WORLD_W * s) / 2;
+    const hh = (CARD_WORLD_H * s) / 2;
     list.forEach((e, j) => {
       const a = (j - (m - 1) / 2) * da;
       const local = V(Math.sin(a) * radius, Math.cos(a) * radius - radius, -j * 0.0035);
       local.applyQuaternion(seatQ);
       e.space = "world";
-      e.tPos.copy(base).add(local).add(V(0, lift, 0));
-      e.tQuat.copy(seatQ).multiply(new THREE.Quaternion().setFromAxisAngle(V(0, 0, 1), -a));
+      e.tPos.copy(base).add(local);
+      qa.setFromAxisAngle(V(0, 0, 1), -a);
+      e.tQuat.copy(seatQ).multiply(qa);
+      // point le plus bas de la carte (ses 4 coins)
+      for (const [cx, cy] of [[-hw, -hh], [hw, -hh], [-hw, hh], [hw, hh]]) {
+        corner.set(cx, cy, 0).applyQuaternion(e.tQuat).add(e.tPos);
+        minY = Math.min(minY, corner.y);
+      }
       e.tScale = s;
       e.emissive = 0.14;
       e.glowTarget = glow ? 0.55 : 0;
       e.glowColor.set(0xffc94d);
     });
+    // on souleve tout l'eventail pour qu'aucune carte ne traverse le plateau
+    const lift = 0.05 - minY;
+    list.forEach((e) => { e.tPos.y += lift; });
   }
 
   layoutPile(list) {
@@ -514,6 +563,45 @@ export class CardTable {
       e.tQuat.copy(rot).multiply(yawQuat(-0.12 + e.qj * 0.08)).multiply(Q_FACE_UP);
       e.tScale = 0.5;
       e.emissive = 0.2;
+      e.glowTarget = 0;
+    });
+  }
+
+  // Pli du President : chaque pose est un petit eventail face visible, les
+  // poses precedentes restent visibles en dessous, decalees vers le fond.
+  layoutTable(list) {
+    const p = this.world.anchors.pile;
+    let maxPlay = 0;
+    for (const e of list) maxPlay = Math.max(maxPlay, e.quad);
+    list.forEach((e) => {
+      const age = maxPlay - e.quad;
+      const m = e.qsize || 1;
+      const side = e.quad % 2 === 0 ? 1 : -1;
+      const off = Math.min(age, 4);
+      const x = p.x + (e.qj - (m - 1) / 2) * 0.24 + side * off * 0.09 + e.jitter.dx;
+      const z = p.z - off * 0.2 + 0.1 + e.jitter.dz;
+      const yaw = (e.qj - (m - 1) / 2) * -0.1 + side * off * 0.07 + e.jitter.yaw;
+      e.space = "world";
+      e.tPos.set(x, 0.016 + e.quad * 0.01 + e.qj * 0.002, z);
+      e.tQuat.copy(yawQuat(yaw)).multiply(Q_FACE_UP);
+      e.tScale = 1;
+      e.emissive = age === 0 ? 0.3 : 0.14;
+      e.glowTarget = age === 0 ? 0.35 : 0;
+      e.glowColor.set(0xffd35a);
+    });
+  }
+
+  layoutDiscard(list) {
+    const tray = this.world.tray;
+    if (!tray) return;
+    const rot = yawQuat(tray.rotation.y);
+    list.forEach((e, k) => {
+      const local = V(e.jitter.dx, 0.07 + k * 0.0035, e.jitter.dz).applyQuaternion(rot);
+      e.space = "world";
+      e.tPos.copy(tray.position).add(local);
+      e.tQuat.copy(rot).multiply(yawQuat(e.jitter.yaw)).multiply(Q_FACE_DOWN);
+      e.tScale = 0.62;
+      e.emissive = 0.1;
       e.glowTarget = 0;
     });
   }
@@ -571,8 +659,8 @@ export class CardTable {
     }
     if (this.pendingDropIds.has(e.id) && e.zone === "me") {
       const p = this.world.anchors.pile;
-      outPos.set(p.x + (e.slot % 3) * 0.08 - 0.08, 0.55 + (e.slot % 3) * 0.02, p.z);
-      outQuat.copy(yawQuat(0.1)).multiply(Q_FACE_DOWN);
+      outPos.set(p.x + (e.slot % 4) * 0.1 - 0.12, 0.55 + (e.slot % 4) * 0.02, p.z);
+      outQuat.copy(yawQuat(0.1)).multiply(this.pendingFaceUp ? Q_FACE_UP : Q_FACE_DOWN);
       return;
     }
     if (e.space === "camera") {

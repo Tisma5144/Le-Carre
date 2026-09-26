@@ -341,7 +341,7 @@ function drawAce(ctx, card, W, H) {
     ctx.font = `700 18px ${INDEX_FONT}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("LE MENTEUR", 0, 1);
+    ctx.fillText("LE CARRÉ", 0, 1);
     ctx.restore();
 
     // arabesque dans le pique
@@ -1186,11 +1186,11 @@ export function drawCardBack(ctx, W = CARD_W, H = CARD_H) {
   ctx.font = `700 17px ${INDEX_FONT}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("MENTEUR", cx, cy + 82);
+  ctx.fillText("LE CARRÉ", cx, cy + 82);
   ctx.save();
   ctx.translate(cx, cy - 82);
   ctx.rotate(Math.PI);
-  ctx.fillText("MENTEUR", 0, 0);
+  ctx.fillText("LE CARRÉ", 0, 0);
   ctx.restore();
 
   ctx.restore();

@@ -1,10 +1,13 @@
-# Le Menteur — Site Carte (version 3D)
+# Le Carré — bar à cartes en 3D
 
 Jeu de cartes en ligne entre amis, façon Kahoot : un code de table à 4 lettres
 (ou un QR code), pas d'inscription, tout se passe dans le navigateur — sur
 téléphone comme sur ordinateur.
 
-Depuis la v0.2, le jeu se joue autour d'une **table de bar en 3D** : plateau en
+Deux jeux sont disponibles, choisis par le patron de la table dans le salon :
+**Le Menteur** et **Le Président**.
+
+Le jeu se joue autour d'une **table de bar en 3D** : plateau en
 lattes de bois, tapis de feutre, lampe suspendue, pintes sur leurs sous-bocks,
 jeton de laiton qui indique à qui c'est le tour, et des cartes entièrement
 illustrées (figures dessinées, As ornés, dos au masque vénitien).
@@ -24,6 +27,23 @@ illustrées (figures dessinées, As ornés, dos au masque vénitien).
 - Un carré (4 cartes identiques) peut être sorti du jeu **à tout moment** ; ça
   ne compte jamais comme un tour.
 - Le premier à vider sa main gagne ; le dernier avec des cartes… paie sa tournée.
+
+## Règles du Président (règles maison)
+
+- 52 cartes distribuées en entier (3 à 8 joueurs). Ordre : 3 < 4 < … < Roi < As < 2.
+- On pose 1 à 4 cartes de même valeur ; pour suivre, même nombre de cartes,
+  valeur égale ou supérieure. Sinon on passe, et on est hors du pli jusqu'à ce
+  qu'il soit ramassé.
+- « Ou rien » : poser la même valeur que le joueur précédent oblige le suivant
+  à poser cette valeur ou à passer.
+- Le 2 ferme le pli. Un carré (4 cartes identiques qui se suivent) ferme le pli.
+- Carré magique : n'importe qui peut compléter un carré au sommet du pli, même
+  hors de son tour ; il rejoue ensuite.
+- Interdit de finir sur un 2 : on finit Trou du cul.
+- Première manche : la Dame de cœur ouvre. Ensuite, le Trou du cul ouvre.
+- Échange : le Trou du cul donne ses 2 meilleures cartes au Président qui en
+  rend 2 au choix ; 1 carte entre Vice-trou et Vice-président (dès 4 joueurs).
+- Points : Président +2, Vice +1, Neutre 0, Vice-trou −1, Trou du cul −2.
 
 ## Ce que fait l'interface
 
@@ -59,6 +79,7 @@ Test automatique de la logique serveur (4 robots jouent une partie complète) :
 
 ```bash
 npm run test:menteur
+npm run test:president
 ```
 
 ## Déploiement (Render)
@@ -75,10 +96,13 @@ server/
   rooms.js            salons, codes à 4 lettres, reconnexion
   deck.js             paquet de 52 cartes générique
   games/menteur.js    moteur du Menteur (règles, tours, événements numérotés)
+  games/president.js  moteur du Président (plis, ou rien, carré magique, manches)
 public/
   index.html          structure de la page
   css/main.css        thème bar : bois, laiton, ardoise
-  js/main.js          chef d'orchestre : réseau, écrans, tours, révélation
+  js/main.js          chef d'orchestre : réseau, écrans, salon, tours
+  js/games/menteur.js   interface propre au Menteur (annonce, révélation…)
+  js/games/president.js interface propre au Président (pli, échange, scores)
   js/cards/cardArt.js dessin procédural des cartes (canvas)
   js/scene/world.js   scène 3D : table, lampe, pintes, caméra adaptative
   js/scene/textures.js textures procédurales (bois, feutre, sous-bocks…)
@@ -88,7 +112,8 @@ public/
   js/ui/audio.js      bruitages synthétisés (aucun fichier audio)
   dev/cards.html      planche d'aperçu des cartes
 test/
-  simulate-menteur.js simulation d'une partie complète
+  simulate-menteur.js   simulation d'une partie complète de Menteur
+  simulate-president.js 60 parties de Président avec vérification des règles
 ```
 
 Le principe clé côté client : les 52 cartes existent en permanence dans la
@@ -99,6 +124,7 @@ découlent donc de l'état du jeu, ce qui les rend robustes aux reconnexions.
 
 ## Pistes
 
-- Autres jeux prédéfinis (Président, Bataille…) en réutilisant la table 3D.
+- Ajouter un jeu : un moteur dans `server/games/`, un adaptateur dans
+  `public/js/games/`, et une ligne dans le catalogue de `main.js`.
 - Éditeur de jeux personnalisés.
 - Remplacer automatiquement un joueur qui quitte en pleine partie.

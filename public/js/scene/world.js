@@ -323,7 +323,7 @@ export class World {
 
   rebuildProps() {
     this.propsGroup.clear();
-    const labels = [["CHEZ", "MATHIS"], ["CHEZ", "MATTEO"], ["LE", "MENTEUR"], ["BAR", "DU COIN"]];
+    const labels = [["CHEZ", "MATHIS"], ["CHEZ", "MATTEO"], ["LE", "CARRÉ"], ["BAR", "DU COIN"]];
     this.opponentPhis.forEach((phi, i) => {
       if (i % 2 === 1 && this.opponentPhis.length > 4) return;
       const side = phi < Math.PI ? 1 : -1;

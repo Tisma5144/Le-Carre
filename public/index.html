@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <meta name="theme-color" content="#1a0e07" />
-<title>Le Menteur · Site Carte</title>
+<title>Le Carré · bar à cartes</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎭</text></svg>" />
 <link rel="stylesheet" href="/vendor/fonts/playfair-display/latin-700.css" />
 <link rel="stylesheet" href="/vendor/fonts/playfair-display/latin-900.css" />
@@ -33,9 +33,9 @@
   <div class="sign">
     <div class="sign-chains"><i></i><i></i></div>
     <div class="sign-board">
-      <div class="sign-top">Site Carte · Bar à bluff</div>
-      <h1 class="sign-title">Le Menteur</h1>
-      <div class="sign-sub">Pose. Bluffe. Démasque tes potes.</div>
+      <div class="sign-top">Bar à cartes · depuis 2026</div>
+      <h1 class="sign-title">Le Carré</h1>
+      <div class="sign-sub">Pas de paquet ? Pas de problème. Sortez vos téléphones.</div>
     </div>
   </div>
 
@@ -66,7 +66,11 @@
       </div>
     </div>
     <button id="btn-share" class="btn wood small">📲 Envoyer le lien aux potes</button>
-    <div class="chalk-small lobby-sub">Autour de la table</div>
+    <div class="lobby-games">
+      <div id="game-menu-hint" class="chalk-small lobby-sub">Choisis le jeu de la soirée :</div>
+      <div id="game-menu" class="game-menu"></div>
+    </div>
+    <div class="chalk-small lobby-sub lobby-players-title">Autour de la table</div>
     <ul id="lobby-players" class="chalk-list"></ul>
     <p id="lobby-status" class="chalk-small"></p>
     <button id="btn-start" class="btn brass hidden">Distribuer les cartes</button>
@@ -109,9 +113,17 @@
     </div>
   </div>
   <button id="btn-liar" class="liar-btn hidden" aria-label="Crier menteur">MENTEUR&nbsp;!</button>
+  <button id="btn-pass" class="pass-btn hidden">Je passe</button>
 </section>
 
 <!-- Choix de la valeur annoncee -->
+<div id="exchange" class="exchange hidden">
+  <div class="exchange-card wood-panel">
+    <div id="exchange-title" class="exchange-title">Échange des cartes</div>
+    <div id="exchange-text" class="exchange-text"></div>
+  </div>
+</div>
+
 <div id="rank-picker" class="overlay hidden">
   <div class="panel wood-panel picker">
     <h2>Tu annonces…</h2>
@@ -135,9 +147,10 @@
 <!-- Fin de partie -->
 <div id="end" class="overlay hidden">
   <div class="panel wood-panel end-panel">
-    <div class="end-title">Fin de la partie</div>
+    <div id="end-title" class="end-title">Fin de la partie</div>
     <ol id="end-list" class="end-list"></ol>
     <button id="btn-again" class="btn brass hidden">🔁 Revanche !</button>
+    <button id="btn-end-alt" class="btn wood hidden">🎲 Changer de jeu</button>
     <p id="end-wait" class="end-wait"></p>
     <button id="btn-end-leave" class="text-link light">Quitter la table</button>
   </div>

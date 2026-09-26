@@ -72,6 +72,26 @@ export class Hud {
 
   // ------------------------------------------------------------ lobby
 
+  renderGameMenu(catalog, selected, isHost, onSelect) {
+    const menu = $("game-menu");
+    const key = `${selected}|${isHost}`;
+    if (menu.dataset.key !== key) {
+      menu.dataset.key = key;
+      menu.innerHTML = "";
+      catalog.forEach((g) => {
+        const b = document.createElement("button");
+        b.className = "game-tile" + (g.id === selected ? " selected" : "") + (g.soon ? " soon" : "");
+        b.disabled = !isHost || !!g.soon;
+        b.innerHTML = `<span class="gt-art">${g.art ? `<img alt="" src="${g.art}" />` : `<i>${g.emoji}</i>`}</span>
+          <span class="gt-text"><b>${esc(g.name)}</b><small>${esc(g.tagline)}</small><em>${esc(g.players || "")}</em></span>
+          ${g.id === selected ? `<span class="gt-check">✔</span>` : ""}`;
+        if (isHost && !g.soon) b.addEventListener("click", () => onSelect(g.id));
+        menu.appendChild(b);
+      });
+    }
+    $("game-menu-hint").textContent = isHost ? "Choisis le jeu de la soirée :" : "Le patron choisit le jeu :";
+  }
+
   renderLobby(room, meId, url, qrFactory) {
     $("lobby-code").textContent = room.code;
     const ul = $("lobby-players");
@@ -224,21 +244,22 @@ export class Hud {
   }
 
   setMyPlate(name, count, finishedText) {
-    $("my-plate").innerHTML = `<div class="avatar" style="background:${avatarColor(name || "?")}">${esc((name || "?").charAt(0).toUpperCase())}</div>
-      <div><div class="me-name">${esc(name || "Toi")}</div><small>${finishedText || `${count} carte${count > 1 ? "s" : ""} en main`}</small></div>`;
+    $("my-plate").innerHTML = `<div class="avatar" style="background:${avatarColor(name || "?")}">${esc((name || "?").charAt(0).toUpperCase())}<span class="me-count">${count}</span></div>
+      <div class="me-text"><div class="me-name">${esc(name || "Toi")}</div><small>${finishedText || `${count} carte${count > 1 ? "s" : ""} en main`}</small></div>`;
   }
 
-  setQuadButtons(ranks, onClick) {
+  // Boutons dores flottants au-dessus de la main (carres, carre magique...).
+  setActionChips(items) {
     const bar = $("quad-bar");
-    const key = ranks.join(",");
+    const key = items.map((i) => i.key).join(",");
     if (bar.dataset.key === key) return;
     bar.dataset.key = key;
     bar.innerHTML = "";
-    ranks.forEach((rank) => {
+    items.forEach((it) => {
       const b = document.createElement("button");
       b.className = "btn brass";
-      b.textContent = `✨ Sortir le carré de ${rankPlural(rank)}`;
-      b.addEventListener("click", () => onClick(rank));
+      b.textContent = it.label;
+      b.addEventListener("click", it.onClick);
       bar.appendChild(b);
     });
   }
@@ -297,23 +318,36 @@ export class Hud {
 
   // ------------------------------------------------------------ fin
 
-  showEnd(entries, isHost, onAgain, onLeave) {
+  // entries : [{ medal, name, me, title, extra }]
+  showEnd({ title, entries, primary, secondary, wait, onLeave, key }) {
+    const box = $("end");
+    const already = !box.classList.contains("hidden") && box.dataset.key === key;
+    box.dataset.key = key || "";
+    $("end-title").textContent = title;
     const list = $("end-list");
     list.innerHTML = "";
-    const n = entries.length;
     entries.forEach((p, i) => {
-      const medal = i === 0 ? "🥇" : i === 1 && n > 2 ? "🥈" : i === 2 && n > 3 ? "🥉" : i === n - 1 ? "🍺" : `${i + 1}`;
-      const title = i === 0 ? "Maître du bluff" : i === n - 1 ? "Paie sa tournée !" : "S'en sort bien";
       const li = document.createElement("li");
-      li.style.animationDelay = `${i * 0.12}s`;
-      li.innerHTML = `<span class="medal">${medal}</span><span class="who">${esc(p.name)}${p.me ? " (toi)" : ""}</span><span class="title">${title}</span>`;
+      if (!already) li.style.animationDelay = `${i * 0.12}s`;
+      else li.style.animation = "none";
+      li.innerHTML = `<span class="medal">${p.medal}</span><span class="who">${esc(p.name)}${p.me ? " (toi)" : ""}${p.sub ? `<small>${esc(p.sub)}</small>` : ""}</span><span class="title">${esc(p.title || "")}</span>${p.extra !== undefined ? `<span class="pts">${esc(p.extra)}</span>` : ""}`;
       list.appendChild(li);
     });
-    $("btn-again").classList.toggle("hidden", !isHost);
-    $("btn-again").onclick = onAgain;
-    $("end-wait").textContent = isHost ? "" : "Le patron peut lancer la revanche…";
+    const b1 = $("btn-again");
+    b1.classList.toggle("hidden", !primary);
+    if (primary) {
+      b1.textContent = primary.label;
+      b1.onclick = primary.onClick;
+    }
+    const b2 = $("btn-end-alt");
+    b2.classList.toggle("hidden", !secondary);
+    if (secondary) {
+      b2.textContent = secondary.label;
+      b2.onclick = secondary.onClick;
+    }
+    $("end-wait").textContent = wait || "";
     $("btn-end-leave").onclick = onLeave;
-    $("end").classList.remove("hidden");
+    box.classList.remove("hidden");
   }
 
   hideEnd() {

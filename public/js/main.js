@@ -1,28 +1,35 @@
-// Point d'entree : relie le reseau (Socket.io), la scene 3D, les cartes et le HUD.
+// Point d'entree : relie le reseau (Socket.io), la scene 3D, les cartes et le
+// HUD. Tout ce qui est propre a un jeu vit dans js/games/<jeu>.js.
 import { World } from "./scene/world.js";
 import { woodCanvas } from "./scene/textures.js";
 import { CardTable } from "./game/cardTable.js";
-import { Hud, claimText, rankPlural } from "./ui/hud.js";
+import { Hud } from "./ui/hud.js";
 import { Sfx } from "./ui/audio.js";
-import { ensureCardFonts, RANK_ORDER } from "./cards/cardArt.js";
+import { ensureCardFonts, createCardBackCanvas, createCardFaceCanvas } from "./cards/cardArt.js";
+import menteurUi from "./games/menteur.js";
+import presidentUi from "./games/president.js";
 import qrcode from "/vendor/qrcode.mjs";
 
+const ADAPTERS = { menteur: menteurUi, president: presidentUi };
 const SESSION_KEY = "menteurSession";
-const $ = (id) => document.getElementById(id);
-const RANK_INDEX = Object.fromEntries(RANK_ORDER.map((r, i) => [r, i]));
 const SUIT_INDEX = { pique: 0, coeur: 1, trefle: 2, carreau: 3 };
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 const S = {
   me: { id: null, name: "" },
   room: null,
   game: null,
+  adapter: null,
   screen: null,
   lastUid: null,
+  lastDealKey: null,
   lastEventId: 0,
   dealing: false,
   wasMyTurn: false,
   revealKey: null,
   endShownFor: null,
+  roundEndShown: null,
   sorted: false,
   seatsKey: "",
   seatPhi: new Map()
@@ -33,6 +40,8 @@ let table;
 let hud;
 let sfx;
 let socket;
+let app;
+let CATALOG = [];
 
 // ------------------------------------------------------------------ session
 
@@ -57,7 +66,6 @@ function rememberName(n) {
 function paintCssTextures() {
   const wood = woodCanvas({ size: 512, planks: 4, base: "#7b4a28", seed: 7, knots: 2 });
   document.documentElement.style.setProperty("--wood-img", `url(${wood.toDataURL("image/jpeg", 0.82)})`);
-
   const c = document.createElement("canvas");
   c.width = 700;
   c.height = 520;
@@ -82,6 +90,17 @@ function paintCssTextures() {
   }
   ctx.putImageData(img, 0, 0);
   document.documentElement.style.setProperty("--chalk-img", `url(${c.toDataURL("image/jpeg", 0.8)})`);
+}
+
+function buildCatalog() {
+  CATALOG = [
+    { ...pick(menteurUi), art: createCardBackCanvas(0.22).toDataURL() },
+    { ...pick(presidentUi), art: createCardFaceCanvas({ rank: "R", suit: "coeur" }, 0.22).toDataURL() },
+    { id: "custom", name: "Tes propres jeux", emoji: "🛠️", tagline: "Bientôt : invente tes règles", players: "", soon: true }
+  ];
+}
+function pick(a) {
+  return { id: a.id, name: a.name, emoji: a.emoji, tagline: a.tagline, players: a.players };
 }
 
 function updateHandCssVar() {
@@ -112,11 +131,9 @@ function applySeats(orderedIds) {
 }
 
 function playerName(id) {
-  if (!S.room) return "?";
-  const p = S.room.players.find((x) => x.id === id);
+  const p = S.room && S.room.players.find((x) => x.id === id);
   return p ? p.name : "?";
 }
-
 function isConnected(id) {
   const p = S.room && S.room.players.find((x) => x.id === id);
   return p ? p.connected : false;
@@ -133,12 +150,22 @@ function onState({ room, game }) {
   else showGame();
 }
 
+function leaveGameUi() {
+  if (S.adapter && S.adapter.hideOverlays) S.adapter.hideOverlays(app);
+  S.adapter = null;
+  S.lastUid = null;
+  S.lastDealKey = null;
+  S.wasMyTurn = false;
+  S.roundEndShown = null;
+  hud.hideEnd();
+}
+
 function showHome() {
   const was = S.screen;
+  leaveGameUi();
   S.screen = "home";
   S.room = null;
   S.game = null;
-  S.lastUid = null;
   S.seatsKey = "";
   hud.showScreen("home");
   world.setMode("home");
@@ -157,9 +184,8 @@ function joinUrl(code) {
 function showLobby() {
   const room = S.room;
   const firstTime = S.screen !== "lobby";
+  if (firstTime) leaveGameUi();
   S.screen = "lobby";
-  S.lastUid = null;
-  S.wasMyTurn = false;
   hud.showScreen("lobby");
   world.setMode("lobby");
   world.hideToken();
@@ -168,284 +194,130 @@ function showLobby() {
   table.setTurnGlow(null);
   const seats = applySeats(room.players.map((p) => p.id));
   if (firstTime) table.gatherToDeck(true);
+  const isHost = room.hostId === S.me.id;
   hud.renderLobby(room, S.me.id, joinUrl(room.code), qrcode);
+  hud.renderGameMenu(CATALOG, room.gameType, isHost, (gameType) => {
+    sfx.play("select");
+    app.emit("room:setGame", { gameType });
+  });
+  const A = ADAPTERS[room.gameType] || menteurUi;
+  $("btn-start").textContent = `Distribuer · ${A.name}`;
   hud.syncPlates(seats.map((s) => ({ id: s.id, name: playerName(s.id), connected: isConnected(s.id), statusText: "s'installe" })));
 }
 
 function handOrder(hand) {
-  if (!S.sorted) return hand.map((c) => c.id);
-  return hand
-    .slice()
-    .sort((a, b) => RANK_INDEX[a.rank] - RANK_INDEX[b.rank] || SUIT_INDEX[a.suit] - SUIT_INDEX[b.suit])
-    .map((c) => c.id);
+  if (!S.sorted || !S.adapter) return hand.map((c) => c.id);
+  const idx = Object.fromEntries(S.adapter.rankOrder.map((r, i) => [r, i]));
+  return hand.slice().sort((a, b) => idx[a.rank] - idx[b.rank] || SUIT_INDEX[a.suit] - SUIT_INDEX[b.suit]).map((c) => c.id);
+}
+
+function updateSortButton() {
+  $("btn-sort").classList.toggle("active", S.sorted);
+  $("btn-sort").textContent = S.sorted ? "✅ Triées" : "🔀 Trier";
 }
 
 function showGame() {
   const g = S.game;
+  const A = ADAPTERS[g.gameId] || menteurUi;
+  if (S.adapter !== A) {
+    if (S.adapter && S.adapter.hideOverlays) S.adapter.hideOverlays(app);
+    S.adapter = A;
+    table.maxSelect = A.maxSelect;
+    table.pendingFaceUp = A.pendingFaceUp;
+    S.sorted = A.defaultSorted;
+    updateSortButton();
+  }
   S.screen = "game";
   hud.showScreen("game");
   world.setMode("game");
   applySeats(g.seatOrder);
   table.pruneSelection(g.hand.map((c) => c.id));
 
-  const isNewGame = g.uid !== S.lastUid;
-  if (isNewGame) {
-    S.lastUid = g.uid;
-    S.lastEventId = g.lastEventId;
-    S.revealKey = null;
-    S.endShownFor = null;
-    hud.hideEnd();
-    const fresh = g.lastEventId === 0;
-    if (fresh) {
+  const dealKey = A.dealKey(g);
+  if (dealKey !== S.lastDealKey) {
+    const sameGame = S.lastUid === g.uid;
+    S.lastDealKey = dealKey;
+    const animate = sameGame || A.isFreshDeal(g);
+    if (!sameGame) {
+      S.lastUid = g.uid;
+      S.lastEventId = animate ? 0 : g.lastEventId;
+      S.revealKey = null;
+      S.endShownFor = null;
+      S.roundEndShown = null;
+      hud.hideEnd();
+    }
+    table.clearSelection();
+    if (animate) {
       S.dealing = true;
       table.gatherToDeck(true);
       setTimeout(() => {
-        table.applyState(S.game, { handOrder: handOrder(S.game.hand), deal: true });
+        table.applyState(A.desired(S.game, handOrder(S.game.hand)), { deal: true });
         setTimeout(() => {
           S.dealing = false;
           refreshGameUi();
         }, 1900);
       }, 750);
     } else {
-      table.applyState(g, { handOrder: handOrder(g.hand), instant: true });
+      table.applyState(A.desired(g, handOrder(g.hand)), { instant: true });
     }
   } else if (!S.dealing) {
-    table.applyState(g, { handOrder: handOrder(g.hand) });
+    table.applyState(A.desired(g, handOrder(g.hand)));
   }
   processEvents(g);
   refreshGameUi();
 }
 
-// ------------------------------------------------------------------ evenements
-
 function processEvents(g) {
   const fresh = g.history.filter((e) => e.id > S.lastEventId);
   S.lastEventId = Math.max(S.lastEventId, g.lastEventId);
-  for (const ev of fresh) {
-    const who = (id) => (id === S.me.id ? "me" : id);
-    if (ev.type === "play") {
-      hud.bubble(who(ev.playerId), claimText(ev.count, ev.claimedRank));
-    } else if (ev.type === "quad_discard") {
-      hud.bubble(who(ev.playerId), `Carré de ${rankPlural(ev.rank)} !`, "gold");
-      sfx.play("quad");
-    } else if (ev.type === "accuse") {
-      hud.bubble(who(ev.accuserId), "MENTEUR !", "liar");
-      sfx.play("liar");
-      document.body.classList.remove("shake");
-      void document.body.offsetWidth;
-      document.body.classList.add("shake");
-    } else if (ev.type === "pickup") {
-      hud.bubble(who(ev.playerId), ev.count >= 10 ? `Aïe… ${ev.count} cartes` : "Je ramasse…");
-    }
-  }
+  for (const ev of fresh) S.adapter.onEvent(ev, app);
 }
 
-// ------------------------------------------------------------------ UI de jeu
+// ------------------------------------------------------------------ UI de jeu commune
 
 function refreshGameUi() {
   const g = S.game;
-  if (!g || S.screen !== "game") return;
+  const A = S.adapter;
+  if (!g || !A || S.screen !== "game") return;
   const you = g.you;
   const dealing = S.dealing;
-  const myTurn = !dealing && g.phase === "playing" && you.isYourTurn;
-  const currentName = g.currentTurnName;
+  const playing = A.isPlaying(g);
+  const myTurn = !dealing && playing && you.isYourTurn;
 
-  // interaction : on peut toujours manipuler sa main, le tapis dit si c'est permis
-  table.setInteractive(!you.isFinished && g.phase !== "finished" && !dealing);
-  table.setTurnGlow(dealing || g.phase !== "playing" ? null : myTurn ? "__me" : g.currentTurn);
+  table.setInteractive(!dealing && !you.isFinished && (playing || g.phase === "exchange" || g.phase === "reveal_pending"));
+  table.setTurnGlow(dealing || !playing ? null : myTurn ? "__me" : g.currentTurn);
 
-  // jeton de tour
-  if (!dealing && g.phase !== "finished") {
-    const pos = myTurn || g.currentTurn === S.me.id ? world.anchors.myToken : S.seatPhi.has(g.currentTurn) ? world.seatPoint(S.seatPhi.get(g.currentTurn), 0.5) : null;
+  if (!dealing && playing && g.currentTurn) {
+    const pos = g.currentTurn === S.me.id ? world.anchors.myToken : S.seatPhi.has(g.currentTurn) ? world.seatPoint(S.seatPhi.get(g.currentTurn), 0.5) : null;
     if (pos) world.moveTokenTo(pos);
-  } else if (g.phase === "finished") world.hideToken();
-
+  } else if (g.phase === "finished" || g.phase === "round_end" || g.phase === "exchange") {
+    world.hideToken();
+  }
   if (!table.drag) world.setPileRing(myTurn ? "idle" : "hidden");
 
   if (myTurn && !S.wasMyTurn) {
-    hud.showTurnBanner(g.lastPlay === null ? "À toi d'ouvrir !" : "À toi de jouer !");
+    hud.showTurnBanner(A.turnBanner(g));
     sfx.play("turn");
     if (navigator.vibrate) navigator.vibrate([70, 60, 70]);
   }
   S.wasMyTurn = myTurn;
 
-  // plaque d'annonce
-  if (dealing) {
-    hud.setAnnounce({ label: "Le patron distribue", value: "Les cartes…", sub: "", rank: null, key: "deal" });
-  } else if (g.phase === "finished") {
-    hud.setAnnounce({ label: "C'est fini", value: "Partie terminée", sub: "", rank: null, key: "end" });
-  } else if (g.phase === "reveal_pending") {
-    hud.setAnnounce({ label: "Révélation", value: `Des ${rankPlural(g.pendingReveal.claimedRank)} ?`, sub: `${g.pileCount} cartes en jeu`, rank: g.pendingReveal.claimedRank, key: "rev" + g.lastEventId });
-  } else if (g.roundLeaderRank) {
-    hud.setAnnounce({
-      label: "On annonce des",
-      value: rankPlural(g.roundLeaderRank),
-      sub: `${g.pileCount} carte${g.pileCount > 1 ? "s" : ""} sur le tapis`,
-      rank: g.roundLeaderRank,
-      key: "r" + g.roundLeaderRank + "-" + (g.history.filter((e) => e.type === "pickup").length)
-    });
-  } else {
-    hud.setAnnounce({ label: "Nouvelle manche", value: myTurn ? "À toi d'annoncer !" : `${currentName} choisit…`, sub: "Tapis vide", rank: null, key: "new" + g.currentTurn + g.lastEventId });
-  }
-
-  // bandeau d'aide
-  let hint = "";
-  if (dealing) hint = "";
-  else if (you.isFinished && g.phase !== "finished") hint = "Tu as vidé ta main 🎉 Admire le spectacle, une bière à la main.";
-  else if (g.phase === "playing") {
-    if (myTurn) {
-      if (g.lastPlay === null) hint = "Nouvelle manche : <b>glisse 1 à 3 cartes</b> sur le tapis, puis annonce leur valeur.";
-      else if (you.canAccuseNow) hint = `Pose 1 à 3 <b>${rankPlural(g.roundLeaderRank)}</b>… ou crie <b>MENTEUR</b> si tu doutes de ${g.lastPlay.playerName} !`;
-      else hint = `Glisse 1 à 3 <b>${rankPlural(g.roundLeaderRank)}</b> sur le tapis (vrais ou pas…).`;
-    } else {
-      hint = `Au tour de <b>${currentName}</b>…`;
-    }
-  }
-  hud.setHint(hint, myTurn);
-
-  // boutons
-  $("btn-liar").classList.toggle("hidden", !(g.phase === "playing" && you.canAccuseNow && !dealing));
+  A.refresh(g, app);
   updatePlayButton();
-  const counts = {};
-  g.hand.forEach((c) => { counts[c.rank] = (counts[c.rank] || 0) + 1; });
-  const quads = (g.phase === "playing" || g.phase === "reveal_pending") && !you.isFinished && !dealing
-    ? Object.keys(counts).filter((r) => counts[r] === 4) : [];
-  hud.setQuadButtons(quads, (rank) => {
-    socket.emit("game:quadDiscard", { rank }, (res) => { if (!res.ok) hud.toast(res.error); });
-  });
-
-  // plaques
-  const finishedIdx = new Map(g.finishedOrder.map((f, i) => [f.id, i]));
-  hud.setMyPlate(S.me.name, g.hand.length, you.isFinished ? `Terminé · ${finishedIdx.get(S.me.id) + 1}ᵉ` : null);
-  hud.syncPlates(g.opponents.map((o) => ({
-    id: o.id,
-    name: o.name,
-    count: o.cardCount,
-    connected: o.connected,
-    finished: o.finished,
-    active: !dealing && g.phase === "playing" && o.id === g.currentTurn,
-    statusText: o.finished ? `🏁 ${finishedIdx.get(o.id) + 1}ᵉ` : !o.connected ? "hors ligne" : ""
-  })));
-
-  updateReveal(g);
-  updateEnd(g);
 }
 
 function updatePlayButton() {
   const g = S.game;
   const btn = $("btn-play");
-  if (!g || S.dealing) return btn.classList.add("hidden");
-  const sel = table.getSelected();
-  const myTurn = g.phase === "playing" && g.you.isYourTurn;
-  const show = myTurn && sel.length >= 1 && sel.length <= 3;
-  btn.classList.toggle("hidden", !show);
-  if (show) btn.textContent = `Poser ${sel.length} carte${sel.length > 1 ? "s" : ""}`;
-}
-
-function updateReveal(g) {
-  if (g.phase === "reveal_pending" && g.pendingReveal && !S.dealing) {
-    const r = g.pendingReveal;
-    const key = `${g.uid}-${g.lastEventId}`;
-    document.body.classList.add("revealing");
-    const loserIsMe = r.loserId === S.me.id;
-    const top = `${r.accuserId === S.me.id ? "Tu cries" : r.accuserName + " crie"} MENTEUR sur ${r.accusedId === S.me.id ? "toi" : r.accusedName} !`;
-    const verdict = r.mismatch
-      ? `${r.accusedId === S.me.id ? "Tu bluffais" : r.accusedName + " bluffait"} !`
-      : `${r.accusedId === S.me.id ? "Tu disais" : r.accusedName + " disait"} la vérité…`;
-    const who = loserIsMe ? "Tu ramasses" : `${r.loserName} ramasse`;
-    const pileWords = r.pileCount > 1 ? `les ${r.pileCount} cartes` : "la carte";
-    const show = (withText) => hud.showReveal({
-      top,
-      text: withText ? `${verdict} ${who} ${pileWords}.` : "",
-      canPickup: withText && g.you.canPickupNow,
-      pickupLabel: `🫳 Ramasser ${pileWords}`,
-      wait: withText && !loserIsMe ? `En attente que ${r.loserName} ramasse…` : ""
-    });
-    if (S.revealKey !== key) {
-      S.revealKey = key;
-      table.setRevealClaim(null);
-      show(false);
-      // le tampon tombe quand les cartes sont retournees devant tout le monde
-      S.stampPending = {
-        key,
-        t0: performance.now(),
-        fire: () => {
-          table.setRevealClaim(r.claimedRank);
-          hud.stamp(r.mismatch);
-          sfx.play("stamp");
-          setTimeout(() => sfx.play(r.mismatch ? "bluff" : "truth"), 180);
-          document.body.classList.remove("shake");
-          void document.body.offsetWidth;
-          document.body.classList.add("shake");
-          show(true);
-        }
-      };
-    } else if (table.revealClaim) {
-      show(true);
-    }
-  } else {
-    if (S.revealKey) {
-      S.revealKey = null;
-      table.setRevealClaim(null);
-    }
-    document.body.classList.remove("revealing");
-    hud.hideReveal();
-  }
-}
-
-function updateEnd(g) {
-  if (g.phase !== "finished") return;
-  if (S.endShownFor === g.uid) return;
-  S.endShownFor = g.uid;
-  setTimeout(() => {
-    if (!S.game || S.game.uid !== g.uid) return;
-    const entries = g.finishedOrder.map((f) => ({ name: f.name, me: f.id === S.me.id }));
-    if (g.finishedOrder[0] && g.finishedOrder[0].id === S.me.id) sfx.play("win");
-    hud.showEnd(entries, S.room.hostId === S.me.id, () => {
-      socket.emit("room:rematch", {}, (res) => { if (!res.ok) hud.toast(res.error); });
-    }, leaveTable);
-  }, 1200);
-}
-
-// ------------------------------------------------------------------ actions
-
-function canDrop(ids) {
-  const g = S.game;
-  return !!g && g.phase === "playing" && g.you.isYourTurn && !S.dealing && ids.length >= 1 && ids.length <= 3;
-}
-
-function commitPlay(ids) {
-  const g = S.game;
-  if (!canDrop(ids)) {
-    if (!g || !g.you.isYourTurn) hud.toast(`Pas si vite ! C'est au tour de ${g ? g.currentTurnName : "…"}.`);
-    else if (ids.length > 3) hud.toast("3 cartes maximum par pose.");
-    sfx.play("error");
-    return;
-  }
-  table.setPendingDrop(ids);
-  const send = (declaredRank) => {
-    socket.emit("game:play", { cardIds: ids, declaredRank }, (res) => {
-      if (!res.ok) {
-        table.clearPendingDrop();
-        hud.toast(res.error);
-        sfx.play("error");
-      } else {
-        table.clearSelection();
-        updatePlayButton();
-      }
-    });
-  };
-  if (g.lastPlay === null) {
-    hud.openRankPicker((rank) => send(rank), () => table.clearPendingDrop());
-  } else {
-    send(undefined);
-  }
+  if (!g || !S.adapter || S.screen !== "game") return btn.classList.add("hidden");
+  const r = S.adapter.playButton(g, table.getSelected(), app);
+  btn.classList.toggle("hidden", !r.show);
+  if (r.show) btn.textContent = r.text;
 }
 
 function leaveTable() {
   socket.emit("room:leave", {}, () => {});
   clearSession();
-  hud.hideEnd();
   hud.closeModal();
   showHome();
 }
@@ -459,7 +331,6 @@ function bindUi() {
   const params = new URLSearchParams(location.search);
   const urlCode = (params.get("c") || "").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 4);
   if (urlCode) codeInput.value = urlCode;
-
   codeInput.addEventListener("input", () => {
     codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 4);
   });
@@ -490,7 +361,7 @@ function bindUi() {
   $("btn-create").addEventListener("click", () => {
     const name = needName();
     if (!name) return;
-    socket.emit("room:create", { name, gameType: "menteur" }, (res) => onJoined(res, name));
+    socket.emit("room:create", { name }, (res) => onJoined(res, name));
   });
   $("btn-join").addEventListener("click", () => {
     const name = needName();
@@ -506,17 +377,18 @@ function bindUi() {
   codeInput.addEventListener("keydown", (e) => { if (e.key === "Enter") $("btn-join").click(); });
   nameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") (codeInput.value.length === 4 ? $("btn-join") : $("btn-create")).click(); });
 
-  $("btn-rules-home").addEventListener("click", () => hud.openModal("Les règles de la maison", hud.rulesHtml()));
-
-  $("btn-start").addEventListener("click", () => {
-    socket.emit("room:start", {}, (res) => { if (!res.ok) hud.toast(res.error); });
+  $("btn-rules-home").addEventListener("click", () => {
+    hud.openModal("Les règles de la maison", Object.values(ADAPTERS).map((A) => `<h4 class="rules-game">${A.emoji} ${A.name}</h4>${A.rulesHtml()}`).join(""));
   });
+
+  $("btn-start").addEventListener("click", () => app.emit("room:start", {}));
   $("btn-leave").addEventListener("click", leaveTable);
   $("btn-share").addEventListener("click", async () => {
     const url = joinUrl(S.room.code);
-    const text = `Viens jouer au Menteur ! Table ${S.room.code}`;
+    const A = ADAPTERS[S.room.gameType] || menteurUi;
+    const text = `Viens jouer au ${A.name.replace(/^Le /, "")} au Carré ! Table ${S.room.code}`;
     try {
-      if (navigator.share) await navigator.share({ title: "Le Menteur", text, url });
+      if (navigator.share) await navigator.share({ title: "Le Carré", text, url });
       else {
         await navigator.clipboard.writeText(url);
         hud.toast("Lien copié ! Colle-le dans ta conv 📋");
@@ -524,17 +396,18 @@ function bindUi() {
     } catch (e) { /* partage annule */ }
   });
 
-  $("btn-liar").addEventListener("click", () => {
-    socket.emit("game:accuse", {}, (res) => { if (!res.ok) hud.toast(res.error); });
+  $("btn-liar").addEventListener("click", () => app.emit("game:accuse", {}));
+  $("btn-pass").addEventListener("click", () => {
+    table.clearSelection();
+    app.emit("game:pass", {});
   });
-  $("btn-pickup").addEventListener("click", () => {
-    socket.emit("game:pickup", {}, (res) => { if (!res.ok) hud.toast(res.error); });
+  $("btn-pickup").addEventListener("click", () => app.emit("game:pickup", {}));
+  $("btn-play").addEventListener("click", () => {
+    if (S.adapter && S.game) S.adapter.commitPlay(table.getSelected(), S.game, app);
   });
-  $("btn-play").addEventListener("click", () => commitPlay(table.getSelected()));
   $("btn-sort").addEventListener("click", () => {
     S.sorted = !S.sorted;
-    $("btn-sort").classList.toggle("active", S.sorted);
-    $("btn-sort").textContent = S.sorted ? "✅ Triées" : "🔀 Trier";
+    updateSortButton();
     if (S.game) table.setHandOrder(handOrder(S.game.hand));
     sfx.play("pickup", 2);
   });
@@ -546,29 +419,35 @@ function bindUi() {
   $("pile-chip").addEventListener("click", openHistory);
   $("tray-chip").addEventListener("click", openTray);
   $("btn-menu").addEventListener("click", () => {
+    const A = S.adapter;
+    const isHost = S.room && S.room.hostId === S.me.id;
     hud.openModal("Menu", `<div class="menu-list">
       <button class="btn wood" data-act="history">📜 Historique</button>
-      <button class="btn wood" data-act="tray">✨ Cartes sorties</button>
-      <button class="btn wood" data-act="rules">📖 Règles</button>
+      <button class="btn wood" data-act="tray">🗃️ ${A ? A.trayTitle : "Cartes sorties"}</button>
+      <button class="btn wood" data-act="rules">📖 Règles ${A ? "du " + A.name.replace(/^Le /, "") : ""}</button>
+      ${isHost ? `<button class="btn wood" data-act="lobby">🎲 Changer de jeu</button>` : ""}
       <button class="btn brass" data-act="leave">🚪 Quitter la table</button>
     </div>`);
     document.querySelectorAll("[data-act]").forEach((b) => b.addEventListener("click", () => {
       const act = b.dataset.act;
       if (act === "history") openHistory();
       else if (act === "tray") openTray();
-      else if (act === "rules") hud.openModal("Les règles de la maison", hud.rulesHtml());
-      else if (act === "leave") leaveTable();
+      else if (act === "rules") hud.openModal(`Règles · ${A ? A.name : ""}`, A ? A.rulesHtml() : "");
+      else if (act === "lobby") {
+        hud.closeModal();
+        app.emit("room:playAgain", {});
+      } else if (act === "leave") leaveTable();
     }));
   });
 }
 
 function openHistory() {
-  if (!S.game) return;
-  hud.openModal("Ce qui s'est passé", hud.historyHtml(S.game.history));
+  if (!S.game || !S.adapter) return;
+  hud.openModal("Ce qui s'est passé", S.adapter.historyHtml(S.game.history, esc));
 }
 function openTray() {
-  if (!S.game) return;
-  hud.openModal("Cartes sorties", hud.quadsHtml(S.game.removedQuads));
+  if (!S.game || !S.adapter) return;
+  hud.openModal(S.adapter.trayTitle, S.adapter.trayHtml(S.game, hud));
 }
 
 // ------------------------------------------------------------------ boucle HUD
@@ -581,25 +460,14 @@ function projectSeat(id) {
 }
 
 function hudFrame() {
-  const sp = S.stampPending;
-  if (sp) {
-    if (sp.key !== S.revealKey) S.stampPending = null;
-    else if (performance.now() - sp.t0 > 700 && table.isSettled("reveal")) {
-      if (!sp.landedAt) sp.landedAt = performance.now();
-      if (performance.now() - sp.landedAt > 350) {
-        S.stampPending = null;
-        sp.fire();
-      }
-    }
-  }
+  if (S.adapter && S.adapter.frame) S.adapter.frame(app);
   if (S.screen === "game" || S.screen === "lobby") hud.positionPlates(projectSeat);
-  if (S.screen === "game" && S.game && !S.dealing && S.game.phase !== "reveal_pending") {
+  if (S.screen === "game" && S.game && S.adapter && !S.dealing) {
+    const chips = S.adapter.chips(S.game);
     const pile = world.toScreen(table.pileAnchor().add({ x: 0, y: 0, z: world.feltRadius.z * 0.78 }));
-    const n = S.game.pileCount;
-    hud.positionChip("pile-chip", pile, n ? `<b>${n}</b> carte${n > 1 ? "s" : ""} sur le tapis` : "");
+    hud.positionChip("pile-chip", pile, chips.pile);
     const ta = table.trayAnchor();
-    const q = S.game.removedQuads.length;
-    hud.positionChip("tray-chip", ta ? world.toScreen(ta) : null, q ? `✨ ${q} carré${q > 1 ? "s" : ""} sorti${q > 1 ? "s" : ""}` : "");
+    hud.positionChip("tray-chip", ta ? world.toScreen(ta) : null, chips.tray);
   } else {
     hud.positionChip("pile-chip", null, "");
     hud.positionChip("tray-chip", null, "");
@@ -618,29 +486,54 @@ async function boot() {
     ]);
   } catch (e) { /* ignore */ }
   paintCssTextures();
+  buildCatalog();
 
   world = new World($("scene"));
   sfx = new Sfx();
   hud = new Hud();
   table = new CardTable(world, {
-    canDrop,
-    onDrop: (ids, legal) => {
-      if (legal) commitPlay(ids);
-      else commitPlay(ids);
-    },
+    canDrop: (ids) => !!(S.adapter && S.game && S.adapter.canDrop(ids, S.game, app)),
+    onDrop: (ids) => { if (S.adapter && S.game) S.adapter.commitPlay(ids, S.game, app); },
     onSelectionChange: () => {
       sfx.play("select");
       updatePlayButton();
     },
-    onSelectLimit: () => hud.toast("3 cartes maximum par pose."),
+    onSelectLimit: () => hud.toast(`${table.maxSelect} cartes maximum à la fois.`),
     onTrayClick: openTray,
     onPileClick: openHistory,
     onLand: (sound, count) => sound && sfx.play(sound, count),
     onDragEnd: () => {
       const g = S.game;
-      world.setPileRing(g && g.phase === "playing" && g.you.isYourTurn ? "idle" : "hidden");
+      world.setPileRing(g && S.adapter && S.adapter.isPlaying(g) && g.you.isYourTurn ? "idle" : "hidden");
     }
   });
+
+  app = {
+    S,
+    world,
+    table,
+    hud,
+    sfx,
+    get socket() { return socket; },
+    who: (id) => (id === S.me.id ? "me" : id),
+    shake() {
+      document.body.classList.remove("shake");
+      void document.body.offsetWidth;
+      document.body.classList.add("shake");
+    },
+    emit(ev, data, onOk, onErr) {
+      socket.emit(ev, data || {}, (res) => {
+        if (!res || !res.ok) {
+          hud.toast((res && res.error) || "Oups, ça n'a pas marché.");
+          sfx.play("error");
+          if (onErr) onErr(res);
+        } else if (onOk) onOk(res);
+        updatePlayButton();
+      });
+    },
+    leaveTable
+  };
+
   world.onResize = () => {
     updateHandCssVar();
     table.layoutAll();
@@ -668,7 +561,7 @@ async function boot() {
   });
   if (!loadSession()) showHome();
 
-  // petit point d'acces pour le debogage (console du navigateur, tests automatises)
+  // point d'acces pour le debogage (console du navigateur, tests automatises)
   window.__menteur = {
     S,
     world,
