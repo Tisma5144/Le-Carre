@@ -72,6 +72,13 @@ illustrées (figures dessinées, As ornés, dos au masque vénitien).
   assis à ta gauche.
 - Emotes : bouton 😀 en haut à droite, l'emoji s'envole au-dessus de ton nom
   chez tout le monde.
+- Robots : dans le salon, le patron peut ajouter des robots (« 🤖 Ajouter un
+  robot ») pour compléter la table, et les renvoyer (✕). Ils savent jouer aux
+  trois jeux (`server/bots.js`).
+- Règles consultables depuis le salon (« 📜 Lire les règles »).
+- Ascenseur : pendant une manche, l'historique ne montre que le dernier pli ;
+  l'onglet Scores affiche un graphique de l'évolution des scores et le
+  détail des points manche par manche.
 
 - Distribution animée des cartes, pose avec vol des cartes une par une (on voit
   combien de cartes sont posées), révélation en grand avec halo vert (vraie
@@ -130,6 +137,8 @@ Test automatique de la logique serveur (4 robots jouent une partie complète) :
 npm run test:menteur
 npm run test:president
 npm run test:ascenseur
+npm run test:reconnexion
+npm run test:robots
 ```
 
 ## Déploiement (Render)

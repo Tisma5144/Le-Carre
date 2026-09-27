@@ -260,7 +260,12 @@ export default {
 
     // plaques
     const myRole = you.role;
-    hud.setMyPlate(S.me.name, v.hand.length, you.isFinished ? "A fini la manche 🏁" : myRole ? `${ROLE_EMOJI[myRole]} ${ROLE_SHORT[myRole]} · ${v.hand.length} cartes` : null);
+    hud.setMyPlate(
+      S.me.name,
+      v.hand.length,
+      you.isFinished ? "A fini la manche 🏁" : myRole ? `${ROLE_EMOJI[myRole]} ${ROLE_SHORT[myRole]} · ${v.hand.length} cartes` : null,
+      you.isFinished ? "🏁 fini" : myRole ? `${ROLE_EMOJI[myRole]} ${ROLE_SHORT[myRole]}` : `🃏 ${v.hand.length}`
+    );
     hud.syncPlates(v.opponents.map((o) => {
       const role = roleOf(o.id);
       let status = "";
@@ -354,14 +359,17 @@ export default {
 
   rulesHtml() {
     return `
-      <p class="rule"><i>🃏</i><span>Tout le paquet est distribué. Ordre des valeurs : <b>3 &lt; 4 &lt; … &lt; Roi &lt; As &lt; 2</b>.</span></p>
-      <p class="rule"><i>👸</i><span>Première manche : celui qui a la <b>Dame de cœur</b> ouvre. Ensuite, c'est le Trou du cul.</span></p>
-      <p class="rule"><i>⬆️</i><span>On pose 1 à 4 cartes de même valeur. Pour suivre : <b>le même nombre</b>, de valeur égale ou supérieure. Sinon on passe… et on est hors du pli jusqu'à ce qu'il soit ramassé.</span></p>
-      <p class="rule"><i>🎯</i><span><b>« Ou rien »</b> : si tu poses la même valeur que le joueur d'avant, le suivant doit poser cette valeur ou passer.</span></p>
-      <p class="rule"><i>💥</i><span>Un <b>2</b> ferme le pli : tu rejoues ce que tu veux. Mais <b>interdit de finir sur un 2</b> : sinon tu finis Trou du cul !</span></p>
-      <p class="rule"><i>✨</i><span><b>Carré magique</b> : si tu as les 1, 2 ou 3 cartes qui complètent un carré au sommet du pli, pose-les, même hors de ton tour. Le pli est fermé et tu rejoues.</span></p>
-      <p class="rule"><i>✋</i><span><b>Sauf en triple</b> : quand on joue des brelans, personne ne peut fermer le carré avec la 4e carte seule.</span></p>
-      <p class="rule"><i>🔄</i><span>Nouvelle manche : le Trou du cul donne ses 2 meilleures cartes au Président qui lui en rend 2 au choix (1 carte entre Vice-trou et Vice-président).</span></p>
-      <p class="rule"><i>📊</i><span>Points : Président +2, Vice +1, Neutre 0, Vice-trou −1, Trou du cul −2.</span></p>`;
+      <p class="rule"><i>🃏</i><span>Tout le paquet est distribué. Ordre des valeurs, de la plus faible à la plus forte : <b>3, 4, 5… Roi, As, 2</b>.</span></p>
+      <p class="rule"><i>👸</i><span>À la première manche, le joueur qui a la <b>Dame de cœur</b> commence. Aux manches suivantes, c'est le Trou du cul.</span></p>
+      <p class="rule"><i>⬆️</i><span>Le premier joueur du pli pose 1 à 4 cartes de même valeur. Les suivants doivent poser <b>le même nombre de cartes</b>, d'une valeur égale ou supérieure. Sinon, ils passent et ne rejouent plus avant le pli suivant.</span></p>
+      <p class="rule"><i>🎯</i><span><b>« Ou rien »</b> : si tu poses la même valeur que le joueur précédent, le joueur suivant doit poser cette valeur à son tour, ou passer.</span></p>
+      <p class="rule"><i>💥</i><span>Un <b>2</b> ferme le pli : celui qui l'a posé recommence avec ce qu'il veut. Attention : il est <b>interdit de finir sur un 2</b>, sinon on termine Trou du cul.</span></p>
+      <p class="rule"><i>🧱</i><span>Quatre cartes de même valeur posées à la suite forment un <b>carré</b>, qui ferme le pli.</span></p>
+      <p class="rule"><i>✨</i><span><b>Carré magique</b> : si tu as la ou les cartes (une, deux ou trois) qui complètent le carré au sommet du pli, tu peux les poser même si ce n'est pas ton tour. Le pli est fermé et tu rejoues.</span></p>
+      <p class="rule"><i>✋</i><span><b>Exception</b> : quand on joue des brelans, personne ne peut fermer le carré avec la quatrième carte seule.</span></p>
+      <p class="rule"><i>🧹</i><span>Quand tous les autres joueurs ont passé, le pli est ramassé et le dernier à avoir posé recommence.</span></p>
+      <p class="rule"><i>🔄</i><span>Au début de chaque nouvelle manche, le Trou du cul donne ses <b>deux meilleures cartes</b> au Président, qui lui en rend deux de son choix. À partir de 4 joueurs, le Vice-trou du cul et le Vice-président échangent une carte de la même façon.</span></p>
+      <p class="rule"><i>📊</i><span>Points : Président +2, Vice-président +1, Neutre 0, Vice-trou du cul −1, Trou du cul −2.</span></p>
+`;
   }
 };

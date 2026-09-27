@@ -96,7 +96,7 @@ export default {
 
     // plaques
     const finishedIdx = new Map(v.finishedOrder.map((f, i) => [f.id, i]));
-    hud.setMyPlate(S.me.name, v.hand.length, you.isFinished ? `Terminé · ${finishedIdx.get(S.me.id) + 1}ᵉ` : null);
+    hud.setMyPlate(S.me.name, v.hand.length, you.isFinished ? `Terminé · ${finishedIdx.get(S.me.id) + 1}ᵉ` : null, you.isFinished ? `🏁 ${finishedIdx.get(S.me.id) + 1}ᵉ` : `🃏 ${v.hand.length}`);
     hud.syncPlates(v.opponents.map((o) => ({
       id: o.id,
       name: o.name,
@@ -262,12 +262,14 @@ export default {
 
   rulesHtml() {
     return `
-      <p class="rule"><i>🃏</i><span>Tout le paquet est distribué. Le but : <b>vider ta main</b> le premier.</span></p>
-      <p class="rule"><i>🗣️</i><span>Celui qui ouvre la manche pose 1 à 3 cartes face cachée et <b>annonce une valeur</b> (« Deux Rois ! »).</span></p>
-      <p class="rule"><i>🔁</i><span>Chacun à son tour pose 1 à 3 cartes en prétendant <b>la même valeur</b>. Tu peux mentir…</span></p>
-      <p class="rule"><i>🚨</i><span>Juste avant de jouer, tu peux crier <b>MENTEUR !</b> sur la pose précédente. Les cartes sont retournées : si c'était un bluff, le menteur ramasse tout le tapis. Sinon, c'est toi.</span></p>
-      <p class="rule"><i>➡️</i><span>Le joueur après celui qui a ramassé ouvre la manche suivante.</span></p>
-      <p class="rule"><i>✨</i><span>Tu as les 4 cartes d'une même valeur ? Le <b>carré</b> sort tout seul du jeu (à la distribution ou quand tu ramasses), sans compter comme un tour.</span></p>
-      <p class="rule"><i>🍺</i><span>Le dernier avec des cartes en main… paie sa tournée.</span></p>`;
+      <p class="rule"><i>🃏</i><span>Tout le paquet est distribué entre les joueurs. Objectif : être le premier à <b>vider sa main</b>.</span></p>
+      <p class="rule"><i>🗣️</i><span>Le joueur qui ouvre la manche pose 1 à 3 cartes face cachée et <b>annonce leur valeur</b>, par exemple « Deux Rois ! ».</span></p>
+      <p class="rule"><i>🔁</i><span>Chacun son tour, dans le sens des aiguilles d'une montre, pose ensuite 1 à 3 cartes en annonçant <b>la même valeur</b>. Rien n'oblige à dire la vérité…</span></p>
+      <p class="rule"><i>🚨</i><span>Avant de jouer, tu peux crier <b>« Menteur ! »</b> sur la pose du joueur précédent. Ses cartes sont retournées : s'il a bluffé, il ramasse tout le tapis ; s'il a dit vrai, c'est toi qui ramasses.</span></p>
+      <p class="rule"><i>➡️</i><span>Le joueur assis après celui qui a ramassé ouvre la manche suivante, avec la valeur de son choix.</span></p>
+      <p class="rule"><i>✨</i><span>Dès qu'un joueur a les quatre cartes d'une même valeur, ce <b>carré</b> sort automatiquement du jeu, à la distribution comme après un ramassage. Cela ne compte pas comme un tour.</span></p>
+      <p class="rule"><i>🏁</i><span>Tu as vidé ta main ? La victoire n'est acquise que si ta dernière pose n'est pas contestée, ou si elle était sincère.</span></p>
+      <p class="rule"><i>🍺</i><span>Le dernier joueur à avoir encore des cartes paie sa tournée.</span></p>
+`;
   }
 };

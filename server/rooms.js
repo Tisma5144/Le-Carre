@@ -61,6 +61,21 @@ class RoomManager {
     return { room, playerId };
   }
 
+  // Ajoute un robot a la table (salon uniquement, 8 joueurs max).
+  addBot(code, names) {
+    const room = this.getRoom(code);
+    if (!room) return { error: "Salon introuvable." };
+    if (room.status !== "lobby") return { error: "La partie a déjà commencé." };
+    if (room.order.length >= 8) return { error: "La table est complète (8 joueurs maximum)." };
+    const taken = new Set(room.order.map((id) => room.players[id].name));
+    const free = names.filter((n) => !taken.has(n));
+    const name = free.length ? free[Math.floor(Math.random() * free.length)] : `Robot ${room.order.length + 1}`;
+    const playerId = generatePlayerId();
+    room.order.push(playerId);
+    room.players[playerId] = { id: playerId, name, connected: true, isHost: false, isBot: true, socketId: null };
+    return { room, playerId };
+  }
+
   // Reassocie un joueur deja connu (apres refresh / coupure) a son nouveau socket.
   rejoin(code, playerId) {
     const room = this.getRoom(code);

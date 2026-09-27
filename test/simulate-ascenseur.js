@@ -122,3 +122,38 @@ for (let g = 0; g < 40; g += 1) {
 }
 
 console.log("SUCCES Ascenseur :", JSON.stringify(stats));
+
+// --- historique : pendant une manche, seul le dernier pli est visible
+{
+  const s = asc.createGame(["a", "b", "c"], { maxCards: 5, mode: "down", step: 1 });
+  const vis = asc._internals.visibleHistory;
+  let checked = 0;
+  while (s.phase !== "finished" && s.roundIndex === 0) {
+    if (s.phase === "trick_done") {
+      assert.ok(asc.tick(s).ok);
+      continue;
+    }
+    const cur = s.currentTurn;
+    if (s.phase === "bidding") {
+      let b = 0;
+      if (asc._internals.forbiddenBid(s, cur) === 0) b = 1;
+      asc.applyAction(s, cur, { type: "bid", bid: b });
+      continue;
+    }
+    if (s.phase === "round_end") break;
+    const legal = asc._internals.legalCards(s, cur);
+    asc.applyAction(s, cur, { type: "play", cardIds: [legal[0].id] });
+    if (s.phase === "playing" && s.trickNumber >= 2) {
+      const plays = vis(s).filter((e) => e.type === "play" && e.round === 1);
+      assert.ok(plays.every((e) => e.trick >= s.trickNumber), "les plis plus anciens que le dernier sont caches");
+      assert.ok(plays.some((e) => e.trick === s.trickNumber), "le dernier pli reste visible");
+      checked += 1;
+    }
+  }
+  assert.ok(checked > 0);
+  assert.strictEqual(s.phase, "round_end");
+  const all = vis(s).filter((e) => e.type === "play" && e.round === 1);
+  assert.strictEqual(all.length, 15, "manche terminee : historique complet");
+  assert.strictEqual(s.roundResults.length, 1);
+  console.log("SUCCES Historique de l'Ascenseur : seul le dernier pli est visible pendant la manche.");
+}

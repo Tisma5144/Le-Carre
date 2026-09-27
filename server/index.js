@@ -4,6 +4,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 
 const { RoomManager } = require("./rooms");
+const { botActions, BOT_NAMES } = require("./bots");
 const menteur = require("./games/menteur");
 const president = require("./games/president");
 const ascenseur = require("./games/ascenseur");
@@ -11,6 +12,8 @@ const ascenseur = require("./games/ascenseur");
 const GAMES = { [menteur.id]: menteur, [president.id]: president, [ascenseur.id]: ascenseur };
 
 const PORT = process.env.PORT || 3000;
+// Facteur de vitesse des robots (1 = rythme humain ; les tests l'accelerent).
+const BOT_SPEED = Number(process.env.BOT_SPEED) > 0 ? Number(process.env.BOT_SPEED) : 1;
 const EMOTES = ["😂", "😱", "🔥", "👏", "😡", "🤡", "🍺", "🤔", "😎", "💀", "😭", "🙏"];
 
 const app = express();
@@ -49,7 +52,8 @@ function roomSummary(room) {
       id,
       name: room.players[id].name,
       connected: !!room.players[id].connected,
-      isHost: room.players[id].isHost
+      isHost: room.players[id].isHost,
+      isBot: !!room.players[id].isBot
     }))
   };
 }
@@ -91,6 +95,45 @@ function sendStateTo(room, playerId) {
 
 function broadcastRoom(room) {
   for (const playerId of room.order) sendStateTo(room, playerId);
+  scheduleBots(room);
+}
+
+// Les robots jouent avec un petit delai, un seul a la fois : apres chaque
+// changement d'etat, on cherche le premier robot qui a quelque chose a faire.
+function scheduleBots(room) {
+  clearTimeout(room.botTimer);
+  if (!room.game || room.status !== "playing") return;
+  const bots = room.order.filter((id) => room.players[id] && room.players[id].isBot);
+  if (!bots.length) return;
+  const game = GAMES[room.gameType];
+  const uid = room.game.uid;
+  for (const botId of bots) {
+    const first = botActions(room.gameType, room.game, botId)[0];
+    if (!first) continue;
+    let delay = 900 + Math.random() * 900;
+    if (first.type === "pickup") delay = 1800;
+    else if (first.type === "accuse") delay = 1300;
+    else if (first.type === "give") delay = 1600;
+    delay *= BOT_SPEED;
+    room.botTimer = setTimeout(() => {
+      if (!room.game || room.game.uid !== uid || room.status !== "playing") return;
+      const actions = botActions(room.gameType, room.game, botId);
+      if (!actions.length) return scheduleBots(room);
+      for (const action of actions) {
+        const res = game.applyAction(room.game, botId, action, { isHost: false });
+        if (res && res.ok) {
+          if (action.type === "pickup" && Math.random() < 0.6) {
+            io.to(room.code).emit("emote", { playerId: botId, emoji: Math.random() < 0.5 ? "😭" : "😡" });
+          }
+          broadcastRoom(room);
+          if (res.schedule) scheduleTick(room, res.schedule);
+          return;
+        }
+      }
+      console.error("Robot bloque :", room.gameType, actions.map((a) => a.type).join(","));
+    }, delay);
+    return;
+  }
 }
 
 io.on("connection", (socket) => {
@@ -173,6 +216,29 @@ io.on("connection", (socket) => {
     if (!player || player.socketId !== socket.id) return ack && ack({ ok: false, needRejoin: true });
     sendStateTo(room, playerId);
     ack && ack({ ok: true });
+  });
+
+  // Robots : le patron en ajoute / en retire dans le salon.
+  socket.on("room:addBot", (_payload, ack) => {
+    const link = rooms.getBySocket(socket.id);
+    if (!link) return ack && ack({ ok: false, error: "Salon introuvable." });
+    if (link.room.hostId !== link.playerId) return ack && ack({ ok: false, error: "Seul le patron peut inviter des robots." });
+    const { error } = rooms.addBot(link.room.code, BOT_NAMES);
+    if (error) return ack && ack({ ok: false, error });
+    ack && ack({ ok: true });
+    broadcastRoom(link.room);
+  });
+
+  socket.on("room:removeBot", ({ playerId } = {}, ack) => {
+    const link = rooms.getBySocket(socket.id);
+    if (!link) return ack && ack({ ok: false, error: "Salon introuvable." });
+    const { room } = link;
+    if (room.hostId !== link.playerId) return ack && ack({ ok: false, error: "Seul le patron peut renvoyer un robot." });
+    const p = room.players[playerId];
+    if (!p || !p.isBot) return ack && ack({ ok: false, error: "Ce joueur n'est pas un robot." });
+    const updated = rooms.removePlayerFromLobby(room.code, playerId);
+    ack && ack({ ok: !!updated });
+    if (updated) broadcastRoom(updated);
   });
 
   // Le patron choisit le jeu dans le salon (menu de selection).
@@ -296,6 +362,19 @@ io.on("connection", (socket) => {
   socket.on("game:give", handleGameAction("give", ["cardIds"]));
   socket.on("game:nextRound", handleGameAction("next_round", []));
   socket.on("game:bid", handleGameAction("bid", ["bid"]));
+
+  // Historique complet a la demande (bouton Historique) : evite d'envoyer
+  // des centaines d'evenements a chaque coup.
+  socket.on("game:history", (_payload, ack) => {
+    const link = rooms.getBySocket(socket.id);
+    if (!link || !link.room.game) return ack && ack({ ok: false });
+    const { room, playerId } = link;
+    const game = GAMES[room.gameType];
+    const history = game.fullHistory
+      ? game.fullHistory(room.game, playerId, room.players)
+      : game.getViewForPlayer(room.game, playerId, room.players).history;
+    ack && ack({ ok: true, history });
+  });
 
   socket.on("disconnect", () => {
     const room = rooms.handleDisconnect(socket.id);

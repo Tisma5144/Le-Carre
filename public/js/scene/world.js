@@ -601,7 +601,9 @@ export class World {
       this.token.rotation.y = e * Math.PI * 2;
       if (f.t >= 1) this.tokenFlight = null;
     }
-    this.tokenTopMat.emissiveIntensity = 0.25 + (Math.sin(time * 4) * 0.5 + 0.5) * 0.35;
+    // meme rythme que l'etiquette du joueur actif (--beat en CSS, BEAT_MS dans hud.js)
+    const phase = (performance.now() % 1400) / 1400;
+    this.tokenTopMat.emissiveIntensity = 0.2 + (0.5 - 0.5 * Math.cos(phase * Math.PI * 2)) * 0.55;
 
     // anneau du tapis
     const ringMat = this.pileRing.material;

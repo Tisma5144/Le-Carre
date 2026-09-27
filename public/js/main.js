@@ -205,13 +205,14 @@ function showLobby() {
   const seats = applySeats(room.players.map((p) => p.id));
   if (firstTime) table.gatherToDeck(true);
   const isHost = room.hostId === S.me.id;
-  hud.renderLobby(room, S.me.id, joinUrl(room.code), qrcode);
+  hud.renderLobby(room, S.me.id, joinUrl(room.code), qrcode, (botId) => app.emit("room:removeBot", { playerId: botId }));
   hud.renderGameMenu(CATALOG, room.gameType, isHost, (gameType) => {
     sfx.play("select");
     app.emit("room:setGame", { gameType });
   });
   const A = ADAPTERS[room.gameType] || menteurUi;
   $("btn-start").textContent = `Distribuer · ${A.name}`;
+  $("btn-rules-lobby").textContent = `📜 Lire les règles ${A.name.startsWith("L'") ? "de l'" + A.name.slice(2) : "du " + A.name.replace(/^Le /, "")}`;
   const optEl = $("game-options");
   if (A.renderLobbyOptions) {
     optEl.classList.remove("hidden");
@@ -232,7 +233,7 @@ function handOrder(hand) {
 
 function updateSortButton() {
   $("btn-sort").classList.toggle("active", S.sorted);
-  $("btn-sort").textContent = S.sorted ? "✅ Triées" : "🔀 Trier";
+  $("btn-sort").innerHTML = S.sorted ? `✅<span class="pill-txt"> Triées</span>` : `🔀<span class="pill-txt"> Trier</span>`;
 }
 
 function showGame() {
@@ -418,6 +419,14 @@ function bindUi() {
   });
 
   $("btn-start").addEventListener("click", () => app.emit("room:start", {}));
+  $("btn-add-bot").addEventListener("click", () => {
+    sfx.play("select");
+    app.emit("room:addBot", {});
+  });
+  $("btn-rules-lobby").addEventListener("click", () => {
+    const A = ADAPTERS[S.room && S.room.gameType] || menteurUi;
+    hud.openModal(`Règles · ${A.name}`, A.rulesHtml());
+  });
   $("btn-leave").addEventListener("click", leaveTable);
   $("btn-share").addEventListener("click", async () => {
     const url = joinUrl(S.room.code);
@@ -613,11 +622,23 @@ function setupConnectionWatch() {
 
 function openHistory() {
   if (!S.game || !S.adapter) return;
-  hud.openModal("Ce qui s'est passé", S.adapter.historyHtml(S.game.history, esc));
+  const A = S.adapter;
+  if (A.fetchHistory) {
+    // historique complet demande au serveur (il n'est pas envoye a chaque coup)
+    hud.openModal("Ce qui s'est passé", A.historyHtml(S.game.history, esc));
+    socket.emit("game:history", {}, (res) => {
+      if (res && res.ok && S.adapter === A && !$("modal").classList.contains("hidden")) {
+        $("modal-body").innerHTML = A.historyHtml(res.history, esc);
+      }
+    });
+    return;
+  }
+  hud.openModal("Ce qui s'est passé", A.historyHtml(S.game.history, esc));
 }
 function openTray() {
   if (!S.game || !S.adapter) return;
   hud.openModal(S.adapter.trayTitle, S.adapter.trayHtml(S.game, hud));
+  if (S.adapter.bindTray) S.adapter.bindTray($("modal-body"), S.game);
 }
 
 // ------------------------------------------------------------------ boucle HUD

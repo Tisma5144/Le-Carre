@@ -29,10 +29,42 @@ const SUIT_NAMES = { pique: "Pique", coeur: "Cœur", carreau: "Carreau", trefle:
 const MODES = ["up-down", "down-up", "up", "down"];
 const TRICK_PAUSE_MS = 1700;
 
+// Chaque evenement est rattache a sa manche (et chaque carte jouee a son
+// pli), pour pouvoir masquer les plis precedents de la manche en cours.
 function logEvent(state, entry) {
   state.eventSeq += 1;
-  state.history.push({ id: state.eventSeq, at: Date.now(), ...entry });
-  if (state.history.length > 200) state.history.splice(0, state.history.length - 200);
+  state.history.push({ id: state.eventSeq, at: Date.now(), round: state.roundIndex + 1, ...entry });
+  if (state.history.length > 6000) state.history.splice(0, state.history.length - 6000);
+}
+
+// Historique visible : tout pour les manches terminees ; pour la manche en
+// cours, seulement les annonces, le dernier pli termine et le pli en cours
+// (on ne peut pas remonter les plis pour compter les cartes).
+function visibleHistory(state) {
+  const live = state.phase === "bidding" || state.phase === "playing" || state.phase === "trick_done";
+  const current = state.roundIndex + 1;
+  const lastDone = state.phase === "trick_done" ? state.trickNumber - 1 : state.trickNumber;
+  return state.history.filter((e) => {
+    if (!live || e.round !== current) return true;
+    if (e.type === "play") return e.trick >= lastDone;
+    if (e.type === "trick_won") return e.number >= lastDone;
+    return true;
+  });
+}
+
+function namedHistory(events, name) {
+  return events.map((e) => ({
+    ...e,
+    playerName: e.playerId ? name(e.playerId) : undefined,
+    dealerName: e.dealerId ? name(e.dealerId) : undefined,
+    starterName: e.starterId ? name(e.starterId) : undefined
+  }));
+}
+
+// Historique complet (visible) envoye a la demande (bouton Historique).
+function fullHistory(state, playerId, players) {
+  const name = (id) => (players[id] ? players[id].name : "?");
+  return namedHistory(visibleHistory(state), name);
 }
 
 function maxCardsFor(n) {
@@ -89,7 +121,8 @@ function createGame(playerIds, rawOptions) {
     trickNumber: 0,
     currentTurn: null,
     scores: Object.fromEntries(playerIds.map((id) => [id, 0])),
-    lastResult: null
+    lastResult: null,
+    roundResults: []
   };
   startRound(state);
   return state;
@@ -208,7 +241,7 @@ function doPlay(state, playerId, action) {
   if (!state.trick.length) state.leadSuit = card.suit;
   state.trick.push({ playerId, card });
   const cut = !!state.trump && card.suit === state.trump.suit && state.leadSuit !== state.trump.suit;
-  logEvent(state, { type: "play", playerId, rank: card.rank, suit: card.suit, lead: state.trick.length === 1, cut });
+  logEvent(state, { type: "play", playerId, rank: card.rank, suit: card.suit, lead: state.trick.length === 1, cut, trick: state.trickNumber + 1 });
 
   if (state.trick.length < state.seatOrder.length) {
     state.currentTurn = seatAfter(state, playerId, 1);
@@ -254,6 +287,12 @@ function endRound(state) {
     const points = pointsFor(bid, won);
     state.scores[id] += points;
     return { id, bid, won, points, total: state.scores[id] };
+  });
+  state.roundResults.push({
+    round: state.roundIndex + 1,
+    cards: state.sequence[state.roundIndex],
+    trump: state.trump ? state.trump.suit : null,
+    results: state.lastResult
   });
   const last = state.roundIndex >= state.sequence.length - 1;
   state.phase = last ? "finished" : "round_end";
@@ -336,12 +375,8 @@ function getViewForPlayer(state, playerId, players) {
     scores: state.seatOrder.map((id) => ({ id, name: name(id), score: state.scores[id] || 0 })),
     ranking: ranking.map((id) => ({ id, name: name(id), score: state.scores[id] })),
     lastResult: state.lastResult ? state.lastResult.map((r) => ({ ...r, name: name(r.id) })) : null,
-    history: state.history.slice(-40).map((e) => ({
-      ...e,
-      playerName: e.playerId ? name(e.playerId) : undefined,
-      dealerName: e.dealerId ? name(e.dealerId) : undefined,
-      starterName: e.starterId ? name(e.starterId) : undefined
-    })),
+    roundResults: state.roundResults.map((r) => ({ ...r, results: r.results.map((x) => ({ ...x, name: name(x.id) })) })),
+    history: namedHistory(visibleHistory(state).slice(-40), name),
     you: {
       id: playerId,
       isYourTurn: isMyBid || myTurn,
@@ -366,6 +401,7 @@ module.exports = {
   applyAction,
   tick,
   getViewForPlayer,
+  fullHistory,
   normalizeOptions,
-  _internals: { buildSequence, pointsFor, forbiddenBid, legalCards, trickWinnerOf, maxCardsFor }
+  _internals: { visibleHistory, buildSequence, pointsFor, forbiddenBid, legalCards, trickWinnerOf, maxCardsFor }
 };

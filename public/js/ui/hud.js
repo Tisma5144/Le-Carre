@@ -27,6 +27,14 @@ export function claimText(count, rank) {
   return `${words[count] || count} ${count > 1 ? plur : sing} !`;
 }
 
+// Rythme commun des clignotements (doit valoir --beat en CSS et BEAT dans
+// world.js) : on cale la phase de l'animation CSS sur l'horloge de la page
+// pour qu'elle batte exactement en meme temps que le jeton 3D.
+export const BEAT_MS = 1400;
+export function syncBeat(el) {
+  if (el) el.style.animationDelay = `-${(performance.now() % BEAT_MS) / 1000}s`;
+}
+
 export function avatarColor(name) {
   let h = 0;
   for (let i = 0; i < name.length; i += 1) h = (h * 31 + name.charCodeAt(i)) % 360;
@@ -92,7 +100,7 @@ export class Hud {
     $("game-menu-hint").textContent = isHost ? "Choisis le jeu de la soirée :" : "Le patron choisit le jeu :";
   }
 
-  renderLobby(room, meId, url, qrFactory) {
+  renderLobby(room, meId, url, qrFactory, onRemoveBot) {
     $("lobby-code").textContent = room.code;
     const ul = $("lobby-players");
     const prev = new Set([...ul.querySelectorAll("li")].map((li) => li.dataset.id));
@@ -101,16 +109,19 @@ export class Hud {
       const li = document.createElement("li");
       li.dataset.id = p.id;
       if (prev.has(p.id)) li.style.animation = "none";
-      li.innerHTML = `<span>${esc(p.name)}${p.id === meId ? " <span class='tag'>(toi)</span>" : ""}</span>
-        <span class="tag">${p.isHost ? "👑 patron" : ""}${!p.connected ? " · parti fumer" : ""}</span>`;
+      li.innerHTML = `<span>${p.isBot ? "🤖 " : ""}${esc(p.name)}${p.id === meId ? " <span class='tag'>(toi)</span>" : ""}</span>
+        <span class="tag">${p.isHost ? "👑 patron" : ""}${p.isBot ? "robot" : ""}${!p.connected ? " · parti fumer" : ""}${p.isBot && room.hostId === meId ? ` <button class="bot-kick" data-bot="${p.id}" aria-label="Renvoyer ce robot" data-no-fs>✕</button>` : ""}</span>`;
+      const kick = li.querySelector(".bot-kick");
+      if (kick && onRemoveBot) kick.addEventListener("click", () => onRemoveBot(p.id));
       ul.appendChild(li);
     });
     const isHost = room.hostId === meId;
     const n = room.players.length;
     $("btn-start").classList.toggle("hidden", !isHost);
+    $("btn-add-bot").classList.toggle("hidden", !isHost || n >= 8);
     $("btn-start").disabled = n < 3;
     $("lobby-status").textContent = isHost
-      ? n < 3 ? `Il faut au moins 3 joueurs (${n}/3)… invite tes potes !` : `${n} joueurs autour de la table. On y va ?`
+      ? n < 3 ? `Il faut au moins 3 joueurs (${n}/3) : invite tes potes ou ajoute des robots !` : `${n} joueurs autour de la table. On y va ?`
       : "Le patron va bientôt distribuer les cartes…";
     const qrEl = $("qr");
     if (qrEl.dataset.url !== url && qrFactory) {
@@ -158,6 +169,7 @@ export class Hud {
       const count = el.querySelector(".plate-count");
       count.textContent = p.count === undefined ? "" : String(p.count);
       count.style.display = p.count === undefined ? "none" : "";
+      if (!!p.active !== el.classList.contains("active")) syncBeat(el.querySelector(".plate-inner"));
       el.classList.toggle("active", !!p.active);
       el.classList.toggle("finished", !!p.finished);
       el.classList.toggle("offline", !p.connected);
@@ -208,7 +220,20 @@ export class Hud {
         if (overlapX && b.y - b.h < a.y - 2 && b.y > a.y - a.h) b.y = a.y + b.h + 2;
       }
     }
-    for (const it of items) it.el.style.transform = `translate(${it.x}px, ${it.y}px) translate(-50%, -100%)`;
+    const W = window.innerWidth;
+    for (const it of items) {
+      it.el.style.transform = `translate(${it.x}px, ${it.y}px) translate(-50%, -100%)`;
+      // la bulle de dialogue reste entierement a l'ecran (la pointe, elle,
+      // continue de viser le joueur)
+      const b = it.el.querySelector(".bubble");
+      if (b) {
+        const bw = b.offsetWidth;
+        const over = it.x + bw / 2 - (W - 6);
+        const under = 6 - (it.x - bw / 2);
+        const bx = over > 0 ? -over : under > 0 ? under : 0;
+        b.style.setProperty("--bx", `${Math.round(bx)}px`);
+      }
+    }
   }
 
   // Emoji qui s'envole au-dessus d'un joueur (target = "me" ou id).
@@ -286,6 +311,7 @@ export class Hud {
   setHint(html, myTurn) {
     const h = $("hint");
     h.innerHTML = html || "";
+    if (!!myTurn !== h.classList.contains("my-turn")) syncBeat(h);
     h.classList.toggle("my-turn", !!myTurn);
   }
 
@@ -297,9 +323,16 @@ export class Hud {
     b.classList.add("show");
   }
 
-  setMyPlate(name, count, finishedText) {
-    $("my-plate").innerHTML = `<div class="avatar" style="background:${avatarColor(name || "?")}">${esc((name || "?").charAt(0).toUpperCase())}<span class="me-count">${count}</span></div>
-      <div class="me-text"><div class="me-name">${esc(name || "Toi")}</div><small>${finishedText || `${count} carte${count > 1 ? "s" : ""} en main`}</small></div>`;
+  // text : ligne detaillee (grands ecrans) ; short : version courte pour
+  // les telephones (ex : "🎯 2 · ✋ 1" a l'Ascenseur).
+  setMyPlate(name, count, text, short) {
+    const long = text || `${count} carte${count > 1 ? "s" : ""} en main`;
+    const html = `<div class="avatar" style="background:${avatarColor(name || "?")}">${esc((name || "?").charAt(0).toUpperCase())}<span class="me-count">${count}</span></div>
+      <div class="me-text"><div class="me-name">${esc(name || "Toi")}</div><small class="me-long">${long}</small><small class="me-short">${short || long}</small></div>`;
+    if ($("my-plate").dataset.html !== html) {
+      $("my-plate").dataset.html = html;
+      $("my-plate").innerHTML = html;
+    }
   }
 
   // Boutons dores flottants au-dessus de la main (carres, carre magique...).
@@ -447,6 +480,7 @@ export class Hud {
   openModal(title, html, onClose) {
     $("modal-title").textContent = title;
     $("modal-body").innerHTML = html;
+    $("modal-body").scrollTop = 0;
     $("modal").classList.remove("hidden");
     this.modalOnClose = onClose || null;
   }
