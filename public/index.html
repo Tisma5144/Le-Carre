@@ -102,8 +102,12 @@
         <span id="announce-sub" class="announce-sub"></span>
       </div>
     </div>
-    <button id="btn-sound" class="icon-btn" aria-label="Son">🔊</button>
+    <div class="top-right">
+      <button id="btn-sound" class="icon-btn" aria-label="Son">🔊</button>
+      <button id="btn-emote" class="icon-btn emote-btn" aria-label="Réagir" data-no-fs>😀</button>
+    </div>
   </div>
+  <div id="emote-palette" class="emote-palette hidden"></div>
 
   <button id="pile-chip" class="pile-chip hidden"></button>
   <button id="tray-chip" class="tray-chip hidden"></button>
@@ -187,6 +191,7 @@
 </div>
 
 <div id="toast" class="toast"></div>
+<div id="net-banner" class="net-banner hidden"><span class="net-dot"></span>Connexion perdue… reconnexion</div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script type="module" src="/js/main.js"></script>

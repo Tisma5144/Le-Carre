@@ -17,7 +17,7 @@ export default {
   rankOrder: ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "V", "D", "R"],
 
   dealKey: (v) => v.uid,
-  isFreshDeal: (v) => v.lastEventId === 0,
+  isFreshDeal: (v) => v.history.every((e) => e.type === "quad_discard"),
 
   desired(v, handOrder) {
     const byId = new Map(v.hand.map((c) => [c.id, c]));
@@ -91,16 +91,8 @@ export default {
     $("btn-liar").classList.toggle("hidden", !(v.phase === "playing" && you.canAccuseNow && !dealing));
     $("btn-pass").classList.add("hidden");
 
-    // carres a sortir (a tout moment)
-    const counts = {};
-    v.hand.forEach((c) => { counts[c.rank] = (counts[c.rank] || 0) + 1; });
-    const quads = (v.phase === "playing" || v.phase === "reveal_pending") && !you.isFinished && !dealing
-      ? Object.keys(counts).filter((r) => counts[r] === 4) : [];
-    hud.setActionChips(quads.map((rank) => ({
-      key: "q" + rank,
-      label: `✨ Sortir le carré de ${rankPlural(rank)}`,
-      onClick: () => app.emit("game:quadDiscard", { rank })
-    })));
+    // les carres sortent automatiquement (plus de bouton)
+    hud.setActionChips([]);
 
     // plaques
     const finishedIdx = new Map(v.finishedOrder.map((f, i) => [f.id, i]));
@@ -275,7 +267,7 @@ export default {
       <p class="rule"><i>🔁</i><span>Chacun à son tour pose 1 à 3 cartes en prétendant <b>la même valeur</b>. Tu peux mentir…</span></p>
       <p class="rule"><i>🚨</i><span>Juste avant de jouer, tu peux crier <b>MENTEUR !</b> sur la pose précédente. Les cartes sont retournées : si c'était un bluff, le menteur ramasse tout le tapis. Sinon, c'est toi.</span></p>
       <p class="rule"><i>➡️</i><span>Le joueur après celui qui a ramassé ouvre la manche suivante.</span></p>
-      <p class="rule"><i>✨</i><span>Tu as les 4 cartes d'une même valeur ? Sors le <b>carré</b> quand tu veux, ça ne compte pas comme ton tour.</span></p>
+      <p class="rule"><i>✨</i><span>Tu as les 4 cartes d'une même valeur ? Le <b>carré</b> sort tout seul du jeu (à la distribution ou quand tu ramasses), sans compter comme un tour.</span></p>
       <p class="rule"><i>🍺</i><span>Le dernier avec des cartes en main… paie sa tournée.</span></p>`;
   }
 };

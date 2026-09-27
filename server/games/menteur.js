@@ -38,7 +38,7 @@ function createGame(playerIds) {
   const hands = dealAll(deck, playerIds);
   const seatOrder = shuffleOrder(playerIds);
 
-  return {
+  const state = {
     id: "menteur",
     uid: Math.random().toString(36).slice(2, 10),
     eventSeq: 0,
@@ -55,6 +55,29 @@ function createGame(playerIds) {
     phase: "playing",
     pendingReveal: null
   };
+  // Les carres recus a la distribution sortent tout seuls.
+  autoDiscardQuads(state, seatOrder);
+  return state;
+}
+
+// Sortie automatique des carres : des qu'un joueur a les 4 cartes d'une meme
+// valeur en main (a la distribution ou apres avoir ramasse), elles sortent du
+// jeu. Ca ne consomme jamais de tour.
+function autoDiscardQuads(state, playerIds) {
+  for (const playerId of playerIds) {
+    const hand = state.hands[playerId] || [];
+    const counts = {};
+    hand.forEach((c) => { counts[c.rank] = (counts[c.rank] || 0) + 1; });
+    for (const rank of RANKS) {
+      if (counts[rank] !== 4) continue;
+      const matching = state.hands[playerId].filter((c) => c.rank === rank);
+      const ids = new Set(matching.map((c) => c.id));
+      state.hands[playerId] = state.hands[playerId].filter((c) => !ids.has(c.id));
+      state.removedQuads.push({ playerId, rank, cards: matching });
+      logEvent(state, { type: "quad_discard", playerId, rank, auto: true });
+    }
+    confirmFinishIfEmpty(state, playerId);
+  }
 }
 
 function shuffleOrder(ids) {
@@ -291,6 +314,9 @@ function doPickup(state, playerId) {
   state.phase = "playing";
 
   logEvent(state, { type: "pickup", playerId: loserId, count: pickedUpCount });
+
+  // les carres formes en ramassant sortent automatiquement
+  autoDiscardQuads(state, [loserId]);
 
   // Si l'accusation etait fausse, la pose precedente (deja verifiee comme
   // sincere) est maintenant definitivement validee.

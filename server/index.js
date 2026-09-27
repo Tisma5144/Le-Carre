@@ -11,10 +11,17 @@ const ascenseur = require("./games/ascenseur");
 const GAMES = { [menteur.id]: menteur, [president.id]: president, [ascenseur.id]: ascenseur };
 
 const PORT = process.env.PORT || 3000;
+const EMOTES = ["😂", "😱", "🔥", "👏", "😡", "🤡", "🍺", "🤔", "😎", "💀", "😭", "🙏"];
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+// Detection plus rapide des connexions mortes (reseau du bar, telephone en
+// veille) et reprise de session transparente pour les coupures courtes.
+const io = new Server(server, {
+  pingInterval: 10000,
+  pingTimeout: 8000,
+  connectionStateRecovery: { maxDisconnectionDuration: 2 * 60 * 1000, skipMiddlewares: true }
+});
 
 app.use(express.static(path.join(__dirname, "..", "public")));
 
@@ -74,23 +81,38 @@ function newGame(room) {
   return game.createGame(room.order, opts);
 }
 
-function broadcastRoom(room) {
+function sendStateTo(room, playerId) {
+  const player = room.players[playerId];
+  if (!player || !player.socketId) return;
   const game = room.game ? GAMES[room.gameType] : null;
-  for (const playerId of room.order) {
-    const player = room.players[playerId];
-    if (!player || !player.connected || !player.socketId) continue;
-    const payload = { room: roomSummary(room) };
-    if (game && room.game) {
-      payload.game = game.getViewForPlayer(room.game, playerId, room.players);
-    } else {
-      payload.game = null;
-    }
-    io.to(player.socketId).emit("state", payload);
-  }
+  const payload = { room: roomSummary(room), game: game && room.game ? game.getViewForPlayer(room.game, playerId, room.players) : null };
+  io.to(player.socketId).emit("state", payload);
+}
+
+function broadcastRoom(room) {
+  for (const playerId of room.order) sendStateTo(room, playerId);
 }
 
 io.on("connection", (socket) => {
+  // Detache ce socket de la table ou il etait assis (salon seulement).
+  function detachFromCurrentRoom() {
+    const link = rooms.getBySocket(socket.id);
+    if (!link) return;
+    socket.leave(link.room.code);
+    rooms.socketToPlayer.delete(socket.id);
+    const updated = rooms.removePlayerFromLobby(link.room.code, link.playerId);
+    if (updated) broadcastRoom(updated);
+  }
+
   socket.on("room:create", ({ name, gameType }, ack) => {
+    // Anti double-clic : si ce telephone vient deja d'ouvrir une table ou il
+    // est seul, on lui renvoie la meme au lieu d'en creer une autre.
+    const current = rooms.getBySocket(socket.id);
+    if (current && current.room.status === "lobby" && current.room.hostId === current.playerId && current.room.order.length === 1) {
+      ack && ack({ ok: true, code: current.room.code, playerId: current.playerId });
+      return broadcastRoom(current.room);
+    }
+    detachFromCurrentRoom();
     const cleanName = (name || "").trim().slice(0, 20) || "Joueur";
     const type = GAMES[gameType] ? gameType : menteur.id;
     const { room, playerId } = rooms.createRoom({ gameType: type, hostName: cleanName });
@@ -102,6 +124,14 @@ io.on("connection", (socket) => {
 
   socket.on("room:join", ({ code, name }, ack) => {
     const cleanName = (name || "").trim().slice(0, 20) || "Joueur";
+    // Anti double-clic : ce telephone est deja assis a cette table -> on
+    // renvoie sa place au lieu de l'asseoir une deuxieme fois.
+    const current = rooms.getBySocket(socket.id);
+    if (current && current.room.code === String(code || "").toUpperCase() && current.room.players[current.playerId]) {
+      ack && ack({ ok: true, code: current.room.code, playerId: current.playerId });
+      return broadcastRoom(current.room);
+    }
+    detachFromCurrentRoom();
     const { room, error } = rooms.joinRoom(code, cleanName);
     if (error) return ack && ack({ ok: false, error });
     rooms.bindSocket(socket.id, room.code, room.order[room.order.length - 1]);
@@ -111,9 +141,9 @@ io.on("connection", (socket) => {
     broadcastRoom(room);
   });
 
-  socket.on("room:rejoin", ({ code, playerId }, ack) => {
-    const { room, error } = rooms.rejoin(code, playerId);
-    if (error) return ack && ack({ ok: false, error });
+  socket.on("room:rejoin", ({ code, playerId } = {}, ack) => {
+    const { room, error, gone } = rooms.rejoin(code, playerId);
+    if (error) return ack && ack({ ok: false, error, gone: !!gone });
     rooms.bindSocket(socket.id, room.code, playerId);
     socket.join(room.code);
     ack && ack({ ok: true, code: room.code, playerId });
@@ -129,6 +159,19 @@ io.on("connection", (socket) => {
       const updated = rooms.removePlayerFromLobby(room.code, playerId);
       if (updated) broadcastRoom(updated);
     }
+    ack && ack({ ok: true });
+  });
+
+  // Le telephone revient au premier plan (ou doute d'etre a jour) : on lui
+  // renvoie l'etat complet. Si le serveur ne le connait plus sur ce socket,
+  // il doit refaire un room:rejoin.
+  socket.on("room:sync", (_payload, ack) => {
+    const link = rooms.getBySocket(socket.id);
+    if (!link) return ack && ack({ ok: false, needRejoin: true });
+    const { room, playerId } = link;
+    const player = room.players[playerId];
+    if (!player || player.socketId !== socket.id) return ack && ack({ ok: false, needRejoin: true });
+    sendStateTo(room, playerId);
     ack && ack({ ok: true });
   });
 
@@ -161,6 +204,18 @@ io.on("connection", (socket) => {
     room.options[room.gameType] = clean;
     ack && ack({ ok: true });
     broadcastRoom(room);
+  });
+
+  // Emotes : reaction instantanee envoyee a toute la table (hors etat de jeu).
+  let lastEmoteAt = 0;
+  socket.on("room:emote", ({ emoji } = {}, ack) => {
+    const link = rooms.getBySocket(socket.id);
+    if (!link || !EMOTES.includes(emoji)) return ack && ack({ ok: false });
+    const now = Date.now();
+    if (now - lastEmoteAt < 700) return ack && ack({ ok: false, error: "Doucement 😅" });
+    lastEmoteAt = now;
+    io.to(link.room.code).emit("emote", { playerId: link.playerId, emoji });
+    ack && ack({ ok: true });
   });
 
   socket.on("room:start", (_payload, ack) => {

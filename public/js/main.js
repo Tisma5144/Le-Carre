@@ -12,6 +12,7 @@ import ascenseurUi from "./games/ascenseur.js";
 import qrcode from "/vendor/qrcode.mjs";
 import * as FS from "./ui/fullscreen.js";
 
+const EMOTES = ["😂", "😱", "🔥", "👏", "😡", "🤡", "🍺", "🤔", "😎", "💀", "😭", "🙏"];
 const ADAPTERS = { menteur: menteurUi, president: presidentUi, ascenseur: ascenseurUi };
 const SESSION_KEY = "menteurSession";
 const SUIT_INDEX = { pique: 0, coeur: 1, trefle: 2, carreau: 3 };
@@ -121,8 +122,10 @@ function updateHandCssVar() {
 function computeSeats(orderedIds) {
   const idx = orderedIds.indexOf(S.me.id);
   const rel = idx >= 0 ? orderedIds.slice(idx + 1).concat(orderedIds.slice(0, idx)) : orderedIds.slice();
+  // Sens des aiguilles d'une montre : le joueur qui joue apres moi est
+  // assis a ma gauche, puis on tourne vers le haut de la table et la droite.
   const phis = World.opponentPhis(rel.length);
-  return rel.map((id, i) => ({ id, phi: phis[i] }));
+  return rel.map((id, i) => ({ id, phi: phis[phis.length - 1 - i] }));
 }
 
 function applySeats(orderedIds) {
@@ -362,7 +365,18 @@ function bindUi() {
     rememberName(n);
     return n;
   };
+  // Verrou anti double-clic : une seule demande "ouvrir / rejoindre" a la fois.
+  let joining = false;
+  let lockTimer = null;
+  const lock = (on) => {
+    joining = on;
+    clearTimeout(lockTimer);
+    if (on) lockTimer = setTimeout(() => lock(false), 8000);
+    $("btn-create").disabled = on;
+    $("btn-join").disabled = on;
+  };
   const onJoined = (res, name) => {
+    lock(false);
     if (!res || !res.ok) {
       hud.toast((res && res.error) || "Impossible de rejoindre cette table.");
       sfx.play("error");
@@ -376,8 +390,10 @@ function bindUi() {
   };
 
   $("btn-create").addEventListener("click", () => {
+    if (joining) return;
     const name = needName();
     if (!name) return;
+    lock(true);
     socket.emit("room:create", { name }, (res) => onJoined(res, name));
   });
   $("btn-join").addEventListener("click", () => {
@@ -389,6 +405,8 @@ function bindUi() {
       codeInput.focus();
       return;
     }
+    if (joining) return;
+    lock(true);
     socket.emit("room:join", { name, code }, (res) => onJoined(res, name));
   });
   codeInput.addEventListener("keydown", (e) => { if (e.key === "Enter") $("btn-join").click(); });
@@ -412,6 +430,31 @@ function bindUi() {
         hud.toast("Lien copié ! Colle-le dans ta conv 📋");
       }
     } catch (e) { /* partage annule */ }
+  });
+
+  // emotes
+  const palette = $("emote-palette");
+  palette.innerHTML = EMOTES.map((e) => `<button data-emote="${e}" data-no-fs aria-label="${e}">${e}</button>`).join("");
+  const closePalette = () => {
+    palette.classList.add("hidden");
+    $("btn-emote").classList.remove("open");
+  };
+  $("btn-emote").addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    const open = palette.classList.toggle("hidden") === false;
+    $("btn-emote").classList.toggle("open", open);
+  });
+  palette.addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-emote]");
+    if (!b) return;
+    ev.stopPropagation();
+    closePalette();
+    socket.emit("room:emote", { emoji: b.dataset.emote }, (res) => {
+      if (res && res.error) hud.toast(res.error, 1200);
+    });
+  });
+  document.addEventListener("pointerdown", (ev) => {
+    if (!palette.classList.contains("hidden") && !ev.target.closest("#emote-palette, #btn-emote")) closePalette();
   });
 
   $("btn-liar").addEventListener("click", () => app.emit("game:accuse", {}));
@@ -484,6 +527,88 @@ function fullscreenAction() {
   } else {
     hud.openModal("Jouer en plein écran", FS.helpHtml());
   }
+}
+
+// ------------------------------------------------------------------ connexion
+//
+// Sur telephone, la connexion saute souvent (ecran qui s'eteint, appli mise
+// en arriere-plan, Wi-Fi du bar). On se reconnecte tout seul, on
+// resynchronise l'etat quand l'appli revient au premier plan, et on verifie
+// regulierement qu'on est toujours a jour.
+
+let netTimer = null;
+let syncing = false;
+
+function setNetBanner(show) {
+  clearTimeout(netTimer);
+  const el = $("net-banner");
+  if (!show) {
+    el.classList.add("hidden");
+    return;
+  }
+  // petit delai : pas de clignotement pour une micro-coupure
+  netTimer = setTimeout(() => {
+    if (!socket.connected && S.screen && S.screen !== "home") el.classList.remove("hidden");
+  }, 1200);
+}
+
+// Se rassoit a sa table (apres une coupure ou un refresh). Renvoie false s'il
+// n'y a pas de table memorisee.
+function doRejoin() {
+  const saved = loadSession();
+  if (!saved || !saved.playerId || !saved.code) return false;
+  S.me.id = saved.playerId;
+  S.me.name = saved.name;
+  socket.emit("room:rejoin", { code: saved.code, playerId: saved.playerId }, (res) => {
+    if (!res || !res.ok) {
+      if (res && res.gone) {
+        clearSession();
+        if (S.screen && S.screen !== "home") hud.toast(res.error || "Cette table n'existe plus.", 4000);
+        if (S.screen !== "home") showHome();
+      }
+    }
+  });
+  return true;
+}
+
+// Verifie qu'on est bien a jour ; sinon se reconnecte / se rassoit.
+function resync() {
+  if (!loadSession() || syncing) return;
+  if (!socket.connected) {
+    socket.connect();
+    return;
+  }
+  syncing = true;
+  let answered = false;
+  const guard = setTimeout(() => {
+    // pas de reponse : connexion "zombie" -> on repart sur une connexion neuve
+    syncing = false;
+    if (!answered) {
+      socket.disconnect();
+      socket.connect();
+    }
+  }, 5000);
+  socket.emit("room:sync", {}, (res) => {
+    answered = true;
+    syncing = false;
+    clearTimeout(guard);
+    if (!res || !res.ok) doRejoin();
+  });
+}
+
+function setupConnectionWatch() {
+  socket.on("disconnect", () => setNetBanner(true));
+  socket.io.on("reconnect_attempt", () => setNetBanner(true));
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") resync();
+  });
+  window.addEventListener("pageshow", resync);
+  window.addEventListener("online", resync);
+  window.addEventListener("focus", resync);
+  // filet de securite : toutes les 15 s tant que l'appli est affichee
+  setInterval(() => {
+    if (document.visibilityState === "visible" && S.screen && S.screen !== "home") resync();
+  }, 15000);
 }
 
 function openHistory() {
@@ -591,22 +716,17 @@ async function boot() {
   FS.onChange(updateFsButton);
   updateFsButton();
 
-  socket = io();
+  socket = io({ reconnectionDelay: 500, reconnectionDelayMax: 3000, timeout: 8000 });
   socket.on("state", onState);
+  setupConnectionWatch();
+  socket.on("emote", ({ playerId, emoji }) => {
+    if (S.screen !== "game") return;
+    hud.floatEmote(playerId === S.me.id ? "me" : playerId, emoji);
+    sfx.play("select");
+  });
   socket.on("connect", () => {
-    const saved = loadSession();
-    if (saved && saved.playerId && saved.code) {
-      S.me.id = saved.playerId;
-      S.me.name = saved.name;
-      socket.emit("room:rejoin", { code: saved.code, playerId: saved.playerId }, (res) => {
-        if (!res || !res.ok) {
-          clearSession();
-          if (S.screen !== "home") showHome();
-        }
-      });
-    } else if (!S.screen) {
-      showHome();
-    }
+    setNetBanner(false);
+    if (!doRejoin() && !S.screen) showHome();
   });
   if (!loadSession()) showHome();
 

@@ -24,8 +24,9 @@ illustrées (figures dessinées, As ornés, dos au masque vénitien).
   ramasse tout le tapis, sinon c'est l'accusateur. Le perdant clique sur
   **Ramasser**.
 - Le joueur après celui qui a ramassé ouvre la manche suivante.
-- Un carré (4 cartes identiques) peut être sorti du jeu **à tout moment** ; ça
-  ne compte jamais comme un tour.
+- Un carré (4 cartes identiques) sort **automatiquement** du jeu dès qu'un
+  joueur l'a en main (à la distribution ou après avoir ramassé) ; ça ne
+  compte jamais comme un tour.
 - Le premier à vider sa main gagne ; le dernier avec des cartes… paie sa tournée.
 
 ## Règles du Président (règles maison)
@@ -67,6 +68,11 @@ illustrées (figures dessinées, As ornés, dos au masque vénitien).
 
 ## Ce que fait l'interface
 
+- On joue dans le sens des aiguilles d'une montre : le joueur suivant est
+  assis à ta gauche.
+- Emotes : bouton 😀 en haut à droite, l'emoji s'envole au-dessus de ton nom
+  chez tout le monde.
+
 - Distribution animée des cartes, pose avec vol des cartes une par une (on voit
   combien de cartes sont posées), révélation en grand avec halo vert (vraie
   carte) ou rouge (bluff) et tampon « MENTEUR ! » / « SINCÈRE ! ».
@@ -92,6 +98,17 @@ illustrées (figures dessinées, As ornés, dos au masque vénitien).
   d'accueil ») : ouvert depuis l'icône, le jeu est en plein écran.
 - Fichiers : `public/manifest.webmanifest`, `public/sw.js`, `public/icons/`,
   `public/js/ui/fullscreen.js`.
+
+## Connexion instable (téléphones, Wi-Fi du bar)
+
+- Reconnexion automatique, et un bandeau « Connexion perdue… reconnexion »
+  pendant les coupures.
+- Quand l'appli revient au premier plan (écran rallumé, retour depuis une
+  autre appli) et toutes les 15 s, le téléphone vérifie qu'il est à jour et
+  se resynchronise tout seul, sans actualiser la page.
+- Côté serveur, un joueur n'est plus marqué hors ligne par la mort tardive
+  de son ancienne connexion (cause du bug « je perds le fil de la partie »).
+- Test : `npm run test:reconnexion`.
 
 ## Lancer en local
 

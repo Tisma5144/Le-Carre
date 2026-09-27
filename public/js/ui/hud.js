@@ -168,6 +168,16 @@ export class Hud {
   }
 
   positionPlates(project) {
+    // Elements du haut de l'ecran que les etiquettes ne doivent pas chevaucher
+    // (plaque de l'annonce / de l'atout, boutons menu et son).
+    const obstacles = [];
+    if (!$("hud").classList.contains("hidden")) {
+      for (const id of ["announce", "btn-menu", "btn-sound", "btn-emote"]) {
+        const r = $(id).getBoundingClientRect();
+        if (r.height > 0) obstacles.push(r);
+      }
+    }
+    const items = [];
     for (const [id, el] of this.plates) {
       const s = project(id);
       if (!s) {
@@ -177,9 +187,52 @@ export class Hud {
       el.style.opacity = "";
       // on garde l'etiquette entierement a l'ecran (bords des telephones)
       const half = (el.offsetWidth || 120) / 2 + 6;
+      const h = el.offsetHeight || 40;
       const x = Math.max(half, Math.min(window.innerWidth - half, s.x));
-      el.style.transform = `translate(${x}px, ${s.y}px) translate(-50%, -100%)`;
+      let y = Math.max(s.y, h + 4);
+      // si l'etiquette passe sous la plaque du haut, on la descend juste en dessous
+      for (const r of obstacles) {
+        const overlapX = x + half > r.left - 4 && x - half < r.right + 4;
+        if (overlapX && y - h < r.bottom + 6) y = r.bottom + 6 + h;
+      }
+      items.push({ el, x, y, half, h });
     }
+    // etiquettes qui se chevauchent entre elles (beaucoup de joueurs sur un
+    // ecran etroit) : on decale vers le bas celle qui est la plus basse
+    items.sort((p, q) => p.y - q.y);
+    for (let i = 0; i < items.length; i += 1) {
+      for (let j = 0; j < i; j += 1) {
+        const a = items[j];
+        const b = items[i];
+        const overlapX = Math.abs(a.x - b.x) < a.half + b.half - 10;
+        if (overlapX && b.y - b.h < a.y - 2 && b.y > a.y - a.h) b.y = a.y + b.h + 2;
+      }
+    }
+    for (const it of items) it.el.style.transform = `translate(${it.x}px, ${it.y}px) translate(-50%, -100%)`;
+  }
+
+  // Emoji qui s'envole au-dessus d'un joueur (target = "me" ou id).
+  floatEmote(target, emoji) {
+    let r = null;
+    if (target === "me") r = $("my-plate").getBoundingClientRect();
+    else {
+      const plate = this.plates.get(target);
+      if (!plate || plate.style.opacity === "0") return;
+      r = plate.querySelector(".plate-inner").getBoundingClientRect();
+    }
+    if (!r || !r.width) return;
+    const el = document.createElement("span");
+    el.className = "emote-float";
+    el.textContent = emoji;
+    const x = target === "me" ? r.left + 26 : r.left + r.width / 2;
+    el.style.left = `${x}px`;
+    const high = r.top < window.innerHeight * 0.3;
+    el.style.top = `${high ? r.bottom : r.top}px`;
+    if (high) el.classList.add("down");
+    el.style.setProperty("--dx", `${Math.round((Math.random() - 0.5) * 50)}px`);
+    document.body.appendChild(el);
+    el.addEventListener("animationend", () => el.remove());
+    setTimeout(() => el.remove(), 6000);
   }
 
   bubble(target, text, kind = "") {
