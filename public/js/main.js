@@ -9,11 +9,13 @@ import { ensureCardFonts, createCardBackCanvas, createCardFaceCanvas } from "./c
 import menteurUi from "./games/menteur.js";
 import presidentUi from "./games/president.js";
 import ascenseurUi from "./games/ascenseur.js";
+import pouilleuxUi from "./games/pouilleux.js";
+import pokerUi from "./games/poker.js";
 import qrcode from "/vendor/qrcode.mjs";
 import * as FS from "./ui/fullscreen.js";
 
 const EMOTES = ["😂", "😱", "🔥", "👏", "😡", "🤡", "🍺", "🤔", "😎", "💀", "😭", "🙏"];
-const ADAPTERS = { menteur: menteurUi, president: presidentUi, ascenseur: ascenseurUi };
+const ADAPTERS = { menteur: menteurUi, president: presidentUi, ascenseur: ascenseurUi, pouilleux: pouilleuxUi, poker: pokerUi };
 const SESSION_KEY = "menteurSession";
 const SUIT_INDEX = { pique: 0, coeur: 1, trefle: 2, carreau: 3 };
 const $ = (id) => document.getElementById(id);
@@ -100,6 +102,8 @@ function buildCatalog() {
     { ...pick(menteurUi), art: createCardBackCanvas(0.22).toDataURL() },
     { ...pick(presidentUi), art: createCardFaceCanvas({ rank: "R", suit: "coeur" }, 0.22).toDataURL() },
     { ...pick(ascenseurUi), art: createCardFaceCanvas({ rank: "A", suit: "pique" }, 0.22).toDataURL() },
+    { ...pick(pouilleuxUi), art: createCardFaceCanvas({ rank: "V", suit: "pique" }, 0.22).toDataURL() },
+    { ...pick(pokerUi), art: createCardFaceCanvas({ rank: "A", suit: "coeur" }, 0.22).toDataURL() },
     { id: "custom", name: "Tes propres jeux", emoji: "🛠️", tagline: "Bientôt : invente tes règles", players: "", soon: true }
   ];
 }
@@ -205,7 +209,8 @@ function showLobby() {
   const seats = applySeats(room.players.map((p) => p.id));
   if (firstTime) table.gatherToDeck(true);
   const isHost = room.hostId === S.me.id;
-  hud.renderLobby(room, S.me.id, joinUrl(room.code), qrcode, (botId) => app.emit("room:removeBot", { playerId: botId }));
+  const AL = ADAPTERS[room.gameType] || menteurUi;
+  hud.renderLobby(room, S.me.id, joinUrl(room.code), qrcode, (botId) => app.emit("room:removeBot", { playerId: botId }), AL.minPlayers || 3);
   hud.renderGameMenu(CATALOG, room.gameType, isHost, (gameType) => {
     sfx.play("select");
     app.emit("room:setGame", { gameType });
@@ -243,6 +248,7 @@ function showGame() {
     if (S.adapter && S.adapter.hideOverlays) S.adapter.hideOverlays(app);
     S.adapter = A;
     table.maxSelect = A.maxSelect;
+    $("btn-sort").classList.toggle("hidden", !!A.hideSort);
     table.pendingFaceUp = A.pendingFaceUp;
     S.sorted = A.defaultSorted;
     updateSortButton();
@@ -274,6 +280,9 @@ function showGame() {
         table.applyState(A.desired(S.game, handOrder(S.game.hand), app), { deal: true });
         setTimeout(() => {
           S.dealing = false;
+          // certains jeux affichent des cartes en plus une fois la donne finie
+          // (ex : les cartes tendues par le voisin au Pouilleux)
+          if (S.game && S.adapter === A && S.screen === "game") table.applyState(A.desired(S.game, handOrder(S.game.hand), app));
           refreshGameUi();
         }, 1900);
       }, 750);
@@ -310,7 +319,7 @@ function refreshGameUi() {
   if (!dealing && playing && g.currentTurn) {
     const pos = g.currentTurn === S.me.id ? world.anchors.myToken : S.seatPhi.has(g.currentTurn) ? world.seatPoint(S.seatPhi.get(g.currentTurn), 0.5) : null;
     if (pos) world.moveTokenTo(pos);
-  } else if (g.phase === "finished" || g.phase === "round_end" || g.phase === "exchange") {
+  } else if (["finished", "round_end", "exchange", "showdown", "waiting"].includes(g.phase)) {
     world.hideToken();
   }
   const ring = myTurn && (!A.showRing || A.showRing(g));
@@ -686,6 +695,7 @@ async function boot() {
     canDrop: (ids) => !!(S.adapter && S.game && S.adapter.canDrop(ids, S.game, app)),
     onDrop: (ids) => { if (S.adapter && S.game) S.adapter.commitPlay(ids, S.game, app); },
     onHandTop: () => updateHandCssVar(),
+    onPick: (slot) => { if (S.adapter && S.adapter.onPick && S.game) S.adapter.onPick(slot, S.game, app); },
     onSelectionChange: () => {
       sfx.play("select");
       updatePlayButton();

@@ -7,7 +7,9 @@ const { botActions } = require("../server/bots");
 const GAMES = {
   menteur: require("../server/games/menteur"),
   president: require("../server/games/president"),
-  ascenseur: require("../server/games/ascenseur")
+  ascenseur: require("../server/games/ascenseur"),
+  pouilleux: require("../server/games/pouilleux"),
+  poker: require("../server/games/poker")
 };
 
 const stats = {};
@@ -16,7 +18,7 @@ for (const [type, game] of Object.entries(GAMES)) {
   for (let g = 0; g < 30; g += 1) {
     const n = 3 + (g % 6);
     const ids = Array.from({ length: n }, (_, i) => "bot" + i);
-    const opts = type === "ascenseur" ? { maxCards: 1 + (g % 6), mode: "up-down", step: 1 } : undefined;
+    const opts = type === "ascenseur" ? { maxCards: 1 + (g % 6), mode: "up-down", step: 1 } : type === "poker" ? { startStack: 500, blindEvery: 5, rebuy: false } : undefined;
     const state = game.createGame(ids, opts);
     let rounds = 0;
     let safety = 0;
@@ -29,7 +31,7 @@ for (const [type, game] of Object.entries(GAMES)) {
         assert.ok(game.applyAction(state, ids[0], { type: "next_round" }, { isHost: true }).ok);
         continue;
       }
-      if (state.phase === "trick_done") {
+      if (state.phase === "trick_done" || state.phase === "pairing" || state.phase === "showdown") {
         assert.ok(game.tick(state).ok);
         continue;
       }

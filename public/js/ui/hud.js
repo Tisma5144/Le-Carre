@@ -100,7 +100,7 @@ export class Hud {
     $("game-menu-hint").textContent = isHost ? "Choisis le jeu de la soirée :" : "Le patron choisit le jeu :";
   }
 
-  renderLobby(room, meId, url, qrFactory, onRemoveBot) {
+  renderLobby(room, meId, url, qrFactory, onRemoveBot, minPlayers = 3) {
     $("lobby-code").textContent = room.code;
     const ul = $("lobby-players");
     const prev = new Set([...ul.querySelectorAll("li")].map((li) => li.dataset.id));
@@ -119,9 +119,9 @@ export class Hud {
     const n = room.players.length;
     $("btn-start").classList.toggle("hidden", !isHost);
     $("btn-add-bot").classList.toggle("hidden", !isHost || n >= 8);
-    $("btn-start").disabled = n < 3;
+    $("btn-start").disabled = n < minPlayers;
     $("lobby-status").textContent = isHost
-      ? n < 3 ? `Il faut au moins 3 joueurs (${n}/3) : invite tes potes ou ajoute des robots !` : `${n} joueurs autour de la table. On y va ?`
+      ? n < minPlayers ? `Il faut au moins ${minPlayers} joueurs (${n}/${minPlayers}) : invite tes potes ou ajoute des robots !` : `${n} joueurs autour de la table. On y va ?`
       : "Le patron va bientôt distribuer les cartes…";
     const qrEl = $("qr");
     if (qrEl.dataset.url !== url && qrFactory) {
@@ -168,6 +168,7 @@ export class Hud {
       el.querySelector(".plate-name").textContent = p.name;
       const count = el.querySelector(".plate-count");
       count.textContent = p.count === undefined ? "" : String(p.count);
+      count.dataset.icon = p.countIcon || "";
       count.style.display = p.count === undefined ? "none" : "";
       if (!!p.active !== el.classList.contains("active")) syncBeat(el.querySelector(".plate-inner"));
       el.classList.toggle("active", !!p.active);

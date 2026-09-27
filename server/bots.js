@@ -5,6 +5,8 @@
 
 const president = require("./games/president");
 const ascenseur = require("./games/ascenseur");
+const poker = require("./games/poker");
+const { bestHand, VALUE } = require("./games/pokerEval");
 
 const BOT_NAMES = ["Gaston", "Josiane", "Marcel", "Paulette", "Firmin", "Germaine", "Lucien", "Simone", "Raymond", "Odette"];
 
@@ -175,7 +177,87 @@ function ascenseurActions(state, id) {
   return [{ type: "play", cardIds: [card.id] }, { type: "play", cardIds: [legal[0].id] }];
 }
 
-const BOTS = { menteur: menteurActions, president: presidentActions, ascenseur: ascenseurActions };
+// ------------------------------------------------------------------ Pouilleux
+
+function pouilleuxActions(state, id) {
+  if (state.phase !== "playing" || state.currentTurn !== id) return [];
+  const victim = require("./games/pouilleux")._internals.victimOf(state, id);
+  if (!victim) return [];
+  const n = state.hands[victim].length;
+  return [{ type: "draw", index: rand(n) }, { type: "draw", index: 0 }];
+}
+
+// ------------------------------------------------------------------ Poker
+
+// Force estimee de la main entre 0 et 1.
+function pokerStrength(hole, board) {
+  const v = hole.map((c) => VALUE[c.rank]).sort((a, b) => b - a);
+  if (board.length === 0) {
+    if (v[0] === v[1]) return 0.5 + v[0] / 28;
+    let s = ((v[0] + v[1]) / 28) * 0.6;
+    if (hole[0].suit === hole[1].suit) s += 0.06;
+    if (v[0] - v[1] <= 2) s += 0.04;
+    if (v[0] === 14) s += 0.08;
+    return Math.min(0.95, s);
+  }
+  const all = hole.concat(board);
+  const mine = bestHand(all);
+  const cat = mine.score[0];
+  let s = [0.12, 0.42, 0.65, 0.75, 0.82, 0.86, 0.93, 0.98, 1][cat];
+  // main qui ne vient que du tableau : tout le monde l'a
+  if (board.length >= 5) {
+    const table = bestHand(board);
+    if (table.score.join() === mine.score.join()) s = 0.15;
+  } else if (cat === 1) {
+    const pairVal = mine.score[1];
+    if (!hole.some((c) => VALUE[c.rank] === pairVal)) s = 0.2; // paire du tableau
+    else if (pairVal >= Math.max(...board.map((c) => VALUE[c.rank]))) s += 0.1; // paire max
+  }
+  // tirage couleur au flop / turn
+  if (board.length < 5) {
+    const suits = {};
+    all.forEach((c) => { suits[c.suit] = (suits[c.suit] || 0) + 1; });
+    if (Object.entries(suits).some(([suit, k]) => k === 4 && hole.some((c) => c.suit === suit))) s += 0.12;
+  }
+  return Math.min(1, s);
+}
+
+function pokerActions(state, id) {
+  if (state.options.rebuy && state.stacks[id] === 0 && state.phase !== "finished") {
+    const inHand = state.phase === "betting" && state.inHand.includes(id) && !state.folded.includes(id);
+    if (!inHand) return [{ type: "rebuy" }];
+  }
+  if (state.phase !== "betting" || state.currentTurn !== id) return [];
+  const L = poker._internals.legal(state, id);
+  const s = pokerStrength(state.holes[id], state.board);
+  const pot = Object.values(state.contrib).reduce((a, b) => a + b, 0);
+  const stack = state.stacks[id];
+  const passive = L.canCheck ? { type: "bet", kind: "check" } : { type: "bet", kind: "call" };
+  const fold = { type: "bet", kind: "fold" };
+  const raiseTo = (frac) => ({ type: "bet", kind: "raise", amount: Math.max(L.minRaiseTo, Math.min(L.maxRaiseTo, state.currentBet + Math.round((pot * frac) / state.bb) * state.bb)) });
+  const out = [];
+  if (s > 0.8) {
+    if (L.canRaise && chance(0.7)) out.push(raiseTo(0.75));
+    out.push(passive);
+  } else if (s > 0.55) {
+    if (L.canCheck) out.push(L.canRaise && chance(0.5) ? raiseTo(0.5) : passive);
+    else if (L.toCall <= stack * 0.35 || s > 0.7) out.push(passive);
+    else out.push(fold);
+  } else if (s > 0.35) {
+    const odds = L.toCall / (pot + L.toCall || 1);
+    if (L.canCheck) out.push(L.canRaise && chance(0.1) ? raiseTo(0.5) : passive);
+    else if (odds < s * 0.6 || L.toCall <= state.bb) out.push(passive);
+    else out.push(fold);
+  } else {
+    if (L.canCheck) out.push(L.canRaise && chance(0.08) ? raiseTo(0.6) : passive);
+    else if (L.toCall <= state.bb && chance(0.5)) out.push(passive);
+    else out.push(fold);
+  }
+  out.push(passive, fold);
+  return out;
+}
+
+const BOTS = { menteur: menteurActions, president: presidentActions, ascenseur: ascenseurActions, pouilleux: pouilleuxActions, poker: pokerActions };
 
 function botActions(gameType, state, botId) {
   const f = BOTS[gameType];

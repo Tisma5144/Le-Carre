@@ -181,7 +181,11 @@ export class CardTable {
       trick: d.trick || [],
       won: d.won || new Map(),
       talon: d.talon || 0,
-      trump: d.trump || []
+      trump: d.trump || [],
+      pick: d.pick || 0,
+      pickOwner: d.pickOwner || null,
+      board: d.board || [],
+      shown: d.shown || []
     };
   }
 
@@ -195,6 +199,7 @@ export class CardTable {
     const prio = (e) => {
       const z = e.zone;
       if (destZone === "me" || destZone === "opp") {
+        if (z === "pick" && (destZone === "me" || e.owner === destOwner)) return -1;
         if (z === "reveal") return 0;
         if (z === "pile") return 1 - e.slot * 0.0001;
         if (z === "deck") return 2;
@@ -213,6 +218,19 @@ export class CardTable {
       }
       if (destZone === "won") {
         if (z === "trick") return 0 - e.slot * 0.0001;
+        return 2;
+      }
+      if (destZone === "pick") {
+        if (z === "opp" && e.owner === destOwner) return 0;
+        return 2;
+      }
+      if (destZone === "shown") {
+        if (z === "opp" && e.owner === destOwner) return 0;
+        if (z === "opp") return 1;
+        return 2;
+      }
+      if (destZone === "board") {
+        if (z === "talon" || z === "deck") return 0;
         return 2;
       }
       if (destZone === "talon" || destZone === "trump") {
@@ -282,6 +300,8 @@ export class CardTable {
     desired.table.forEach((t, i) => knownDest.push({ zone: "table", card: t.card, slot: i, quad: t.play, j: t.j, owner: t.owner, size: t.size }));
     desired.trick.forEach((t, i) => knownDest.push({ zone: "trick", card: t.card, slot: i, owner: t.owner, win: !!t.win, keepOwner: true }));
     desired.trump.forEach((c, i) => knownDest.push({ zone: "trump", card: c, slot: i }));
+    desired.board.forEach((b, i) => knownDest.push({ zone: "board", card: b.card, slot: i, win: !!b.win }));
+    desired.shown.forEach((b, i) => knownDest.push({ zone: "shown", card: b.card, slot: i, owner: b.owner, j: b.j, win: !!b.win, keepOwner: true }));
     const pendingKnown = [];
     for (const d of knownDest) {
       const e = byId.get(d.card.id);
@@ -310,6 +330,7 @@ export class CardTable {
     const wonDeficit = new Map();
     for (const [pid, n] of desired.won) wonDeficit.set(pid, keep("won", pid, n));
     const talonDeficit = keep("talon", null, desired.talon);
+    const pickDeficit = keep("pick", desired.pickOwner, desired.pick);
 
     // 3. cartes libres (celles qui doivent bouger)
     const free = E.filter((e) => !assigned.has(e));
@@ -364,6 +385,12 @@ export class CardTable {
         e.jitter = { dx: (Math.random() - 0.5) * 0.03, dz: (Math.random() - 0.5) * 0.03, yaw: (Math.random() - 0.5) * 0.12 };
         setZone(e, "won", pid, this.nextSlot("won", pid));
       }
+    }
+    for (let k = 0; k < pickDeficit; k += 1) {
+      const e = this.takeFree(free, "pick", desired.pickOwner);
+      if (!e) break;
+      this.clearIdentity(e);
+      setZone(e, "pick", desired.pickOwner, this.nextSlot("pick", desired.pickOwner));
     }
     for (let k = 0; k < talonDeficit; k += 1) {
       const e = this.takeFree(free, "talon", null);
@@ -447,7 +474,7 @@ export class CardTable {
   layoutAll() {
     const world = this.world;
     if (!world.dims) return;
-    const zones = { me: [], opp: new Map(), pile: [], reveal: [], tray: [], table: [], discard: [], deck: [], decor: [], trick: [], won: new Map(), talon: [], trump: [] };
+    const zones = { me: [], opp: new Map(), pile: [], reveal: [], tray: [], table: [], discard: [], deck: [], decor: [], trick: [], won: new Map(), talon: [], trump: [], pick: [], board: [], shown: [] };
     for (const e of this.entities) {
       if (e.zone === "opp" || e.zone === "won") {
         const m = zones[e.zone];
@@ -474,6 +501,9 @@ export class CardTable {
     for (const [pid, list] of zones.won) this.layoutWon(pid, list);
     this.layoutTalon(zones.talon);
     this.layoutTrump(zones.trump);
+    this.layoutPick(zones.pick);
+    this.layoutBoard(zones.board);
+    this.layoutShown(zones.shown);
     this.zones = zones;
   }
 
@@ -797,6 +827,66 @@ export class CardTable {
     });
   }
 
+  // Pouilleux : les cartes du voisin, tendues face cachee au-dessus de ma
+  // main ; je touche celle que je veux tirer.
+  layoutPick(list) {
+    const m = list.length;
+    if (!m) return;
+    const hm = this.world.handMetrics();
+    const portrait = this.world.camera.aspect < 0.9;
+    const cardH = hm.visH * (portrait ? 0.15 : 0.2);
+    const s = cardH / CARD_WORLD_H;
+    const cardW = CARD_WORLD_W * s;
+    const avail = hm.visW * 0.92;
+    const step = m > 1 ? Math.min(cardW * 1.08, (avail - cardW) / (m - 1)) : 0;
+    const baseY = hm.bottom + hm.visH * (portrait ? 0.44 : 0.42);
+    list.forEach((e, j) => {
+      const u = m > 1 ? j / (m - 1) - 0.5 : 0;
+      const hover = this.pickHover === j;
+      e.space = "camera";
+      e.tPos.set((j - (m - 1) / 2) * step, baseY - u * u * cardH * 0.25 + (hover ? cardH * 0.12 : 0), -hm.dist * 1.1 + j * 0.004);
+      e.tQuat.setFromEuler(new THREE.Euler(0, Math.PI, u * 0.25));
+      e.tScale = s * 1.1;
+      e.emissive = 0.3;
+      e.glowTarget = hover ? 0.9 : this.pickable ? 0.3 : 0;
+      e.glowColor.set(0xffd35a);
+    });
+  }
+
+  // Poker : les cartes communes alignees au centre du tapis.
+  layoutBoard(list) {
+    const p = this.world.anchors.pile;
+    list.forEach((e) => {
+      const i = e.slot;
+      e.space = "world";
+      e.tPos.set(p.x + (i - 2) * 0.68, 0.016 + i * 0.002, p.z + 0.05);
+      e.tQuat.copy(Q_FACE_UP);
+      e.tScale = 0.98;
+      e.emissive = e.win ? 0.45 : 0.28;
+      e.glowTarget = e.win ? 0.95 : 0;
+      e.glowColor.set(0x7dffa8);
+    });
+  }
+
+  // Poker : a l'abattage, les cartes des adversaires retournees devant eux.
+  layoutShown(list) {
+    const p = this.world.anchors.pile;
+    list.forEach((e) => {
+      const phi = this.phiOf(e.owner);
+      const seat = this.world.seatPoint(phi, 0.8);
+      const c = V(p.x, 0, p.z).lerp(seat, 0.62);
+      const side = V(Math.cos(phi), 0, -Math.sin(phi));
+      const off = ((e.qj || 0) - 0.5) * 0.52;
+      e.space = "world";
+      e.tPos.set(c.x + side.x * off, 0.03 + (e.qj || 0) * 0.004, c.z + side.z * off);
+      e.tQuat.copy(yawQuat(phi * 0.3 + ((e.qj || 0) - 0.5) * 0.18)).multiply(Q_FACE_UP);
+      e.tScale = 0.8;
+      e.emissive = e.win ? 0.45 : 0.3;
+      e.glowTarget = e.win ? 0.9 : 0;
+      e.glowColor.set(0x7dffa8);
+    });
+  }
+
   layoutHidden(e) {
     e.space = "world";
     e.tPos.set(0, -3, 0);
@@ -1019,8 +1109,37 @@ export class CardTable {
     return dx * dx + dy * dy <= 1;
   }
 
+  // Carte du voisin visee (Pouilleux) : renvoie son rang dans la rangee.
+  pickPickZone() {
+    const list = this.entities.filter((e) => e.zone === "pick" && !e.flight);
+    if (!list.length) return null;
+    this.raycaster.setFromCamera(this.pointerNdc, this.world.camera);
+    const hits = this.raycaster.intersectObjects(list.map((e) => e.group), true);
+    if (!hits.length) return null;
+    let o = hits[0].object;
+    while (o && !list.some((e) => e.group === o)) o = o.parent;
+    const e = list.find((x) => x.group === o);
+    return e ? e.slot : null;
+  }
+
+  setPickable(on) {
+    this.pickable = !!on;
+    if (!on) this.pickHover = null;
+    this.layoutAll();
+  }
+
   onDown(ev) {
     this.setNdc(ev);
+    if (this.pickable && this.hooks.onPick) {
+      const slot = this.pickPickZone();
+      if (slot !== null) {
+        ev.preventDefault();
+        this.pickHover = slot;
+        this.layoutAll();
+        this.hooks.onPick(slot);
+        return;
+      }
+    }
     if (this.interactive) {
       const e = this.pickHand();
       if (e) {
@@ -1046,6 +1165,15 @@ export class CardTable {
     if (this.drag) {
       this.updateDrag();
       return;
+    }
+    if (ev.pointerType === "mouse" && this.pickable) {
+      const slot = this.pickPickZone();
+      if (slot !== this.pickHover) {
+        this.pickHover = slot;
+        this.layoutAll();
+      }
+      this.world.canvas.style.cursor = slot !== null ? "pointer" : "";
+      if (slot !== null) return;
     }
     if (ev.pointerType === "mouse" && this.interactive) {
       const e = this.pickHand();

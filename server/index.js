@@ -8,11 +8,13 @@ const { botActions, BOT_NAMES } = require("./bots");
 const menteur = require("./games/menteur");
 const president = require("./games/president");
 const ascenseur = require("./games/ascenseur");
+const pouilleux = require("./games/pouilleux");
+const poker = require("./games/poker");
 
-const GAMES = { [menteur.id]: menteur, [president.id]: president, [ascenseur.id]: ascenseur };
+const GAMES = { [menteur.id]: menteur, [president.id]: president, [ascenseur.id]: ascenseur, [pouilleux.id]: pouilleux, [poker.id]: poker };
 
 const PORT = process.env.PORT || 3000;
-// Facteur de vitesse des robots (1 = rythme humain ; les tests l'accelerent).
+// Facteur de vitesse des robots et des pauses (1 = rythme normal ; les tests l'accelerent).
 const BOT_SPEED = Number(process.env.BOT_SPEED) > 0 ? Number(process.env.BOT_SPEED) : 1;
 const EMOTES = ["😂", "😱", "🔥", "👏", "😡", "🤡", "🍺", "🤔", "😎", "💀", "😭", "🙏"];
 
@@ -75,7 +77,7 @@ function scheduleTick(room, ms) {
       broadcastRoom(room);
       if (r.schedule) scheduleTick(room, r.schedule);
     }
-  }, ms);
+  }, ms * BOT_SPEED);
 }
 
 function newGame(room) {
@@ -103,7 +105,10 @@ function broadcastRoom(room) {
 function scheduleBots(room) {
   clearTimeout(room.botTimer);
   if (!room.game || room.status !== "playing") return;
-  const bots = room.order.filter((id) => room.players[id] && room.players[id].isBot);
+  // robots + joueurs deconnectes (un robot joue a leur place apres 20 s,
+  // pour que la partie ne reste pas bloquee)
+  const bots = room.order.filter((id) => room.players[id] && room.players[id].isBot)
+    .concat(room.order.filter((id) => room.players[id] && !room.players[id].isBot && !room.players[id].connected));
   if (!bots.length) return;
   const game = GAMES[room.gameType];
   const uid = room.game.uid;
@@ -114,9 +119,12 @@ function scheduleBots(room) {
     if (first.type === "pickup") delay = 1800;
     else if (first.type === "accuse") delay = 1300;
     else if (first.type === "give") delay = 1600;
+    if (!room.players[botId].isBot) delay = 20000;
     delay *= BOT_SPEED;
     room.botTimer = setTimeout(() => {
       if (!room.game || room.game.uid !== uid || room.status !== "playing") return;
+      const p = room.players[botId];
+      if (!p || (!p.isBot && p.connected)) return scheduleBots(room); // il est revenu
       const actions = botActions(room.gameType, room.game, botId);
       if (!actions.length) return scheduleBots(room);
       for (const action of actions) {
@@ -362,6 +370,11 @@ io.on("connection", (socket) => {
   socket.on("game:give", handleGameAction("give", ["cardIds"]));
   socket.on("game:nextRound", handleGameAction("next_round", []));
   socket.on("game:bid", handleGameAction("bid", ["bid"]));
+  socket.on("game:draw", handleGameAction("draw", ["index"]));
+  socket.on("game:shuffle", handleGameAction("shuffle", []));
+  socket.on("game:bet", handleGameAction("bet", ["kind", "amount"]));
+  socket.on("game:rebuy", handleGameAction("rebuy", []));
+  socket.on("game:endGame", handleGameAction("end_game", []));
 
   // Historique complet a la demande (bouton Historique) : evite d'envoyer
   // des centaines d'evenements a chaque coup.

@@ -4,8 +4,9 @@ Jeu de cartes en ligne entre amis, façon Kahoot : un code de table à 4 lettres
 (ou un QR code), pas d'inscription, tout se passe dans le navigateur — sur
 téléphone comme sur ordinateur.
 
-Trois jeux sont disponibles, choisis par le patron de la table dans le salon :
-**Le Menteur**, **Le Président** et **L'Ascenseur**.
+Cinq jeux sont disponibles, choisis par le patron de la table dans le salon :
+**Le Menteur**, **Le Président**, **L'Ascenseur**, **Le Pouilleux** et le
+**Poker Texas Hold'em**.
 
 Le jeu se joue autour d'une **table de bar en 3D** : plateau en
 lattes de bois, tapis de feutre, lampe suspendue, pintes sur leurs sous-bocks,
@@ -65,6 +66,28 @@ illustrées (figures dessinées, As ornés, dos au masque vénitien).
   demandée (2 < … < Roi < As). Le gagnant entame le pli suivant.
 - Points : pari réussi = 40 points par pli (20 points pour une annonce de 0
   réussie) ; pari raté = −40 points par pli d'écart.
+
+## Règles du Pouilleux (le Puant)
+
+- 2 à 8 joueurs. On retire le valet de trèfle : le valet de pique reste seul,
+  c'est le Pouilleux. Toutes les cartes sont distribuées.
+- Une paire = même valeur et même couleur (rouge/noir) ; les paires sortent
+  automatiquement.
+- À son tour, on touche une des cartes tendues par son voisin de gauche pour
+  la tirer ; puis c'est à ce voisin de tirer. On peut mélanger sa main.
+- Plus de cartes = tiré d'affaire. Le dernier, avec le valet de pique, est le
+  Pouilleux.
+
+## Règles du Poker Texas Hold'em
+
+- 2 à 8 joueurs, no limit. Tapis de départ et rythme des blindes réglables
+  dans le salon (par défaut 1 000 jetons, blindes 10/20 doublées toutes les
+  10 mains).
+- Deux cartes cachées chacun, puis flop, turn et river, avec un tour de
+  paroles à chaque étape (se coucher, parole, suivre, relancer, tapis).
+- Meilleure main de 5 cartes parmi 7 ; pots annexes et partages gérés.
+- Plus de jetons : éliminé, ou recave possible (réglage du patron, qui
+  arrête alors la partie quand il veut).
 
 ## Ce que fait l'interface
 
@@ -137,6 +160,8 @@ Test automatique de la logique serveur (4 robots jouent une partie complète) :
 npm run test:menteur
 npm run test:president
 npm run test:ascenseur
+npm run test:pouilleux
+npm run test:poker
 npm run test:reconnexion
 npm run test:robots
 ```
@@ -157,6 +182,9 @@ server/
   games/menteur.js    moteur du Menteur (règles, tours, événements numérotés)
   games/president.js  moteur du Président (plis, ou rien, carré magique, manches)
   games/ascenseur.js  moteur de l'Ascenseur (annonces, atout, plis, scores)
+  games/pouilleux.js  moteur du Pouilleux
+  games/poker.js      moteur du poker Texas Hold'em (+ pokerEval.js : mains)
+  bots.js             robots joueurs (les 5 jeux)
 public/
   index.html          structure de la page
   css/main.css        thème bar : bois, laiton, ardoise
