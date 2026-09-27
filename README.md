@@ -84,7 +84,7 @@ illustrées (figures dessinées, As ornés, dos au masque vénitien).
   dans le salon (par défaut 1 000 jetons, blindes 10/20 doublées toutes les
   10 mains).
 - Deux cartes cachées chacun, puis flop, turn et river, avec un tour de
-  paroles à chaque étape (se coucher, parole, suivre, relancer, tapis).
+  paroles à chaque étape (se coucher, check, suivre, relancer, tapis).
 - Meilleure main de 5 cartes parmi 7 ; pots annexes et partages gérés.
 - Plus de jetons : éliminé, ou recave possible (réglage du patron, qui
   arrête alors la partie quand il veut).
@@ -99,6 +99,9 @@ illustrées (figures dessinées, As ornés, dos au masque vénitien).
   robot ») pour compléter la table, et les renvoyer (✕). Ils savent jouer aux
   trois jeux (`server/bots.js`).
 - Règles consultables depuis le salon (« 📜 Lire les règles »).
+- Quitter la table en pleine partie : un robot prend la place du joueur parti
+  (il quitte vraiment la table au retour au salon).
+- Numéro de version affiché en bas de l'accueil et du salon (`/version.json`).
 - Ascenseur : pendant une manche, l'historique ne montre que le dernier pli ;
   l'onglet Scores affiche un graphique de l'évolution des scores et le
   détail des points manche par manche.

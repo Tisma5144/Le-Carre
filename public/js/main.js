@@ -156,6 +156,8 @@ function isConnected(id) {
 // ------------------------------------------------------------------ routage
 
 function onState({ room, game }) {
+  // on vient de quitter la table : on ignore les derniers messages en vol
+  if (S.leaving) return;
   S.room = room;
   S.game = game;
   if (!room) return showHome();
@@ -346,6 +348,7 @@ function updatePlayButton() {
 }
 
 function leaveTable() {
+  S.leaving = true;
   socket.emit("room:leave", {}, () => {});
   clearSession();
   hud.closeModal();
@@ -387,6 +390,7 @@ function bindUi() {
   };
   const onJoined = (res, name) => {
     lock(false);
+    S.leaving = false;
     if (!res || !res.ok) {
       hud.toast((res && res.error) || "Impossible de rejoindre cette table.");
       sfx.play("error");
@@ -404,6 +408,7 @@ function bindUi() {
     const name = needName();
     if (!name) return;
     lock(true);
+    S.leaving = false;
     socket.emit("room:create", { name }, (res) => onJoined(res, name));
   });
   $("btn-join").addEventListener("click", () => {
@@ -417,6 +422,7 @@ function bindUi() {
     }
     if (joining) return;
     lock(true);
+    S.leaving = false;
     socket.emit("room:join", { name, code }, (res) => onJoined(res, name));
   });
   codeInput.addEventListener("keydown", (e) => { if (e.key === "Enter") $("btn-join").click(); });
@@ -507,7 +513,7 @@ function bindUi() {
       ${FS.isStandalone() ? "" : `<button class="btn wood" data-act="fs" data-no-fs>${fsLabel()}</button>`}
       ${isHost ? `<button class="btn wood" data-act="lobby">🎲 Changer de jeu</button>` : ""}
       <button class="btn brass" data-act="leave">🚪 Quitter la table</button>
-    </div>`);
+    </div>${S.version ? `<p class="menu-version">Le Carré · version ${S.version}</p>` : ""}`);
     document.querySelectorAll("[data-act]").forEach((b) => b.addEventListener("click", () => {
       const act = b.dataset.act;
       if (act === "history") openHistory();
@@ -733,7 +739,8 @@ async function boot() {
         updatePlayButton();
       });
     },
-    leaveTable
+    leaveTable,
+    openTray: () => openTray()
   };
 
   world.onResize = () => {
@@ -742,6 +749,11 @@ async function boot() {
   };
   updateHandCssVar();
   world.onFrame(hudFrame);
+  // numero de version affiche en bas de l'accueil et du salon
+  fetch("/version.json").then((r) => r.json()).then((d) => {
+    S.version = d.version;
+    $("app-version").textContent = `Le Carré · v${d.version}`;
+  }).catch(() => {});
   FS.setupFullscreen();
   bindUi();
   FS.onChange(updateFsButton);

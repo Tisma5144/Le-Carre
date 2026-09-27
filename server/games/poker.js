@@ -4,7 +4,7 @@
 // - Chaque joueur recoit un tapis de depart (1 000 jetons par defaut). Petite
 //   et grosse blinde (10/20 par defaut) doublent toutes les X mains (reglable).
 // - Deux cartes privees chacun, puis flop (3 cartes), turn et river, avec un
-//   tour d'encheres a chaque etape : se coucher, parole, suivre, relancer,
+//   tour d'encheres a chaque etape : se coucher, check, suivre, relancer,
 //   tapis. Relance minimale = derniere relance (au moins la grosse blinde).
 // - Abattage : meilleure main de 5 cartes parmi 7 ; pots annexes quand un
 //   joueur est a tapis ; partage en cas d'egalite.
@@ -201,14 +201,14 @@ function doBet(state, id, action) {
     label = "Se couche";
   } else if (kind === "check") {
     if (!L.canCheck) return { ok: false, error: `Il faut suivre ${L.toCall} ou se coucher.` };
-    label = "Parole";
+    label = "Check";
   } else if (kind === "call") {
-    if (!L.canCall) return { ok: false, error: "Rien à suivre : fais parole." };
+    if (!L.canCall) return { ok: false, error: "Rien à suivre : fais check." };
     const paid = pay(state, id, L.toCall);
     label = state.allIn.includes(id) ? `Tapis (${state.bets[id]})` : `Suit ${paid}`;
   } else if (kind === "allin" && !L.canRaise) {
     // personne ne peut plus suivre une relance : "tapis" = suivre
-    if (L.canCheck) label = "Parole";
+    if (L.canCheck) label = "Check";
     else {
       pay(state, id, L.toCall);
       label = state.allIn.includes(id) ? `Tapis (${state.bets[id]})` : `Suit ${L.toCall}`;

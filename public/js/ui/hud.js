@@ -441,7 +441,7 @@ export class Hud {
   // ------------------------------------------------------------ fin
 
   // entries : [{ medal, name, me, title, extra }]
-  showEnd({ title, entries, primary, secondary, wait, onLeave, key }) {
+  showEnd({ title, entries, primary, secondary, extra, wait, onLeave, key }) {
     const box = $("end");
     const already = !box.classList.contains("hidden") && box.dataset.key === key;
     box.dataset.key = key || "";
@@ -466,6 +466,12 @@ export class Hud {
     if (secondary) {
       b2.textContent = secondary.label;
       b2.onclick = secondary.onClick;
+    }
+    const b3 = $("btn-end-extra");
+    b3.classList.toggle("hidden", !extra);
+    if (extra) {
+      b3.textContent = extra.label;
+      b3.onclick = extra.onClick;
     }
     $("end-wait").textContent = wait || "";
     $("btn-end-leave").onclick = onLeave;

@@ -463,6 +463,7 @@ export default {
           primary: isHost ? { label: "🔁 Revanche !", onClick: () => app.emit("room:rematch", {}) } : null,
           secondary: isHost ? { label: "🎲 Changer de jeu", onClick: () => app.emit("room:playAgain", {}) } : null,
           wait: isHost ? "" : "Le patron peut lancer la revanche…",
+          extra: { label: "📊 Voir les scores et le graphique", onClick: () => app.openTray() },
           onLeave: app.leaveTable
         });
         return;
@@ -475,6 +476,7 @@ export default {
         primary: isHost ? { label: `▶ Manche suivante (${cartes(next)})`, onClick: () => app.emit("game:nextRound", {}) } : null,
         secondary: isHost ? { label: "🎲 Changer de jeu", onClick: () => app.emit("room:playAgain", {}) } : null,
         wait: isHost ? "" : `Prochaine manche : ${cartes(next)}. Le patron la lance…`,
+        extra: { label: "📊 Voir les scores et le graphique", onClick: () => app.openTray() },
         onLeave: app.leaveTable
       });
     }, 1500);
@@ -505,7 +507,7 @@ export default {
       return `<tr class="${p.id === v.you.id ? "me" : ""}"><td><i class="sw" style="background:${color[p.id]}"></i>${p.isDealer ? "🃏 " : ""}${esc(p.name)}</td><td>${p.bid === null ? "—" : p.bid}</td><td class="${cls}">${p.won}</td><td><b>${p.score}</b></td></tr>`;
     }).join("");
     const seq = v.sequence.map((n, i) => (i === v.round - 1 ? `<b>${n}</b>` : String(n))).join(" · ");
-    return `<h4 class="score-h">Manche en cours</h4>
+    return `<h4 class="score-h">${v.phase === "finished" ? "Classement final" : v.phase === "round_end" ? `Manche ${v.round} terminée` : "Manche en cours"}</h4>
       <table class="score-table"><thead><tr><th>Joueur</th><th>Objectif</th><th>Plis</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table>
       <h4 class="score-h">Évolution des scores</h4>
       ${scoreChartHtml(v, color)}

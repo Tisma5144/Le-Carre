@@ -1306,3 +1306,22 @@ body.shake #scene { animation: screenShake .45s; }
   .act { min-height: 40px; font-size: 13px; }
   .raise-panel { padding: 6px 10px; gap: 5px; }
 }
+
+#btn-end-extra { margin-top: 8px; }
+#btn-end-extra.hidden { display: none; }
+
+/* ---------------------------------------------------------------- version */
+.app-version {
+  position: fixed;
+  left: 50%;
+  bottom: calc(6px + var(--safe-b));
+  transform: translateX(-50%);
+  z-index: 6;
+  font: 700 11px "Nunito", sans-serif;
+  letter-spacing: .06em;
+  color: rgba(243,226,191,.55);
+  pointer-events: none;
+  display: none;
+}
+body:has(#home:not(.hidden)) .app-version, body:has(#lobby:not(.hidden)) .app-version { display: block; }
+.menu-version { text-align: center; font: 700 12px "Nunito", sans-serif; opacity: .6; margin: 12px 0 0; }

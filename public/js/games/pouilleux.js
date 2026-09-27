@@ -19,7 +19,10 @@ export default {
   minPlayers: 2,
   maxSelect: 1,
   pendingFaceUp: true,
-  defaultSorted: true,
+  // la main s'affiche dans l'ordre reel (celui que voit le voisin qui tire) :
+  // "Melanger" la remue vraiment a l'ecran
+  defaultSorted: false,
+  hideSort: true,
   rankOrder: ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "V", "D", "R"],
 
   dealKey: (v) => v.uid,
@@ -138,7 +141,10 @@ export default {
     hud.setActionChips(!dealing && !myTurn && !you.isFinished && v.phase !== "finished" && v.hand.length > 1 ? [{
       key: "shuffle",
       label: "🔀 Mélanger ma main",
-      onClick: () => app.emit("game:shuffle", {}, () => app.sfx.play("pickup", 3))
+      onClick: () => app.emit("game:shuffle", {}, () => {
+        app.sfx.play("pickup", 3);
+        app.hud.toast("🔀 Main mélangée : ton voisin ne sait plus où est quoi !", 1800);
+      })
     }] : []);
 
     const hasP = v.hand.some((c) => c.rank === "V" && c.suit === "pique");

@@ -85,7 +85,8 @@ export class World {
     this.warm = new THREE.PointLight(0xff8a3c, 60, 30, 2);
     this.warm.position.set(-8, 4, 5);
     this.scene.add(this.warm);
-    this.cool = new THREE.PointLight(0x7f9cff, 18, 30, 2);
+    // contre-jour chaud (l'ancien bleute faisait un reflet desagreable)
+    this.cool = new THREE.PointLight(0xffc48a, 7, 30, 2);
     this.cool.position.set(9, 5, -6);
     this.scene.add(this.cool);
   }

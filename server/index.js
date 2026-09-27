@@ -28,6 +28,9 @@ const io = new Server(server, {
   connectionStateRecovery: { maxDisconnectionDuration: 2 * 60 * 1000, skipMiddlewares: true }
 });
 
+const APP_VERSION = require("../package.json").version;
+app.get("/version.json", (_req, res) => res.json({ version: APP_VERSION }));
+
 app.use(express.static(path.join(__dirname, "..", "public")));
 
 // Bibliotheques front servies depuis node_modules (pas de CDN : le jeu
@@ -80,6 +83,17 @@ function scheduleTick(room, ms) {
   }, ms * BOT_SPEED);
 }
 
+// Les joueurs partis en pleine partie (remplaces par un robot) quittent
+// vraiment la table quand on revient au salon ou qu'on relance.
+function dropLeavers(room) {
+  for (const id of room.order.slice()) {
+    if (room.players[id] && room.players[id].leftGame) {
+      room.order = room.order.filter((x) => x !== id);
+      delete room.players[id];
+    }
+  }
+}
+
 function newGame(room) {
   const game = GAMES[room.gameType];
   clearTimeout(room.tickTimer);
@@ -105,6 +119,8 @@ function broadcastRoom(room) {
 function scheduleBots(room) {
   clearTimeout(room.botTimer);
   if (!room.game || room.status !== "playing") return;
+  // plus aucun humain a la table : les robots s'arretent
+  if (!room.order.some((id) => room.players[id] && !room.players[id].isBot)) return;
   // robots + joueurs deconnectes (un robot joue a leur place apres 20 s,
   // pour que la partie ne reste pas bloquee)
   const bots = room.order.filter((id) => room.players[id] && room.players[id].isBot)
@@ -207,8 +223,28 @@ io.on("connection", (socket) => {
       const { room, playerId } = link;
       socket.leave(room.code);
       rooms.socketToPlayer.delete(socket.id);
-      const updated = rooms.removePlayerFromLobby(room.code, playerId);
-      if (updated) broadcastRoom(updated);
+      const p = room.players[playerId];
+      if (room.status === "lobby") {
+        const updated = rooms.removePlayerFromLobby(room.code, playerId);
+        if (updated) broadcastRoom(updated);
+      } else if (p) {
+        // partie en cours : on ne lui envoie plus rien (avant, il continuait a
+        // recevoir la partie et etait ramene a la table) et un robot prend sa
+        // place pour que les autres puissent finir
+        p.socketId = null;
+        p.connected = true;
+        p.isBot = true;
+        p.leftGame = true;
+        if (room.hostId === playerId) {
+          const next = room.order.find((id) => room.players[id] && !room.players[id].isBot);
+          if (next) {
+            p.isHost = false;
+            room.hostId = next;
+            room.players[next].isHost = true;
+          }
+        }
+        broadcastRoom(room);
+      }
     }
     ack && ack({ ok: true });
   });
@@ -316,7 +352,9 @@ io.on("connection", (socket) => {
     if (room.hostId !== playerId) return ack && ack({ ok: false, error: "Seul l'hote peut relancer une partie." });
     room.status = "lobby";
     clearTimeout(room.tickTimer);
+    clearTimeout(room.botTimer);
     room.game = null;
+    dropLeavers(room);
     ack && ack({ ok: true });
     broadcastRoom(room);
   });
@@ -328,6 +366,7 @@ io.on("connection", (socket) => {
     const { room, playerId } = link;
     if (room.hostId !== playerId) return ack && ack({ ok: false, error: "Seul l'hote peut relancer une partie." });
     const game = GAMES[room.gameType];
+    dropLeavers(room);
     const connected = room.order.filter((id) => room.players[id] && room.players[id].connected);
     if (connected.length < game.minPlayers) {
       room.status = "lobby";

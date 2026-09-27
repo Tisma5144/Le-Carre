@@ -1,5 +1,5 @@
 // Adaptateur client du poker Texas Hold'em : cartes communes au centre,
-// barre d'actions (se coucher / parole / suivre / relancer / tapis), tapis de
+// barre d'actions (se coucher / check / suivre / relancer / tapis), tapis de
 // jetons sur les etiquettes, abattage avec les meilleures cartes en lumiere.
 
 const $ = (id) => document.getElementById(id);
@@ -130,7 +130,7 @@ export default {
     if (!dealing && v.phase === "betting") {
       const mine = you.handName ? `Tu as : <b>${esc(you.handName)}</b>` : "";
       if (you.folded) hint = "Tu t'es couché : attends la main suivante.";
-      else if (myTurn) hint = `${mine}${mine ? " · " : ""}${you.legal.toCall ? `<b>${fmt(you.legal.toCall)}</b> à suivre` : "tu peux faire parole"}`;
+      else if (myTurn) hint = `${mine}${mine ? " · " : ""}${you.legal.toCall ? `<b>${fmt(you.legal.toCall)}</b> à suivre` : "tu peux checker"}`;
       else if (you.inHand) hint = `${mine}${mine ? " · " : ""}<b>${esc(v.currentTurnName)}</b> réfléchit…`;
       else hint = `<b>${esc(v.currentTurnName)}</b> réfléchit…`;
     }
@@ -178,7 +178,7 @@ export default {
     this.updateEnd(v, app);
   },
 
-  // Barre d'actions : se coucher / parole / suivre / relancer / tapis.
+  // Barre d'actions : se coucher / check / suivre / relancer / tapis.
   renderBar(v, app, myTurn) {
     const bar = $("action-bar");
     if (!myTurn || !v.you.legal) {
@@ -217,7 +217,7 @@ export default {
       </div>` : ""}
       <div class="act-row">
         <button class="act fold" data-act="fold">Se coucher</button>
-        ${L.canCheck ? `<button class="act check" data-act="check">Parole</button>` : `<button class="act call" data-act="call">Suivre ${fmt(L.toCall)}</button>`}
+        ${L.canCheck ? `<button class="act check" data-act="check">Check</button>` : `<button class="act call" data-act="call">Suivre ${fmt(L.toCall)}</button>`}
         ${L.canRaise ? `<button class="act raise ${this.raiseOpen ? "on" : ""}" data-act="raise">${raiseLabel} ▴</button>` : ""}
         <button class="act allin" data-act="allin">Tapis ${fmt(allInAmount)}</button>
       </div>`;
@@ -337,7 +337,7 @@ export default {
     return `
       <p class="rule"><i>🪙</i><span>Chacun commence avec le même <b>tapis de jetons</b>. À chaque main, les deux joueurs à gauche du donneur posent la <b>petite</b> et la <b>grosse blinde</b>, qui doublent régulièrement (réglable dans le salon).</span></p>
       <p class="rule"><i>🃏</i><span>Chacun reçoit <b>deux cartes cachées</b>. Puis on retourne au centre trois cartes (<b>le flop</b>), une quatrième (<b>le turn</b>) et une cinquième (<b>la river</b>).</span></p>
-      <p class="rule"><i>🗣️</i><span>Avant chaque étape, un tour de paroles : <b>se coucher</b>, <b>parole</b> (si personne n'a misé), <b>suivre</b>, <b>relancer</b> (au moins autant que la dernière relance) ou faire <b>tapis</b>.</span></p>
+      <p class="rule"><i>🗣️</i><span>Avant chaque étape, un tour de paroles : <b>se coucher</b>, <b>check</b> (passer sans miser, si personne n'a misé), <b>suivre</b>, <b>relancer</b> (au moins autant que la dernière relance) ou faire <b>tapis</b>.</span></p>
       <p class="rule"><i>🏆</i><span>À l'abattage, chacun forme la <b>meilleure main de cinq cartes</b> avec ses deux cartes et les cinq du centre. Du plus faible au plus fort : hauteur, paire, double paire, brelan, quinte, couleur, full, carré, quinte flush.</span></p>
       <p class="rule"><i>⚖️</i><span>Un joueur à tapis ne peut gagner que ce qu'il a misé face à chacun : le reste forme un <b>pot annexe</b>. En cas d'égalité, le pot est partagé.</span></p>
       <p class="rule"><i>💸</i><span>Plus de jetons ? Selon le réglage du salon, tu es <b>éliminé</b> (le dernier joueur avec des jetons gagne) ou tu peux <b>te recaver</b> (le patron arrête alors la partie quand il veut).</span></p>`;

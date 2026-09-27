@@ -207,14 +207,15 @@ function drawIndex(ctx, card, W, H) {
     ctx.fillStyle = color;
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
+    // index agrandi : lisible meme sur les cartes posees au loin (telephone)
     const isTen = card.rank === "10";
-    const fs = isTen ? 50 : 60;
+    const fs = isTen ? 70 : 82;
     ctx.font = `900 ${fs}px ${INDEX_FONT}`;
-    ctx.translate(40, 70);
-    if (isTen) ctx.scale(0.82, 1);
+    ctx.translate(35, 80);
+    if (isTen) ctx.scale(0.7, 1);
     ctx.fillText(card.rank, 0, 0);
     ctx.restore();
-    drawSuit(ctx, card.suit, 40, 102, 38, 0, null, { shine: false });
+    drawSuit(ctx, card.suit, 35, 124, 52, 0, null, { shine: false });
   };
   draw();
   ctx.save();
@@ -956,7 +957,7 @@ function drawFigureHalf(ctx, fw, fh, card) {
 }
 
 function drawFaceCard(ctx, card, W, H) {
-  const x0 = 66;
+  const x0 = 74; // laisse la place aux index agrandis
   const y0 = 28;
   const fw = W - x0 * 2;
   const fh = (H - y0 * 2) / 2;

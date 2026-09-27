@@ -72,6 +72,21 @@ const emit = (c, ev, data) => new Promise((r) => c.s.emit(ev, data || {}, r));
     const bad = await emit(ghost, "room:rejoin", { code: "ZZZZ", playerId: "x" });
     assert.ok(!bad.ok && bad.gone, "table inconnue signalee");
 
+    // 6. quitter la table en pleine partie : plus aucun etat recu, un robot le remplace
+    await emit(host, "room:start", {});
+    await sleep(200);
+    const n2 = bob2.count;
+    await emit(bob2, "room:leave", {});
+    await sleep(100);
+    const n3 = bob2.count;
+    const bobNow = host.last.room.players.find((p) => p.id === joined.playerId);
+    assert.ok(bobNow && bobNow.isBot, "un robot a pris sa place");
+    await emit(host, "room:playAgain", {});
+    await sleep(300);
+    assert.strictEqual(bob2.count, n3, "le joueur parti ne recoit plus la partie");
+    assert.ok(n3 >= n2);
+    assert.ok(!host.last.room.players.some((p) => p.id === joined.playerId), "retour au salon : il a quitte la table");
+
     ok = true;
     console.log("SUCCES Reconnexion : le joueur reconnecte recoit toujours la partie.");
     [host, bob2, chloe, ghost].forEach((c) => c.s.close());
