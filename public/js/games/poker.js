@@ -361,6 +361,8 @@ export default {
     };
     for (const el of hud.plates.values()) if (el.style.opacity !== "0") addDom(el);
     addDom($("announce"));
+    addDom($("pile-chip"));
+    addDom($("tray-chip"));
     // bas de l'ecran : ma main, l'aide et les boutons
     const handTop = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hand-top")) || 280;
     rects.push({ l: 0, r: W, t: H - handTop - 70, b: H });
@@ -375,6 +377,7 @@ export default {
     const P = world.anchors.pile;
     rects.push(box(P.clone().setZ(P.z + 0.05), 1.75, 0.1)); // cartes communes
     rects.push(box(potPos, 0.5, 0.35));
+    rects.push(box(world.anchors.tray, 0.85, 0.2)); // plateau en bois
     for (const id of ids) {
       const b = betPos(id);
       if (b) rects.push(box(b, 0.45, 0.35));
@@ -392,19 +395,26 @@ export default {
     const overlap = (a, b) => Math.max(0, Math.min(a.r, b.r) - Math.max(a.l, b.l)) * Math.max(0, Math.min(a.b, b.b) - Math.max(a.t, b.t));
     const offScreen = (a) => (a.l < 4 || a.r > W - 4 || a.t < 4 ? 1e6 : 0);
     const out = new Map();
+    // largeur reelle d'un tapis (jusqu'a 3 colonnes de jetons)
+    const STACK_R = 0.42;
+    const placed = [];
     const choose = (id, cands, near) => {
       let best = null;
       for (const c of cands) {
         c.y = 0.012;
-        const b = box(c, 0.36, 0.3);
+        const b = box(c, STACK_R, 0.3);
         if (!b.ok) continue;
         let cost = offScreen(b);
         for (const r of rects) cost += overlap(b, r);
+        // jamais dans un verre (sous-verre compris) ni sur un autre tapis
+        for (const d of beers.values()) if (c.distanceTo(d) < 0.36 + STACK_R + 0.08) cost += 1e5;
+        for (const q of placed) if (c.distanceTo(q) < STACK_R * 2) cost += 1e5;
         cost += c.distanceTo(near) * 20;
         if (!best || cost < best.cost) best = { cost, c, b };
       }
       if (!best) return;
       out.set(id, best.c);
+      placed.push(best.c);
       rects.push(best.b);
     };
     for (const st of v.seats) {

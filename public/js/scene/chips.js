@@ -118,7 +118,7 @@ export class ChipLayer {
       for (let k = 0; k < n; k += PER_COLUMN) cols.push({ d, n: Math.min(PER_COLUMN, n - k) });
     }
     // disposition compacte : rangee de 3 colonnes au plus, puis rangee suivante
-    const perRow = cols.length > 4 ? 3 : cols.length;
+    const perRow = opts.compact ? Math.min(2, cols.length) : cols.length > 4 ? 3 : cols.length;
     cols.forEach((col, i) => {
       const row = Math.floor(i / perRow);
       const inRow = Math.min(perRow, cols.length - row * perRow);

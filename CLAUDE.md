@@ -47,6 +47,11 @@ en commentaire en tête de chaque moteur `server/games/*.js`.
 - Cartes entièrement dessinées en canvas : `public/js/cards/cardArt.js`
   (figures, As, atouts et Excuse du Tarot, dos). Aperçus : `/dev/cards.html`,
   `/dev/tarot.html`.
+- Boissons : chacun choisit la sienne (salon « Ta boisson » ou menu « Ma
+  boisson », retenue dans le navigateur) → `room:setDrink` →
+  `players[id].drink`. Verres 3D dans `public/js/scene/drinks.js`
+  (`makeDrink`), posés par `world.setDrinks` ; les robots en tirent une au
+  hasard.
 - PWA plein écran (`manifest.webmanifest`, `sw.js` network-first).
 
 ## Ajouter un jeu

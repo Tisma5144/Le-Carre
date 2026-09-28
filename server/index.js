@@ -16,6 +16,8 @@ const GAMES = { [menteur.id]: menteur, [president.id]: president, [ascenseur.id]
 
 const PORT = process.env.PORT || 3000;
 // Facteur de vitesse des robots et des pauses (1 = rythme normal ; les tests l'accelerent).
+// boissons au choix (voir public/js/scene/drinks.js)
+const DRINKS = ["biere", "whisky", "vin", "cocktail", "soda", "cafe"];
 const BOT_SPEED = Number(process.env.BOT_SPEED) > 0 ? Number(process.env.BOT_SPEED) : 1;
 const EMOTES = ["😂", "😱", "🔥", "👏", "😡", "🤡", "🍺", "🤔", "😎", "💀", "😭", "🙏"];
 
@@ -58,6 +60,7 @@ function roomSummary(room) {
     players: room.order.map((id) => ({
       id,
       name: room.players[id].name,
+      drink: room.players[id].drink || null,
       connected: !!room.players[id].connected,
       isHost: room.players[id].isHost,
       isBot: !!room.players[id].isBot,
@@ -277,8 +280,10 @@ io.on("connection", (socket) => {
     const link = rooms.getBySocket(socket.id);
     if (!link) return ack && ack({ ok: false, error: "Salon introuvable." });
     if (link.room.hostId !== link.playerId) return ack && ack({ ok: false, error: "Seul le patron peut inviter des robots." });
-    const { error } = rooms.addBot(link.room.code, BOT_NAMES);
+    const { error, playerId } = rooms.addBot(link.room.code, BOT_NAMES);
     if (error) return ack && ack({ ok: false, error });
+    // chaque robot a sa boisson
+    link.room.players[playerId].drink = DRINKS[Math.floor(Math.random() * DRINKS.length)];
     ack && ack({ ok: true });
     broadcastRoom(link.room);
   });
@@ -310,6 +315,16 @@ io.on("connection", (socket) => {
 
   // Reglages du jeu choisis par le patron (ex : manches de l'Ascenseur).
   // Niveau des robots (le patron peut le changer a tout moment)
+  // Boisson posee devant soi (visible des autres), au salon comme en partie.
+  socket.on("room:setDrink", ({ drink } = {}, ack) => {
+    const link = rooms.getBySocket(socket.id);
+    if (!link) return ack && ack({ ok: false, error: "Salon introuvable." });
+    if (!DRINKS.includes(drink)) return ack && ack({ ok: false, error: "Boisson inconnue." });
+    link.room.players[link.playerId].drink = drink;
+    ack && ack({ ok: true });
+    broadcastRoom(link.room);
+  });
+
   socket.on("room:setBotLevel", ({ level } = {}, ack) => {
     const link = rooms.getBySocket(socket.id);
     if (!link) return ack && ack({ ok: false, error: "Salon introuvable." });

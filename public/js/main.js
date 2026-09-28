@@ -1,6 +1,7 @@
 // Point d'entree : relie le reseau (Socket.io), la scene 3D, les cartes et le
 // HUD. Tout ce qui est propre a un jeu vit dans js/games/<jeu>.js.
 import { World } from "./scene/world.js";
+import { DRINKS } from "./scene/drinks.js";
 import { woodCanvas } from "./scene/textures.js";
 import { CardTable } from "./game/cardTable.js";
 import { Hud } from "./ui/hud.js";
@@ -65,6 +66,35 @@ function savedName() {
 }
 function rememberName(n) {
   try { localStorage.setItem("menteurName", n); } catch (e) { /* ignore */ }
+}
+
+// Boisson preferee (retenue sur l'appareil, renvoyee a chaque table rejointe).
+function savedDrink() {
+  try { return localStorage.getItem("carreDrink") || ""; } catch (e) { return ""; }
+}
+function myDrink() {
+  const p = S.room && S.room.players.find((x) => x.id === S.me.id);
+  return (p && p.drink) || savedDrink() || "biere";
+}
+function chooseDrink(id) {
+  try { localStorage.setItem("carreDrink", id); } catch (e) { /* ignore */ }
+  const d = DRINKS.find((x) => x.id === id);
+  app.emit("room:setDrink", { drink: id }, () => hud.toast(`${d.emoji} ${d.label} servi${d.id === "biere" ? "e" : ""} ! Ton verre est posé devant toi.`, 2000));
+}
+function sendSavedDrink() {
+  const d = savedDrink();
+  if (d && socket) socket.emit("room:setDrink", { drink: d }, () => {});
+}
+function renderDrinkPicker(el) {
+  const cur = myDrink();
+  const key = cur;
+  if (el.dataset.key === key) return;
+  el.dataset.key = key;
+  el.innerHTML = DRINKS.map((d) => `<button data-drink="${d.id}" class="${d.id === cur ? "on" : ""}" title="${d.label}" aria-label="${d.label}" data-no-fs>${d.emoji}</button>`).join("");
+  el.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
+    sfx.play("select");
+    chooseDrink(b.dataset.drink);
+  }));
 }
 
 // ------------------------------------------------------------------ textures CSS
@@ -142,6 +172,17 @@ function applySeats(orderedIds) {
     world.setOpponents(seats.length);
     table.setSeats(seats);
     S.seatPhi = new Map(seats.map((s) => [s.id, s.phi]));
+  }
+  // la boisson de chacun devant sa place
+  const drinks = new Map();
+  for (const s of seats) {
+    const p = S.room && S.room.players.find((x) => x.id === s.id);
+    if (p && p.drink) drinks.set(s.phi, p.drink);
+  }
+  const dk = seats.map((s) => drinks.get(s.phi) || "-").join("|") + "#" + key;
+  if (dk !== S.drinksKey) {
+    S.drinksKey = dk;
+    world.setDrinks(drinks);
   }
   return seats;
 }
@@ -228,6 +269,7 @@ function showLobby() {
   const isHost = room.hostId === S.me.id;
   const AL = ADAPTERS[room.gameType] || menteurUi;
   hud.renderLobby(room, S.me.id, joinUrl(room.code), qrcode, (botId) => app.emit("room:removeBot", { playerId: botId }), AL.minPlayers || 3, AL.maxPlayers || 8);
+  renderDrinkPicker($("drink-seg"));
   hud.renderGameMenu(CATALOG, room.gameType, isHost, (gameType) => {
     sfx.play("select");
     app.emit("room:setGame", { gameType });
@@ -438,6 +480,7 @@ function bindUi() {
     S.me.name = name;
     S.pendingCode = res.code;
     saveSession();
+    sendSavedDrink();
     if (location.search) history.replaceState(null, "", "/");
   };
 
@@ -554,6 +597,7 @@ function bindUi() {
       <button class="btn wood" data-act="history">📜 Historique</button>
       <button class="btn wood" data-act="tray">🗃️ ${A ? A.trayTitle : "Cartes sorties"}</button>
       <button class="btn wood" data-act="rules">📖 Règles ${A ? "du " + A.name.replace(/^Le /, "") : ""}</button>
+      <button class="btn wood" data-act="drink">${(DRINKS.find((d) => d.id === myDrink()) || DRINKS[0]).emoji} Ma boisson</button>
       ${FS.isStandalone() ? "" : `<button class="btn wood" data-act="fs" data-no-fs>${fsLabel()}</button>`}
       ${isHost ? `<button class="btn wood" data-act="lobby">🎲 Changer de jeu</button>` : ""}
       <button class="btn brass" data-act="leave">🚪 Quitter la table</button>
@@ -564,6 +608,16 @@ function bindUi() {
       else if (act === "tray") openTray();
       else if (act === "fs") fullscreenAction();
       else if (act === "rules") hud.openModal(`Règles · ${A ? A.name : ""}`, A ? A.rulesHtml() : "");
+      else if (act === "drink") {
+        hud.openModal("Ma boisson", `<p class="drink-help">Ton verre est posé devant toi, sur l'écran des autres joueurs.</p><div class="drink-grid"></div>`);
+        const grid = document.querySelector("#modal-body .drink-grid");
+        grid.innerHTML = DRINKS.map((d) => `<button class="btn wood${d.id === myDrink() ? " on" : ""}" data-drink="${d.id}">${d.emoji} ${d.label}</button>`).join("");
+        grid.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
+          sfx.play("select");
+          chooseDrink(b.dataset.drink);
+          hud.closeModal();
+        }));
+      }
       else if (act === "lobby") {
         hud.closeModal();
         app.emit("room:playAgain", {});
@@ -628,6 +682,7 @@ function doRejoin() {
   S.me.id = saved.playerId;
   S.me.name = saved.name;
   socket.emit("room:rejoin", { code: saved.code, playerId: saved.playerId }, (res) => {
+    if (res && res.ok) sendSavedDrink();
     if (!res || !res.ok) {
       if (res && res.gone) {
         clearSession();

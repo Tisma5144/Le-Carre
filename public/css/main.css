@@ -1378,6 +1378,12 @@ body:has(#home:not(.hidden)) .app-version, body:has(#lobby:not(.hidden)) .app-ve
 .bot-level.readonly .seg button:not(.on) { display: none; }
 .bot-level .seg button:disabled { cursor: default; }
 .lobby-panel > #bot-level { grid-column: 2; }
+.lobby-panel > #drink-pick { grid-column: 2; }
+.drink-pick .seg button { font-size: 20px; padding: 3px 7px; line-height: 1.2; }
+.drink-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.drink-grid .btn { margin: 0; }
+.drink-grid .btn.on { outline: 3px solid #f3d27a; }
+.drink-help { font-size: 15px !important; }
 @media (min-width: 900px) and (min-height: 521px) { .lobby-panel > #bot-level { grid-column: 1; } }
 
 /* cartes devoilees dans le panneau de fin (jeu du Trou du cul) */

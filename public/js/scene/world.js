@@ -1,6 +1,7 @@
 // Scene 3D : le bar, la table en bois, la lampe, les accessoires et la camera.
 import * as THREE from "three";
 import { woodCanvas, feltCanvas, coasterCanvas, tokenCanvas, ringGlowCanvas, toTexture } from "./textures.js";
+import { makeDrink } from "./drinks.js";
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -35,6 +36,7 @@ export class World {
     this.orbitAngle = 0.6;
     this.camAnim = null;
     this.opponentPhis = [];
+    this.drinks = new Map(); // phi du siege -> boisson choisie
     this.dims = null;
 
     this.buildTextures();
@@ -322,6 +324,12 @@ export class World {
     if (this.mode !== "home") this.fitCamera(true);
   }
 
+  // Boisson de chaque adversaire (Map phi -> id de boisson).
+  setDrinks(map) {
+    this.drinks = map;
+    this.rebuildProps();
+  }
+
   rebuildProps() {
     this.propsGroup.clear();
     const labels = [["CHEZ", "MATHIS"], ["CHEZ", "MATTEO"], ["LE", "CARRÉ"], ["BAR", "DU COIN"]];
@@ -329,7 +337,7 @@ export class World {
       if (i % 2 === 1 && this.opponentPhis.length > 4) return;
       const side = phi < Math.PI ? 1 : -1;
       const p = this.seatPoint(phi + side * 0.42, 0.77);
-      const pint = makePint(i);
+      const pint = makeDrink(this.drinks.get(phi), i);
       const coaster = new THREE.Mesh(
         new THREE.CylinderGeometry(0.36, 0.36, 0.02, 36),
         [
@@ -623,33 +631,3 @@ export class World {
   }
 }
 
-function makePint(i) {
-  const g = new THREE.Group();
-  const stout = i % 3 === 2;
-  const glass = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.23, 0.19, 0.72, 28, 1, true),
-    new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.22, roughness: 0.05, metalness: 0.1, depthWrite: false, side: THREE.DoubleSide })
-  );
-  glass.position.y = 0.36;
-  const beer = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.21, 0.175, 0.56, 28),
-    new THREE.MeshStandardMaterial({
-      color: stout ? 0x1d0e06 : 0xe0901f, emissive: stout ? 0x0a0402 : 0x6a2c00, emissiveIntensity: 0.5,
-      transparent: true, opacity: 0.92, roughness: 0.2
-    })
-  );
-  beer.position.y = 0.3;
-  const foam = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.215, 0.21, 0.1, 28),
-    new THREE.MeshStandardMaterial({ color: 0xfff4e0, roughness: 0.9 })
-  );
-  foam.position.y = 0.62;
-  const base = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.19, 0.19, 0.04, 28),
-    new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, roughness: 0.05 })
-  );
-  base.position.y = 0.02;
-  beer.castShadow = true;
-  g.add(beer, foam, glass, base);
-  return g;
-}
