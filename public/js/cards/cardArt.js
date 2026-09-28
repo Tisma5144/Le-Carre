@@ -9,7 +9,7 @@ export const RANK_ORDER = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "V
 export const RANK_NAMES = {
   A: ["As", "As"], 2: ["2", "2"], 3: ["3", "3"], 4: ["4", "4"], 5: ["5", "5"], 6: ["6", "6"],
   7: ["7", "7"], 8: ["8", "8"], 9: ["9", "9"], 10: ["10", "10"],
-  V: ["Valet", "Valets"], D: ["Dame", "Dames"], R: ["Roi", "Rois"]
+  V: ["Valet", "Valets"], D: ["Dame", "Dames"], R: ["Roi", "Rois"], C: ["Cavalier", "Cavaliers"], 1: ["1", "1"]
 };
 
 const INK = "#1d1a1f";
@@ -21,7 +21,7 @@ const SKIN = "#f3d0aa";
 const PAPER_A = "#fffaf0";
 const PAPER_B = "#f0e4c8";
 
-export const SUIT_COLOR = { coeur: RED, carreau: RED, pique: INK, trefle: INK };
+export const SUIT_COLOR = { coeur: RED, carreau: RED, pique: INK, trefle: INK, atout: INK, excuse: INK };
 const INDEX_FONT = '"Playfair Display", Georgia, "Times New Roman", serif';
 
 export async function ensureCardFonts() {
@@ -200,22 +200,46 @@ function paper(ctx, W, H, seed) {
 
 // ---------------------------------------------------------------- index
 
+// Petite etoile a 4 ou 5 branches (atouts du Tarot, Excuse).
+function drawStar(ctx, x, y, r, color, points = 4, inner = 0.42) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.beginPath();
+  for (let i = 0; i < points * 2; i += 1) {
+    const a = (i / (points * 2)) * Math.PI * 2 - Math.PI / 2;
+    const rr = i % 2 ? r * inner : r;
+    ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+  }
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawIndex(ctx, card, W, H) {
   const color = SUIT_COLOR[card.suit];
+  const tarotTrump = card.suit === "atout";
+  const excuse = card.suit === "excuse";
   const draw = () => {
+    if (excuse) {
+      drawStar(ctx, 46, 70, 38, INK, 5, 0.45);
+      drawStar(ctx, 46, 150, 22, GOLD, 4);
+      return;
+    }
     ctx.save();
     ctx.fillStyle = color;
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
     // index agrandi : lisible meme sur les cartes posees au loin (telephone)
-    const isTen = card.rank === "10";
-    const fs = isTen ? 92 : 106;
+    const wide = card.rank.length > 1;
+    const fs = wide ? 92 : 106;
     ctx.font = `900 ${fs}px ${INDEX_FONT}`;
     ctx.translate(46, 102);
-    if (isTen) ctx.scale(0.64, 1);
+    if (wide) ctx.scale(0.64, 1);
     ctx.fillText(card.rank, 0, 0);
     ctx.restore();
-    drawSuit(ctx, card.suit, 46, 160, 66, 0, null, { shine: false });
+    if (tarotTrump) drawStar(ctx, 46, 150, 26, card.rank === "1" || card.rank === "21" ? RED : GOLD, 4);
+    else drawSuit(ctx, card.suit, 46, 160, 66, 0, null, { shine: false });
   };
   draw();
   ctx.save();
@@ -228,6 +252,7 @@ function drawIndex(ctx, card, W, H) {
 // ---------------------------------------------------------------- pips 2-10
 
 const PIPS = {
+  1: [[0.5, 0.5]],
   2: [[0.5, 0.2], [0.5, 0.8]],
   3: [[0.5, 0.2], [0.5, 0.5], [0.5, 0.8]],
   4: [[0.3, 0.2], [0.7, 0.2], [0.3, 0.8], [0.7, 0.8]],
@@ -242,7 +267,7 @@ const PIPS = {
 function drawPips(ctx, card, W, H) {
   const n = Number(card.rank);
   const layout = PIPS[n];
-  const size = n <= 3 ? 70 : n <= 8 ? 64 : 58;
+  const size = n === 1 ? 120 : n <= 3 ? 70 : n <= 8 ? 64 : 58;
   const x0 = W * 0.2;
   const x1 = W * 0.8;
   const y0 = H * 0.09;
@@ -616,6 +641,37 @@ function drawCrown(ctx, hx, hy, kind, pal) {
       ctx.fill();
       outline(ctx, 1);
     }
+  } else if (kind === "C") {
+    // cavalier : casque d'acier a visiere et panache
+    ctx.beginPath();
+    ctx.moveTo(hx - 30, hy - 4);
+    ctx.bezierCurveTo(hx - 34, hy - 50, hx + 34, hy - 50, hx + 30, hy - 4);
+    ctx.lineTo(hx + 26, hy - 14);
+    ctx.lineTo(hx - 26, hy - 14);
+    ctx.closePath();
+    const g = ctx.createLinearGradient(hx - 30, 0, hx + 30, 0);
+    g.addColorStop(0, "#eef1f4");
+    g.addColorStop(0.55, "#b5bcc5");
+    g.addColorStop(1, "#78808a");
+    ctx.fillStyle = g;
+    ctx.fill();
+    outline(ctx, 1.8);
+    ctx.beginPath();
+    ctx.rect(hx - 28, hy - 22, 56, 7);
+    ctx.fillStyle = GOLD;
+    ctx.fill();
+    outline(ctx, 1.2);
+    // panache
+    for (let i = 0; i < 3; i += 1) {
+      ctx.beginPath();
+      ctx.moveTo(hx - 2, hy - 44);
+      ctx.bezierCurveTo(hx - 20 + i * 8, hy - 80, hx - 40 + i * 14, hy - 86, hx - 52 + i * 18, hy - 70 - i * 6);
+      ctx.bezierCurveTo(hx - 34 + i * 12, hy - 72, hx - 16 + i * 6, hy - 62, hx + 4, hy - 42);
+      ctx.closePath();
+      ctx.fillStyle = i === 1 ? pal.second : pal.main;
+      ctx.fill();
+      outline(ctx, 1.3);
+    }
   } else {
     // valet : beret a plume
     ctx.beginPath();
@@ -884,6 +940,32 @@ function drawItem(ctx, fw, fh, kind, pal) {
     ctx.fill();
     outline(ctx, 1.1);
     return { x: fx - 3, y: fh * 0.8 };
+  } else if (kind === "C") {
+    // lance a fanion
+    ctx.beginPath();
+    ctx.rect(x - 3.5, fh * 0.06, 7, fh * 0.94);
+    ctx.fillStyle = "#8a5a2b";
+    ctx.fill();
+    outline(ctx, 1.4);
+    ctx.beginPath();
+    ctx.moveTo(x, -2);
+    ctx.lineTo(x + 7, fh * 0.07);
+    ctx.lineTo(x - 7, fh * 0.07);
+    ctx.closePath();
+    ctx.fillStyle = "#c9cfd6";
+    ctx.fill();
+    outline(ctx, 1.3);
+    ctx.beginPath();
+    ctx.moveTo(x - 3, fh * 0.1);
+    ctx.lineTo(x - 42, fh * 0.14);
+    ctx.lineTo(x - 30, fh * 0.18);
+    ctx.lineTo(x - 42, fh * 0.22);
+    ctx.lineTo(x - 3, fh * 0.24);
+    ctx.closePath();
+    ctx.fillStyle = pal.second === GOLD_LIGHT ? RED : pal.second;
+    ctx.fill();
+    outline(ctx, 1.3);
+    return { x, y: fh * 0.7 };
   } else {
     // hallebarde
     ctx.beginPath();
@@ -1000,14 +1082,481 @@ function drawFaceCard(ctx, card, W, H) {
   ctx.stroke();
 }
 
+// ---------------------------------------------------------------- Tarot : atouts et Excuse
+// Illustrations originales : chaque atout montre deux petites scenes en
+// miroir (paysages, astres, bateaux...), et un medaillon avec son numero.
+
+const SCENES = ["sun", "moon", "boat", "lighthouse", "tower", "tree", "windmill", "balloon", "mountain", "birds"];
+
+function sceneSky(ctx, w, h, night) {
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  if (night) {
+    g.addColorStop(0, "#1c2450");
+    g.addColorStop(1, "#46558f");
+  } else {
+    g.addColorStop(0, "#8fc3e8");
+    g.addColorStop(1, "#f6e7c0");
+  }
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+}
+
+function hills(ctx, w, h, y, color, amp = 14, seed = 1) {
+  ctx.beginPath();
+  ctx.moveTo(0, h);
+  ctx.lineTo(0, y);
+  for (let x = 0; x <= w; x += 8) ctx.lineTo(x, y - Math.sin((x / w) * Math.PI * (1.4 + seed * 0.3) + seed) * amp);
+  ctx.lineTo(w, h);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  outline(ctx, 1.6);
+}
+
+function sea(ctx, w, h, y) {
+  ctx.fillStyle = "#3d7fb3";
+  ctx.fillRect(0, y, w, h - y);
+  ctx.strokeStyle = "rgba(255,255,255,0.55)";
+  ctx.lineWidth = 2;
+  for (let yy = y + 8; yy < h; yy += 11) {
+    ctx.beginPath();
+    for (let x = -10; x < w + 10; x += 20) {
+      ctx.moveTo(x, yy);
+      ctx.quadraticCurveTo(x + 5, yy - 4, x + 10, yy);
+    }
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.moveTo(0, y);
+  ctx.lineTo(w, y);
+  outline(ctx, 1.5);
+}
+
+function sunDisc(ctx, x, y, r) {
+  ctx.save();
+  ctx.strokeStyle = "#e0a52a";
+  ctx.lineWidth = 3;
+  for (let i = 0; i < 16; i += 1) {
+    const a = (i / 16) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(x + Math.cos(a) * r * 1.2, y + Math.sin(a) * r * 1.2);
+    ctx.lineTo(x + Math.cos(a) * r * (i % 2 ? 1.5 : 1.75), y + Math.sin(a) * r * (i % 2 ? 1.5 : 1.75));
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, 1, x, y, r);
+  g.addColorStop(0, "#fff3a8");
+  g.addColorStop(1, "#f0b52e");
+  ctx.fillStyle = g;
+  ctx.fill();
+  outline(ctx, 1.6);
+  ctx.restore();
+}
+
+function drawScene(ctx, w, h, kind, seed) {
+  const rnd = seeded(seed);
+  const night = kind === "moon";
+  sceneSky(ctx, w, h, night);
+  switch (kind) {
+    case "sun":
+      sunDisc(ctx, w * 0.5, h * 0.42, 26);
+      hills(ctx, w, h, h * 0.76, "#7fae57", 12, 1);
+      hills(ctx, w, h, h * 0.88, "#5b8c3e", 8, 3);
+      break;
+    case "moon": {
+      for (let i = 0; i < 14; i += 1) drawStar(ctx, rnd() * w, rnd() * h * 0.65, 3 + rnd() * 4, "#fff4c4", 4);
+      ctx.beginPath();
+      ctx.arc(w * 0.55, h * 0.38, 26, 0, Math.PI * 2);
+      ctx.arc(w * 0.62, h * 0.33, 22, 0, Math.PI * 2, true);
+      ctx.fillStyle = "#fbe7a1";
+      ctx.fill("evenodd");
+      hills(ctx, w, h, h * 0.84, "#2e3b5c", 10, 2);
+      break;
+    }
+    case "boat":
+      sunDisc(ctx, w * 0.78, h * 0.26, 14);
+      sea(ctx, w, h, h * 0.66);
+      ctx.beginPath();
+      ctx.moveTo(w * 0.26, h * 0.66);
+      ctx.lineTo(w * 0.74, h * 0.66);
+      ctx.lineTo(w * 0.66, h * 0.78);
+      ctx.lineTo(w * 0.34, h * 0.78);
+      ctx.closePath();
+      ctx.fillStyle = "#8a4b22";
+      ctx.fill();
+      outline(ctx, 1.6);
+      ctx.beginPath();
+      ctx.moveTo(w * 0.5, h * 0.64);
+      ctx.lineTo(w * 0.5, h * 0.18);
+      ctx.lineTo(w * 0.72, h * 0.6);
+      ctx.closePath();
+      ctx.fillStyle = "#fbf6e8";
+      ctx.fill();
+      outline(ctx, 1.6);
+      ctx.beginPath();
+      ctx.moveTo(w * 0.48, h * 0.24);
+      ctx.lineTo(w * 0.3, h * 0.6);
+      ctx.lineTo(w * 0.48, h * 0.6);
+      ctx.closePath();
+      ctx.fillStyle = RED;
+      ctx.fill();
+      outline(ctx, 1.4);
+      break;
+    case "lighthouse": {
+      sea(ctx, w, h, h * 0.72);
+      const x = w * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(x - 20, h * 0.8);
+      ctx.lineTo(x - 12, h * 0.28);
+      ctx.lineTo(x + 12, h * 0.28);
+      ctx.lineTo(x + 20, h * 0.8);
+      ctx.closePath();
+      ctx.fillStyle = "#fbf6e8";
+      ctx.fill();
+      outline(ctx, 1.6);
+      for (const yy of [0.4, 0.56, 0.7]) {
+        ctx.fillStyle = RED;
+        ctx.fillRect(x - 17 + (0.8 - yy) * 8, h * yy, 34 - (0.8 - yy) * 16, 10);
+      }
+      ctx.beginPath();
+      ctx.moveTo(x - 14, h * 0.28);
+      ctx.lineTo(x, h * 0.14);
+      ctx.lineTo(x + 14, h * 0.28);
+      ctx.closePath();
+      ctx.fillStyle = RED;
+      ctx.fill();
+      outline(ctx, 1.4);
+      ctx.fillStyle = "rgba(255,230,120,0.55)";
+      ctx.beginPath();
+      ctx.moveTo(x, h * 0.24);
+      ctx.lineTo(w, h * 0.1);
+      ctx.lineTo(w, h * 0.34);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case "tower": {
+      hills(ctx, w, h, h * 0.82, "#7fae57", 6, 2);
+      const x = w * 0.5;
+      ctx.beginPath();
+      ctx.rect(x - 26, h * 0.34, 52, h * 0.5);
+      ctx.fillStyle = "#d9c7a0";
+      ctx.fill();
+      outline(ctx, 1.6);
+      for (let i = 0; i < 5; i += 1) {
+        ctx.beginPath();
+        ctx.rect(x - 26 + i * 11.5, h * 0.28, 7, h * 0.06);
+        ctx.fillStyle = "#d9c7a0";
+        ctx.fill();
+        outline(ctx, 1.3);
+      }
+      ctx.beginPath();
+      ctx.moveTo(x - 9, h * 0.84);
+      ctx.lineTo(x - 9, h * 0.66);
+      ctx.quadraticCurveTo(x, h * 0.58, x + 9, h * 0.66);
+      ctx.lineTo(x + 9, h * 0.84);
+      ctx.fillStyle = "#5a3a1c";
+      ctx.fill();
+      outline(ctx, 1.3);
+      ctx.beginPath();
+      ctx.moveTo(x, h * 0.28);
+      ctx.lineTo(x, h * 0.08);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x, h * 0.08);
+      ctx.lineTo(x + 26, h * 0.13);
+      ctx.lineTo(x, h * 0.18);
+      ctx.closePath();
+      ctx.fillStyle = BLUE;
+      ctx.fill();
+      outline(ctx, 1.2);
+      break;
+    }
+    case "tree": {
+      hills(ctx, w, h, h * 0.8, "#7fae57", 10, 1);
+      const x = w * 0.48;
+      ctx.beginPath();
+      ctx.rect(x - 6, h * 0.46, 12, h * 0.36);
+      ctx.fillStyle = "#6b4423";
+      ctx.fill();
+      outline(ctx, 1.4);
+      for (const [dx, dy, r] of [[0, 0.34, 30], [-24, 0.44, 22], [24, 0.44, 22], [0, 0.22, 22]]) {
+        ctx.beginPath();
+        ctx.arc(x + dx, h * dy, r, 0, Math.PI * 2);
+        ctx.fillStyle = "#3f7f3a";
+        ctx.fill();
+        outline(ctx, 1.4);
+      }
+      for (let i = 0; i < 6; i += 1) {
+        ctx.beginPath();
+        ctx.arc(x - 26 + rnd() * 52, h * (0.2 + rnd() * 0.28), 4, 0, Math.PI * 2);
+        ctx.fillStyle = RED;
+        ctx.fill();
+      }
+      break;
+    }
+    case "windmill": {
+      hills(ctx, w, h, h * 0.82, "#c9b25a", 8, 4);
+      const x = w * 0.5;
+      const y = h * 0.34;
+      ctx.beginPath();
+      ctx.moveTo(x - 20, h * 0.84);
+      ctx.lineTo(x - 13, y);
+      ctx.lineTo(x + 13, y);
+      ctx.lineTo(x + 20, h * 0.84);
+      ctx.closePath();
+      ctx.fillStyle = "#e9dcc0";
+      ctx.fill();
+      outline(ctx, 1.5);
+      for (let i = 0; i < 4; i += 1) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(0.4 + (i * Math.PI) / 2);
+        ctx.beginPath();
+        ctx.rect(-5, -52, 10, 48);
+        ctx.fillStyle = "#fbf6e8";
+        ctx.fill();
+        outline(ctx, 1.3);
+        ctx.restore();
+      }
+      ctx.beginPath();
+      ctx.arc(x, y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = INK;
+      ctx.fill();
+      break;
+    }
+    case "balloon": {
+      hills(ctx, w, h, h * 0.9, "#7fae57", 6, 5);
+      const x = w * 0.5;
+      const y = h * 0.34;
+      ctx.beginPath();
+      ctx.moveTo(x - 12, y + 34);
+      ctx.bezierCurveTo(x - 40, y + 10, x - 36, y - 34, x, y - 34);
+      ctx.bezierCurveTo(x + 36, y - 34, x + 40, y + 10, x + 12, y + 34);
+      ctx.closePath();
+      ctx.fillStyle = RED;
+      ctx.fill();
+      outline(ctx, 1.6);
+      ctx.beginPath();
+      ctx.moveTo(x, y - 34);
+      ctx.bezierCurveTo(x - 14, y - 10, x - 10, y + 20, x - 4, y + 34);
+      ctx.lineTo(x + 4, y + 34);
+      ctx.bezierCurveTo(x + 10, y + 20, x + 14, y - 10, x, y - 34);
+      ctx.fillStyle = GOLD_LIGHT;
+      ctx.fill();
+      outline(ctx, 1.2);
+      ctx.beginPath();
+      ctx.rect(x - 9, y + 46, 18, 12);
+      ctx.fillStyle = "#8a5a2b";
+      ctx.fill();
+      outline(ctx, 1.3);
+      ctx.beginPath();
+      ctx.moveTo(x - 11, y + 34);
+      ctx.lineTo(x - 8, y + 46);
+      ctx.moveTo(x + 11, y + 34);
+      ctx.lineTo(x + 8, y + 46);
+      ctx.stroke();
+      break;
+    }
+    case "mountain": {
+      sunDisc(ctx, w * 0.24, h * 0.24, 12);
+      ctx.beginPath();
+      ctx.moveTo(-10, h * 0.9);
+      ctx.lineTo(w * 0.36, h * 0.22);
+      ctx.lineTo(w * 0.6, h * 0.62);
+      ctx.lineTo(w * 0.74, h * 0.4);
+      ctx.lineTo(w + 10, h * 0.9);
+      ctx.closePath();
+      ctx.fillStyle = "#7a86a0";
+      ctx.fill();
+      outline(ctx, 1.6);
+      ctx.beginPath();
+      ctx.moveTo(w * 0.28, h * 0.34);
+      ctx.lineTo(w * 0.36, h * 0.22);
+      ctx.lineTo(w * 0.45, h * 0.37);
+      ctx.lineTo(w * 0.38, h * 0.33);
+      ctx.lineTo(w * 0.33, h * 0.37);
+      ctx.closePath();
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+      hills(ctx, w, h, h * 0.9, "#5b8c3e", 6, 2);
+      break;
+    }
+    default: {
+      sunDisc(ctx, w * 0.7, h * 0.3, 16);
+      sea(ctx, w, h, h * 0.74);
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 2.4;
+      for (let i = 0; i < 4; i += 1) {
+        const bx = w * (0.2 + rnd() * 0.5);
+        const by = h * (0.24 + rnd() * 0.36);
+        const s = 8 + rnd() * 6;
+        ctx.beginPath();
+        ctx.moveTo(bx - s, by);
+        ctx.quadraticCurveTo(bx - s / 2, by - s * 0.7, bx, by);
+        ctx.quadraticCurveTo(bx + s / 2, by - s * 0.7, bx + s, by);
+        ctx.stroke();
+      }
+    }
+  }
+}
+
+// Cadre illustre commun aux atouts et a l'Excuse (sans chevaucher les index).
+function tarotPanel(ctx, W, H, drawHalf, mirror = true, drawBottom = null) {
+  const x0 = 88;
+  const y0 = 28;
+  const fw = W - x0 * 2;
+  const fh = (H - y0 * 2) / 2;
+  const half = document.createElement("canvas");
+  half.width = Math.round(fw);
+  half.height = Math.round(mirror ? fh : fh * 2);
+  drawHalf(half.getContext("2d"), half.width, half.height);
+  ctx.save();
+  roundRectPath(ctx, x0, y0, fw, fh * 2, 10);
+  ctx.clip();
+  ctx.drawImage(half, x0, y0);
+  if (mirror) {
+    let bottom = half;
+    if (drawBottom) {
+      bottom = document.createElement("canvas");
+      bottom.width = half.width;
+      bottom.height = half.height;
+      drawBottom(bottom.getContext("2d"), bottom.width, bottom.height);
+    }
+    ctx.translate(x0 + fw, y0 + fh * 2);
+    ctx.rotate(Math.PI);
+    ctx.drawImage(bottom, 0, 0);
+  }
+  ctx.restore();
+  roundRectPath(ctx, x0, y0, fw, fh * 2, 10);
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = GOLD;
+  ctx.stroke();
+  roundRectPath(ctx, x0 - 4, y0 - 4, fw + 8, fh * 2 + 8, 13);
+  ctx.lineWidth = 1.4;
+  ctx.strokeStyle = INK;
+  ctx.stroke();
+  return { x0, y0, fw, fh };
+}
+
+function drawTrumpCard(ctx, card, W, H) {
+  const n = parseInt(card.rank, 10);
+  const bout = n === 1 || n === 21;
+  // deux scenes differentes par atout (chaque paire est unique)
+  const top = SCENES[(n - 1) % SCENES.length];
+  const bottom = SCENES[(n + Math.floor(n / 10) * 3 + 5) % SCENES.length];
+  const { x0, y0, fw, fh } = tarotPanel(ctx, W, H, (c, w, h) => drawScene(c, w, h, top, n * 17 + 3), true, (c, w, h) => drawScene(c, w, h, bottom, n * 31 + 7));
+  // bandeau central et medaillon du numero
+  const cy = y0 + fh;
+  ctx.fillStyle = bout ? RED : "#27458f";
+  ctx.fillRect(x0, cy - 9, fw, 18);
+  ctx.beginPath();
+  ctx.moveTo(x0, cy - 9);
+  ctx.lineTo(x0 + fw, cy - 9);
+  ctx.moveTo(x0, cy + 9);
+  ctx.lineTo(x0 + fw, cy + 9);
+  outline(ctx, 1.4);
+  const r = 40;
+  ctx.beginPath();
+  ctx.arc(W / 2, cy, r, 0, Math.PI * 2);
+  const g = ctx.createRadialGradient(W / 2 - 12, cy - 14, 4, W / 2, cy, r);
+  g.addColorStop(0, bout ? "#fff1b0" : "#fffaf0");
+  g.addColorStop(1, bout ? GOLD : "#e8dcc0");
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = GOLD;
+  ctx.stroke();
+  outline(ctx, 1.4);
+  ctx.save();
+  ctx.fillStyle = bout ? RED : INK;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `900 ${n >= 10 ? 44 : 52}px ${INDEX_FONT}`;
+  ctx.fillText(String(n), W / 2, cy + 3);
+  ctx.restore();
+  if (bout) {
+    drawStar(ctx, W / 2 - 58, cy, 12, GOLD_LIGHT, 4);
+    drawStar(ctx, W / 2 + 58, cy, 12, GOLD_LIGHT, 4);
+  }
+}
+
+// L'Excuse : bonnet de fou a grelots et etoiles.
+function drawExcuseCard(ctx, W, H) {
+  tarotPanel(ctx, W, H, (c, w, h) => {
+    const g = c.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, "#2a2350");
+    g.addColorStop(1, "#6a3f8a");
+    c.fillStyle = g;
+    c.fillRect(0, 0, w, h);
+    const rnd = seeded(77);
+    for (let i = 0; i < 26; i += 1) drawStar(c, rnd() * w, rnd() * h, 3 + rnd() * 6, "#ffe9a6", 4 + (i % 2));
+    const x = w / 2;
+    const y = h * 0.5;
+    // bonnet a trois pointes
+    const tips = [[x - 58, y - 30], [x, y - 92], [x + 58, y - 30]];
+    const colors = [RED, GOLD_LIGHT, "#2f8a4a"];
+    tips.forEach(([tx, ty], i) => {
+      c.beginPath();
+      c.moveTo(x - 40 + i * 26, y + 10);
+      c.quadraticCurveTo((x + tx) / 2 - 10, ty + 30, tx, ty);
+      c.quadraticCurveTo((x + tx) / 2 + 16, ty + 40, x - 14 + i * 26, y + 10);
+      c.closePath();
+      c.fillStyle = colors[i];
+      c.fill();
+      outline(c, 1.8);
+      c.beginPath();
+      c.arc(tx, ty, 9, 0, Math.PI * 2);
+      c.fillStyle = "#f5c842";
+      c.fill();
+      outline(c, 1.5);
+    });
+    c.beginPath();
+    c.ellipse(x, y + 16, 56, 14, 0, 0, Math.PI * 2);
+    c.fillStyle = GOLD;
+    c.fill();
+    outline(c, 1.6);
+    // visage malicieux
+    c.beginPath();
+    c.arc(x, y + 58, 34, 0, Math.PI * 2);
+    c.fillStyle = SKIN;
+    c.fill();
+    outline(c, 1.8);
+    drawEye(c, x - 12, y + 52, false);
+    drawEye(c, x + 12, y + 52, true);
+    c.beginPath();
+    c.arc(x, y + 64, 14, 0.15 * Math.PI, 0.85 * Math.PI);
+    outline(c, 2);
+    c.beginPath();
+    c.arc(x - 20, y + 66, 5, 0, Math.PI * 2);
+    c.arc(x + 20, y + 66, 5, 0, Math.PI * 2);
+    c.fillStyle = "rgba(220,90,90,0.4)";
+    c.fill();
+    // banderole
+    c.beginPath();
+    c.rect(10, h - 64, w - 20, 34);
+    c.fillStyle = "#fbf3df";
+    c.fill();
+    outline(c, 1.6);
+    c.fillStyle = INK;
+    c.textAlign = "center";
+    c.textBaseline = "middle";
+    c.font = `900 26px ${INDEX_FONT}`;
+    c.fillText("EXCUSE", x, h - 46);
+  }, false);
+}
+
 // ---------------------------------------------------------------- API
 
 export function drawCardFace(ctx, card, W = CARD_W, H = CARD_H) {
   ctx.save();
   ctx.scale(W / CARD_W, H / CARD_H);
   paper(ctx, CARD_W, CARD_H, hashStr(card.rank + card.suit));
-  if (card.rank === "A") drawAce(ctx, card, CARD_W, CARD_H);
-  else if (card.rank === "V" || card.rank === "D" || card.rank === "R") drawFaceCard(ctx, card, CARD_W, CARD_H);
+  if (card.suit === "atout") drawTrumpCard(ctx, card, CARD_W, CARD_H);
+  else if (card.suit === "excuse") drawExcuseCard(ctx, CARD_W, CARD_H);
+  else if (card.rank === "A") drawAce(ctx, card, CARD_W, CARD_H);
+  else if (card.rank === "V" || card.rank === "C" || card.rank === "D" || card.rank === "R") drawFaceCard(ctx, card, CARD_W, CARD_H);
   else drawPips(ctx, card, CARD_W, CARD_H);
   drawIndex(ctx, card, CARD_W, CARD_H);
   ctx.restore();

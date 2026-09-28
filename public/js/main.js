@@ -11,11 +11,12 @@ import presidentUi from "./games/president.js";
 import ascenseurUi from "./games/ascenseur.js";
 import pouilleuxUi from "./games/pouilleux.js";
 import pokerUi from "./games/poker.js";
+import tarotUi from "./games/tarot.js";
 import qrcode from "/vendor/qrcode.mjs";
 import * as FS from "./ui/fullscreen.js";
 
 const EMOTES = ["😂", "😱", "🔥", "👏", "😡", "🤡", "🍺", "🤔", "😎", "💀", "😭", "🙏"];
-const ADAPTERS = { menteur: menteurUi, president: presidentUi, ascenseur: ascenseurUi, pouilleux: pouilleuxUi, poker: pokerUi };
+const ADAPTERS = { menteur: menteurUi, president: presidentUi, ascenseur: ascenseurUi, pouilleux: pouilleuxUi, poker: pokerUi, tarot: tarotUi };
 const SESSION_KEY = "menteurSession";
 const SUIT_INDEX = { pique: 0, coeur: 1, trefle: 2, carreau: 3 };
 const $ = (id) => document.getElementById(id);
@@ -104,6 +105,7 @@ function buildCatalog() {
     { ...pick(ascenseurUi), art: createCardFaceCanvas({ rank: "A", suit: "pique" }, 0.22).toDataURL() },
     { ...pick(pouilleuxUi), art: createCardFaceCanvas({ rank: "V", suit: "pique" }, 0.22).toDataURL() },
     { ...pick(pokerUi), art: createCardFaceCanvas({ rank: "A", suit: "coeur" }, 0.22).toDataURL() },
+    { ...pick(tarotUi), art: createCardFaceCanvas({ rank: "21", suit: "atout" }, 0.22).toDataURL() },
     { id: "custom", name: "Tes propres jeux", emoji: "🛠️", tagline: "Bientôt : invente tes règles", players: "", soon: true }
   ];
 }
@@ -225,7 +227,7 @@ function showLobby() {
   if (firstTime) table.gatherToDeck(true);
   const isHost = room.hostId === S.me.id;
   const AL = ADAPTERS[room.gameType] || menteurUi;
-  hud.renderLobby(room, S.me.id, joinUrl(room.code), qrcode, (botId) => app.emit("room:removeBot", { playerId: botId }), AL.minPlayers || 3);
+  hud.renderLobby(room, S.me.id, joinUrl(room.code), qrcode, (botId) => app.emit("room:removeBot", { playerId: botId }), AL.minPlayers || 3, AL.maxPlayers || 8);
   hud.renderGameMenu(CATALOG, room.gameType, isHost, (gameType) => {
     sfx.play("select");
     app.emit("room:setGame", { gameType });
@@ -263,6 +265,8 @@ function showGame() {
     if (S.adapter && S.adapter.hideOverlays) S.adapter.hideOverlays(app);
     S.adapter = A;
     table.maxSelect = A.maxSelect;
+    // 78 cartes pour le Tarot, 52 pour les autres jeux
+    table.setDeckSize(A.deckSize || 52);
     $("btn-sort").classList.toggle("hidden", !!A.hideSort);
     table.pendingFaceUp = A.pendingFaceUp;
     S.sorted = A.defaultSorted;
@@ -331,12 +335,13 @@ function refreshGameUi() {
   table.setInteractive(!dealing && !you.isFinished && (playing || g.phase === "exchange" || g.phase === "reveal_pending"));
   table.setTurnGlow(dealing || !playing ? null : myTurn ? "__me" : g.currentTurn);
 
+  let tokenPos = null;
   if (!dealing && playing && g.currentTurn) {
-    const pos = g.currentTurn === S.me.id ? world.anchors.myToken : S.seatPhi.has(g.currentTurn) ? world.seatPoint(S.seatPhi.get(g.currentTurn), 0.5) : null;
-    if (pos) world.moveTokenTo(pos);
-  } else if (["finished", "round_end", "exchange", "showdown", "waiting", "runout"].includes(g.phase)) {
+    tokenPos = g.currentTurn === S.me.id ? world.anchors.myToken : S.seatPhi.has(g.currentTurn) ? world.seatPoint(S.seatPhi.get(g.currentTurn), 0.5) : null;
+  } else if (["finished", "round_end", "exchange", "showdown", "waiting", "runout", "chien"].includes(g.phase)) {
     world.hideToken();
   }
+  if (!tokenPos) S.tokenBase = null;
   const ring = myTurn && (!A.showRing || A.showRing(g));
   if (!table.drag) world.setPileRing(ring ? "idle" : "hidden");
 
@@ -349,6 +354,26 @@ function refreshGameUi() {
 
   A.refresh(g, app);
   updatePlayButton();
+  // le jeton se pose a cote des cartes (et des boutons), jamais dessus ;
+  // place calculee apres la mise a jour de l'interface
+  S.tokenBase = tokenPos;
+  placeToken();
+}
+
+// Elements HTML par-dessus la table que le jeton de tour doit eviter.
+const TOKEN_AVOID = ["action-bar", "hint", "btn-play", "bid-bar", "exchange", "btn-liar", "btn-pass", "pile-chip", "tray-chip"];
+function placeToken() {
+  if (!S.tokenBase || S.screen !== "game") return;
+  const rects = [];
+  for (const id of TOKEN_AVOID) {
+    const el = $(id);
+    if (!el || el.classList.contains("hidden") || getComputedStyle(el).display === "none") continue;
+    if (id === "hint" && !el.textContent.trim()) continue;
+    rects.push(el.getBoundingClientRect());
+  }
+  // boutons d'action ponctuels (carre magique, recave...)
+  for (const b of document.querySelectorAll("#quad-bar > *")) rects.push(b.getBoundingClientRect());
+  world.moveTokenTo(table.freeSpot(S.tokenBase, world.tokenTarget, 0.4, rects.filter((r) => r.width > 0 && r.height > 0)));
 }
 
 function updatePlayButton() {
@@ -693,6 +718,12 @@ function hudFrame() {
     hud.positionChip("pile-chip", pile, chips.pile);
     const ta = table.trayAnchor();
     hud.positionChip("tray-chip", ta ? world.toScreen(ta) : null, chips.tray);
+    // les bandeaux apparaissent parfois apres coup : on reverifie la place du jeton
+    const now = performance.now();
+    if (S.tokenBase && world.token.visible && now - (S.tokenCheckAt || 0) > 400) {
+      S.tokenCheckAt = now;
+      placeToken();
+    }
   } else {
     hud.positionChip("pile-chip", null, "");
     hud.positionChip("tray-chip", null, "");

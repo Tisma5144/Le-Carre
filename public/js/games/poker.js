@@ -2,9 +2,24 @@
 // barre d'actions (se coucher / check / suivre / relancer / tapis), tapis de
 // jetons sur les etiquettes, abattage avec les meilleures cartes en lumiere.
 
+import { createCardFaceCanvas } from "../cards/cardArt.js";
+
 const $ = (id) => document.getElementById(id);
 const STREET = { preflop: "Pré-flop", flop: "Flop", turn: "Turn", river: "River" };
 const fmt = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, "\u202f"); // espace insecable fine
+// Quand je montre mes cartes : elles s'envolent de ma main vers la table,
+// grandes et face visible, pour que je voie ce que les autres voient.
+function showMyCardsFx(cards) {
+  if (!cards || !cards.length) return;
+  document.querySelectorAll(".show-cards-fx").forEach((n) => n.remove());
+  const el = document.createElement("div");
+  el.className = "show-cards-fx";
+  el.innerHTML = `<div class="scf-cards">${cards.map((c, i) => `<img src="${createCardFaceCanvas(c, 0.7).toDataURL()}" alt="" style="--i:${i}" />`).join("")}</div><div class="scf-label">👀 Tu montres tes cartes à la table</div>`;
+  document.body.appendChild(el);
+  el.addEventListener("animationend", (ev) => { if (ev.target === el) el.remove(); });
+  setTimeout(() => el.remove(), 4000);
+}
+
 // Eclair lumineux quand une carte tombe pendant un tapis.
 function flashScreen(kind) {
   const el = document.createElement("div");
@@ -114,7 +129,11 @@ export default {
         break;
       }
       case "show_cards":
-        if (ev.playerId !== me) hud.bubble(who(ev.playerId), "Regardez ! 👀", "");
+        hud.bubble(who(ev.playerId), "Regardez ! 👀", "");
+        if (ev.playerId === me && S.game) {
+          showMyCardsFx(S.game.hand);
+          sfx.play("truth");
+        }
         sfx.play("flip");
         break;
       case "reveal_board":
@@ -210,7 +229,7 @@ export default {
     hud.setMyPlate(
       S.me.name,
       you.inHand ? 2 : 0,
-      `🪙 ${fmt(you.stack)}${you.bet ? ` · mise ${fmt(you.bet)}` : ""}${meSeat && meSeat.isDealer ? " · 🔘 donneur" : ""}`,
+      `🪙 ${fmt(you.stack)}${you.bet ? ` · mise ${fmt(you.bet)}` : ""}${meSeat && meSeat.isDealer ? " · 🔘 donneur" : ""}${you.hasShown ? " · 👀 cartes montrées" : ""}`,
       `🪙 ${fmt(you.stack)}${you.bet ? ` · ${fmt(you.bet)}` : ""}`
     );
     hud.syncPlates(v.opponents.map((o) => ({

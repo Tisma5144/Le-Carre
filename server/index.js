@@ -10,8 +10,9 @@ const president = require("./games/president");
 const ascenseur = require("./games/ascenseur");
 const pouilleux = require("./games/pouilleux");
 const poker = require("./games/poker");
+const tarot = require("./games/tarot");
 
-const GAMES = { [menteur.id]: menteur, [president.id]: president, [ascenseur.id]: ascenseur, [pouilleux.id]: pouilleux, [poker.id]: poker };
+const GAMES = { [menteur.id]: menteur, [president.id]: president, [ascenseur.id]: ascenseur, [pouilleux.id]: pouilleux, [poker.id]: poker, [tarot.id]: tarot };
 
 const PORT = process.env.PORT || 3000;
 // Facteur de vitesse des robots et des pauses (1 = rythme normal ; les tests l'accelerent).
@@ -142,6 +143,8 @@ function scheduleBots(room) {
     else if (first.type === "give") delay = 2500;
     else if (first.type === "next_hand") delay = 6500;
     else if (first.type === "rebuy") delay = 1500;
+    else if (first.type === "ecart") delay = 3200;
+    else if (first.type === "announce") delay = 1400;
     if (!room.players[botId].isBot) delay = 20000;
     delay *= BOT_SPEED;
     room.botTimer = setTimeout(() => {
@@ -358,6 +361,9 @@ io.on("connection", (socket) => {
     if (room.order.length < game.minPlayers) {
       return ack && ack({ ok: false, error: `Il faut au moins ${game.minPlayers} joueurs.` });
     }
+    if (game.maxPlayers && room.order.length > game.maxPlayers) {
+      return ack && ack({ ok: false, error: `${game.name} se joue à ${game.maxPlayers} joueurs maximum.` });
+    }
     room.game = newGame(room);
     room.status = "playing";
     ack && ack({ ok: true });
@@ -392,6 +398,12 @@ io.on("connection", (socket) => {
       room.game = null;
       broadcastRoom(room);
       return ack && ack({ ok: false, error: `Il faut au moins ${game.minPlayers} joueurs connectes.` });
+    }
+    if (game.maxPlayers && connected.length > game.maxPlayers) {
+      room.status = "lobby";
+      room.game = null;
+      broadcastRoom(room);
+      return ack && ack({ ok: false, error: `${game.name} se joue à ${game.maxPlayers} joueurs maximum.` });
     }
     for (const id of room.order) if (!connected.includes(id)) delete room.players[id];
     room.order = connected;
@@ -434,6 +446,10 @@ io.on("connection", (socket) => {
   socket.on("game:rebuy", handleGameAction("rebuy", []));
   socket.on("game:endGame", handleGameAction("end_game", []));
   socket.on("game:nextHand", handleGameAction("next_hand", []));
+  socket.on("game:call", handleGameAction("call", ["suit"]));
+  socket.on("game:ecart", handleGameAction("ecart", ["cardIds"]));
+  socket.on("game:chelem", handleGameAction("chelem", ["announce"]));
+  socket.on("game:announce", handleGameAction("announce", ["kind", "level", "misere"]));
   socket.on("game:revealBoard", handleGameAction("reveal_board", []));
   socket.on("game:showCards", handleGameAction("show_cards", []));
 

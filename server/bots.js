@@ -472,7 +472,214 @@ function pokerActions(state, id, level) {
   return out;
 }
 
-const BOTS = { menteur: menteurActions, president: presidentActions, ascenseur: ascenseurActions, pouilleux: pouilleuxActions, poker: pokerActions };
+
+// ------------------------------------------------------------------ Tarot
+
+const tarotEngine = require("./games/tarot");
+
+// Force d'une main de Tarot (methode des points, ramenee a une main de 18).
+function tarotHandScore(hand, n) {
+  const T = tarotEngine._internals;
+  const trumps = hand.filter(T.isTrump);
+  const t = trumps.length + (hand.some(T.isExcuse) ? 1 : 0);
+  let s = trumps.length * 2 + Math.max(0, trumps.length - 5) * 1.5;
+  if (trumps.some((c) => c.rank === "21")) s += 8;
+  if (hand.some(T.isExcuse)) s += 6;
+  if (trumps.some((c) => c.rank === "1")) s += t >= 6 ? 6 : t >= 4 ? 2 : -2;
+  s += trumps.filter((c) => T.trumpValue(c) >= 16 && c.rank !== "21").length;
+  for (const suit of ["pique", "coeur", "carreau", "trefle"]) {
+    const cs = hand.filter((c) => c.suit === suit);
+    const has = (r) => cs.some((c) => c.rank === r);
+    if (has("R")) s += has("D") ? 8 : 6;
+    else if (has("D")) s += 3;
+    if (has("C")) s += 2;
+    if (has("V")) s += 1;
+    if (cs.length === 0 && trumps.length >= 5) s += 5;
+    else if (cs.length === 1 && trumps.length >= 5) s += 2;
+    if (cs.length >= 5) s += (cs.length - 4) * 2;
+  }
+  return (s * 18) / hand.length + (n === 5 ? 6 : n === 3 ? -4 : 0);
+}
+
+function tarotActions(state, id, level) {
+  const T = tarotEngine._internals;
+  const hand = state.hands[id] || [];
+  const n = state.seatOrder.length;
+  if (state.currentTurn !== id) return [];
+
+  if (state.phase === "bidding") {
+    let sc = tarotHandScore(hand, n);
+    if (level === "facile") sc += (Math.random() - 0.5) * 24;
+    // seuils du robot fort reglés par simulation (plus prudent a 4 joueurs)
+    const th = level === "fort" ? (n === 4 ? [42, 56, 72, 86] : [34, 48, 64, 78]) : [38, 52, 68, 82];
+    let want = -1;
+    th.forEach((v, i) => { if (sc >= v) want = i; });
+    want = Math.min(want, state.contracts.length - 1);
+    const out = [];
+    if (want > state.bestBid) out.push({ type: "bid", bid: state.contracts[want].key });
+    out.push({ type: "bid", bid: "passe" });
+    return out;
+  }
+
+  if (state.phase === "calling") {
+    const rank = T.callableRank(state);
+    const suits = ["pique", "coeur", "carreau", "trefle"];
+    const missing = suits.filter((s) => !hand.some((c) => c.suit === s && c.rank === rank));
+    let suit = pickOne(missing.length ? missing : suits);
+    if (level !== "facile" && missing.length) {
+      // appel dans la couleur ou l'on a le plus de soutien (Dame, Cavalier...)
+      const support = (s) => hand.filter((c) => c.suit === s).reduce((t, c) => t + T.cardPoints(c) + 0.3, 0);
+      suit = missing.slice().sort((a, b) => support(b) - support(a))[0];
+    }
+    return [{ type: "call", suit }, { type: "call", suit: missing[0] || "pique" }];
+  }
+
+  if (state.phase === "ecart") {
+    const { size, needTrumps } = T.ecartRules(state);
+    const colors = hand.filter((c) => !T.isTrump(c) && !T.isExcuse(c) && c.rank !== "R");
+    const trumps = hand.filter((c) => T.isTrump(c) && !T.isBout(c)).sort((a, b) => T.trumpValue(a) - T.trumpValue(b));
+    let chosen;
+    if (level === "facile") chosen = colors.slice().sort(() => Math.random() - 0.5).slice(0, size);
+    else {
+      // on se coupe dans les couleurs courtes (sans Roi), et on met les
+      // Dames / Cavaliers a l'abri
+      const bySuit = {};
+      for (const c of colors) (bySuit[c.suit] = bySuit[c.suit] || []).push(c);
+      const kingIn = (s) => hand.some((c) => c.suit === s && c.rank === "R");
+      const order = Object.keys(bySuit).sort((a, b) => (kingIn(a) - kingIn(b)) || bySuit[a].length - bySuit[b].length);
+      chosen = [];
+      if (level === "fort") {
+        for (const suit of order) {
+          const cs = bySuit[suit].slice().sort((a, b) => T.cardPoints(b) - T.cardPoints(a));
+          if (chosen.length + cs.length <= size && !kingIn(suit)) chosen.push(...cs);
+        }
+      }
+      const rest = colors.filter((c) => !chosen.includes(c)).sort((a, b) => T.cardPoints(b) - T.cardPoints(a) || T.COLOR_POWER[a.rank] - T.COLOR_POWER[b.rank]);
+      chosen = chosen.concat(rest).slice(0, size);
+    }
+    chosen = chosen.slice(0, size - needTrumps).concat(trumps.slice(0, needTrumps));
+    return [{ type: "ecart", cardIds: chosen.map((c) => c.id) }];
+  }
+
+  if (state.phase === "chelem") {
+    const sc = tarotHandScore(hand, n);
+    return [{ type: "chelem", announce: level === "fort" && sc > 125 }];
+  }
+
+  if (state.phase !== "playing") return [];
+  const out = [];
+  // annonces avant la premiere carte
+  if (T.poigneeLevels && state.trickNumber === 0 && state.played[id] === 0) {
+    const lv = T.poigneeLevels(state, id);
+    const isTaker = id === state.takerId;
+    if (lv.length && !state.poignees[id] && (level === "facile" ? chance(0.6) : isTaker || lv.length > 1)) {
+      out.push({ type: "announce", kind: "poignee", level: lv[lv.length - 1] });
+    }
+    const kinds = T.misereKinds(state, id).filter((k) => !(state.miseres[id] || []).includes(k));
+    if (kinds.length) out.push({ type: "announce", kind: "misere", misere: kinds[0] });
+    if (out.length) return out.slice(0, 1);
+  }
+  const legal = T.legalCards(state, id);
+  if (!legal.length) return [];
+  const play = (c) => [{ type: "play", cardIds: [c.id] }, { type: "play", cardIds: [legal[0].id] }];
+  if (level === "facile" && chance(0.45)) return play(pickOne(legal));
+
+  const F = () => level === "fort";
+  const pts = (c) => T.cardPoints(c);
+  const tv = T.trumpValue;
+  const atk = T.attackCamp(state);
+  const myAttack = atk.has(id);
+  // camp d'un autre joueur, avec ce que le robot sait vraiment : a 5, le
+  // partenaire reste inconnu (sauf de lui-meme) tant que le Roi n'est pas tombe
+  const sameCamp = (other) => {
+    if (other === id) return true;
+    if (n < 5 || state.partnerRevealed) return atk.has(other) === myAttack;
+    if (id === state.partnerId) return other === state.takerId;
+    return false;
+  };
+  const trick = state.trick;
+  const remainingAfterMe = n - trick.length - 1;
+  const isLastTrick = hand.length === 1;
+  const excuse = legal.find(T.isExcuse);
+  const nonExcuse = legal.filter((c) => !T.isExcuse(c));
+  // l'Excuse ne doit pas rester pour le dernier pli
+  if (excuse && hand.length <= 2 && !isLastTrick) return play(excuse);
+  if (excuse && nonExcuse.length === 0) return play(excuse);
+
+  // cartes deja jouees (information publique) pour le robot fort
+  const seenTrumps = new Set();
+  if (level === "fort") {
+    for (const e of state.history) if (e.type === "play" && e.suit === "atout" && e.donne === state.donne) seenTrumps.add(parseInt(e.rank, 10));
+    for (const p of trick) if (T.isTrump(p.card)) seenTrumps.add(tv(p.card));
+  }
+  const isMaster = (c) => {
+    if (!T.isTrump(c)) return false;
+    for (let v = tv(c) + 1; v <= 21; v += 1) if (!seenTrumps.has(v) && !hand.some((h) => T.isTrump(h) && tv(h) === v)) return false;
+    return true;
+  };
+
+  if (!trick.length) {
+    const colors = nonExcuse.filter((c) => !T.isTrump(c));
+    const trumps = nonExcuse.filter((c) => T.isTrump(c) && !T.isPetit(c));
+    const bySuit = {};
+    for (const c of colors) (bySuit[c.suit] = bySuit[c.suit] || []).push(c);
+    const king = colors.find((c) => c.rank === "R" && bySuit[c.suit].length <= 4);
+    if (king && !(n === 5 && state.calledCard && king.suit === state.calledCard.suit && !myAttack)) return play(king);
+    // le preneur avec beaucoup d'atouts les fait tomber
+    if (myAttack && trumps.length >= 7 && level !== "facile") {
+      const master = trumps.find(isMaster);
+      return play(F() && master ? master : trumps.sort((a, b) => tv(b) - tv(a))[Math.min(1, trumps.length - 1)]);
+    }
+    // en defense a 5 : on joue dans la couleur appelee pour trouver le partenaire
+    if (n === 5 && !myAttack && state.calledCard && bySuit[state.calledCard.suit] && !state.partnerRevealed) {
+      return play(bySuit[state.calledCard.suit].sort((a, b) => pts(a) - pts(b))[0]);
+    }
+    const suits = Object.keys(bySuit).sort((a, b) => bySuit[b].length - bySuit[a].length);
+    if (suits.length) {
+      const cs = bySuit[suits[0]].sort((a, b) => pts(a) - pts(b) || T.COLOR_POWER[a.rank] - T.COLOR_POWER[b.rank]);
+      return play(cs[0]);
+    }
+    const lowTrump = trumps.sort((a, b) => tv(a) - tv(b))[0];
+    return play(lowTrump || nonExcuse[0]);
+  }
+
+  const winsWith = (c) => T.trickWinnerOf(trick.concat([{ playerId: id, card: c }]), false, null) === id;
+  const curWinner = T.trickWinnerOf(trick, false, null);
+  const curWinCard = trick.find((p) => p.playerId === curWinner).card;
+  const friendWinning = sameCamp(curWinner);
+  const trickPts = trick.reduce((t, p) => t + pts(p.card), 0);
+  const petitInTrick = trick.some((p) => T.isPetit(p.card) && !sameCamp(p.playerId));
+  const byPts = (a, b) => pts(a) - pts(b) || tv(a) - tv(b) || T.COLOR_POWER[a.rank] - T.COLOR_POWER[b.rank];
+  const safeWin = (c) => remainingAfterMe === 0 || T.isTrump(c) || (!T.isTrump(c) && c.rank === "R" && !trick.some((p) => T.isTrump(p.card)) && trick.length >= n - 2);
+
+  // le partenaire tient le pli : on charge (points), sans offrir le Petit
+  if (friendWinning && (remainingAfterMe === 0 || (T.isTrump(curWinCard) && tv(curWinCard) >= 17) || (F() && T.isTrump(curWinCard) && isMaster(curWinCard)))) {
+    const give = nonExcuse.filter((c) => !T.isPetit(c) || remainingAfterMe === 0).sort((a, b) => pts(b) - pts(a));
+    const petit = nonExcuse.find(T.isPetit);
+    if (petit && remainingAfterMe === 0 && level !== "facile") return play(petit); // Petit sauve
+    if (give.length) return play(give[0]);
+  }
+  const winners = nonExcuse.filter(winsWith).sort((a, b) => tv(a) - tv(b) || T.COLOR_POWER[a.rank] - T.COLOR_POWER[b.rank]);
+  if (winners.length && (!friendWinning || petitInTrick)) {
+    // Petit : on le joue s'il gagne a coup sur (dernier a jouer)
+    const petit = winners.find(T.isPetit);
+    if (petit && remainingAfterMe === 0) return play(petit);
+    const w = winners.filter((c) => !T.isPetit(c));
+    if (w.length) {
+      const sure = w.filter(safeWin);
+      if (sure.length) return play(sure[0]);
+      if (trickPts >= 3 || petitInTrick || myAttack) return play(w[w.length - 1]);
+      return play(w[0]);
+    }
+  }
+  // on perd le pli : la plus petite carte (Excuse si on devait lacher des points)
+  const losers = nonExcuse.filter((c) => !T.isPetit(c)).sort(byPts);
+  if (excuse && (!losers.length || pts(losers[0]) >= 1.5 || (F() && trickPts >= 4.5))) return play(excuse);
+  if (losers.length) return play(losers[0]);
+  return play(nonExcuse[0]);
+}
+
+const BOTS = { tarot: tarotActions, menteur: menteurActions, president: presidentActions, ascenseur: ascenseurActions, pouilleux: pouilleuxActions, poker: pokerActions };
 
 function botActions(gameType, state, botId, level = "normal") {
   const f = BOTS[gameType];

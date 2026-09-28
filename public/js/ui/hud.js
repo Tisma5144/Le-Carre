@@ -100,7 +100,7 @@ export class Hud {
     $("game-menu-hint").textContent = isHost ? "Choisis le jeu de la soirée :" : "Le patron choisit le jeu :";
   }
 
-  renderLobby(room, meId, url, qrFactory, onRemoveBot, minPlayers = 3) {
+  renderLobby(room, meId, url, qrFactory, onRemoveBot, minPlayers = 3, maxPlayers = 8) {
     $("lobby-code").textContent = room.code;
     const ul = $("lobby-players");
     const prev = new Set([...ul.querySelectorAll("li")].map((li) => li.dataset.id));
@@ -118,7 +118,7 @@ export class Hud {
     const isHost = room.hostId === meId;
     const n = room.players.length;
     $("btn-start").classList.toggle("hidden", !isHost);
-    $("btn-add-bot").classList.toggle("hidden", !isHost || n >= 8);
+    $("btn-add-bot").classList.toggle("hidden", !isHost || n >= maxPlayers);
     // niveau des robots : reglable par le patron, affiche aux autres s'il y a des robots
     const hasBots = room.players.some((p) => p.isBot && !p.leftGame);
     const lvl = $("bot-level");
@@ -128,9 +128,11 @@ export class Hud {
       b.classList.toggle("on", b.dataset.level === (room.botLevel || "normal"));
       b.disabled = !isHost;
     }
-    $("btn-start").disabled = n < minPlayers;
+    $("btn-start").disabled = n < minPlayers || n > maxPlayers;
     $("lobby-status").textContent = isHost
-      ? n < minPlayers ? `Il faut au moins ${minPlayers} joueurs (${n}/${minPlayers}) : invite tes potes ou ajoute des robots !` : `${n} joueurs autour de la table. On y va ?`
+      ? n < minPlayers ? `Il faut au moins ${minPlayers} joueurs (${n}/${minPlayers}) : invite tes potes ou ajoute des robots !`
+        : n > maxPlayers ? `Ce jeu se joue à ${maxPlayers} joueurs maximum (${n} à table) : renvoie un robot ou choisis un autre jeu.`
+        : `${n} joueurs autour de la table. On y va ?`
       : "Le patron va bientôt distribuer les cartes…";
     const qrEl = $("qr");
     if (qrEl.dataset.url !== url && qrFactory) {

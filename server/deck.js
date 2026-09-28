@@ -31,6 +31,26 @@ function buildStandardDeck() {
   return deck;
 }
 
+// Jeu de Tarot : 56 cartes de couleur (1 a 10, Valet, Cavalier, Dame, Roi),
+// 21 atouts (suit "atout", rang "1" a "21") et l'Excuse (suit "excuse").
+const TAROT_RANKS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "V", "C", "D", "R"];
+function buildTarotDeck() {
+  const deck = [];
+  for (const suit of SUITS) {
+    for (const rank of TAROT_RANKS) {
+      cardIdCounter += 1;
+      deck.push({ id: `t${cardIdCounter}_${rank}_${suit}`, rank, suit });
+    }
+  }
+  for (let n = 1; n <= 21; n += 1) {
+    cardIdCounter += 1;
+    deck.push({ id: `t${cardIdCounter}_${n}_atout`, rank: String(n), suit: "atout" });
+  }
+  cardIdCounter += 1;
+  deck.push({ id: `t${cardIdCounter}_E_excuse`, rank: "E", suit: "excuse" });
+  return deck;
+}
+
 function shuffle(array) {
   const a = array.slice();
   for (let i = a.length - 1; i > 0; i -= 1) {
@@ -71,6 +91,8 @@ module.exports = {
   RANKS,
   RANK_LABELS,
   buildStandardDeck,
+  buildTarotDeck,
+  TAROT_RANKS,
   shuffle,
   dealAll,
   cardPublicView

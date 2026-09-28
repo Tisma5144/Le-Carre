@@ -35,10 +35,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     assert.ok((await emit("room:setBotLevel", { level: "fort" })).ok);
     await sleep(50);
     assert.strictEqual(last.room.botLevel, "fort", "niveau diffuse a la table");
-    for (const gameType of ["menteur", "president", "ascenseur", "pouilleux", "poker"]) {
+    for (const gameType of ["menteur", "president", "ascenseur", "pouilleux", "poker", "tarot"]) {
       await emit("room:setGame", { gameType });
       if (gameType === "ascenseur") await emit("room:setOptions", { options: { maxCards: 3, mode: "up-down", step: 1 } });
       if (gameType === "poker") await emit("room:setOptions", { options: { startStack: 500, blindEvery: 5, rebuy: false } });
+      if (gameType === "tarot") await emit("room:setOptions", { options: { donnes: 3 } });
       assert.ok((await emit("room:start")).ok, "lancement " + gameType);
       const t0 = Date.now();
       let rounds = 0;
@@ -70,6 +71,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         } else if (gameType === "poker") {
           if (you.isYourTurn && you.legal) await emit("game:bet", { kind: you.legal.canCheck ? "check" : Math.random() < 0.3 ? "fold" : "call" });
           else if (g.phase === "showdown" && you.isNextDealer) await emit("game:nextHand");
+        } else if (gameType === "tarot") {
+          if (you.mustBid) await emit("game:bid", { bid: "passe" });
+          else if (you.mustCall) await emit("game:call", { suit: "coeur" });
+          else if (you.mustChelem) await emit("game:chelem", { announce: false });
+          else if (g.phase === "playing" && you.isYourTurn) await emit("game:play", { cardIds: [you.legalIds[0]] });
         } else if (gameType === "ascenseur") {
           if (you.mustBid) await emit("game:bid", { bid: you.forbiddenBid === 0 ? 1 : 0 });
           else if (g.phase === "playing" && you.isYourTurn) await emit("game:play", { cardIds: [you.legalIds[0]] });

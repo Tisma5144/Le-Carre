@@ -944,7 +944,7 @@ body.shake #scene { animation: screenShake .45s; }
   left: 50%;
   bottom: calc(var(--hand-top) + 52px);
   z-index: 6;
-  transform: translateX(-50%);
+  translate: -50% 0; /* independant de l'animation popIn (sinon decale a droite pendant une frame) */
   width: min(92vw, 440px);
   pointer-events: none;
   animation: popIn .35s cubic-bezier(.2,1.4,.4,1);
@@ -1014,7 +1014,7 @@ body.shake #scene { animation: screenShake .45s; }
   left: 50%;
   bottom: calc(var(--hand-top) + 10px);
   z-index: 7;
-  transform: translateX(-50%);
+  translate: -50% 0; /* independant de l'animation popIn (sinon decale a droite pendant une frame) */
   width: min(94vw, 520px);
   animation: popIn .35s cubic-bezier(.2,1.4,.4,1);
 }
@@ -1176,7 +1176,7 @@ body.shake #scene { animation: screenShake .45s; }
   left: 50%;
   top: calc(64px + var(--safe-t));
   z-index: 30;
-  transform: translateX(-50%);
+  translate: -50% 0; /* independant de l'animation popIn (sinon decale a droite pendant une frame) */
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1270,7 +1270,7 @@ body.shake #scene { animation: screenShake .45s; }
   left: 50%;
   bottom: calc(var(--hand-top) + 8px);
   z-index: 7;
-  transform: translateX(-50%);
+  translate: -50% 0; /* independant de l'animation popIn (sinon decale a droite pendant une frame) */
   width: min(96vw, 560px);
   display: flex;
   flex-direction: column;
@@ -1411,3 +1411,41 @@ body.suspense::after {
   .pr-title { font-size: 16px; }
   .ap-row { margin: 2px 0; }
 }
+
+/* poker : je montre mes cartes (animation de mon cote) */
+.show-cards-fx {
+  position: fixed; left: 50%; top: 40%; z-index: 9; pointer-events: none;
+  translate: -50% -50%;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  animation: scfFly 2.6s cubic-bezier(.2,.9,.3,1) forwards;
+}
+.scf-cards { display: flex; gap: 10px; perspective: 600px; }
+.scf-cards img {
+  width: min(24vw, 110px); border-radius: 8px;
+  box-shadow: 0 0 0 3px #ffd35a, 0 0 34px rgba(255,211,90,.75), 0 14px 30px rgba(0,0,0,.6);
+  animation: scfFlip .7s cubic-bezier(.3,1.4,.5,1) both;
+  animation-delay: calc(var(--i) * .12s);
+}
+.scf-label {
+  font: 900 16px "Nunito", sans-serif; color: #ffeab0; white-space: nowrap;
+  padding: 6px 14px; border-radius: 999px; background: rgba(66,12,22,.92); border: 2px solid #ffd35a;
+}
+@keyframes scfFly {
+  0% { transform: translateY(38vh) scale(.55); opacity: 0; }
+  18% { transform: translateY(0) scale(1.08); opacity: 1; }
+  28% { transform: scale(1); }
+  78% { transform: scale(1); opacity: 1; }
+  100% { transform: translateY(-14vh) scale(.7); opacity: 0; }
+}
+@keyframes scfFlip {
+  from { transform: scaleX(.05) rotate(calc((var(--i) - .5) * 30deg)); }
+  to { transform: scaleX(1) rotate(calc((var(--i) - .5) * 8deg)); }
+}
+
+/* ---------------------------------------------------------------- tarot */
+.act small { display: block; font-size: 11px; opacity: .8; font-weight: 800; }
+.act.contre { background: linear-gradient(180deg, #6b3fa0, #3b1f63); }
+.act.suit { background: linear-gradient(180deg, #fbf3df, #e6d3a8); color: #1d1a1f; border-color: #5b3b0c; font-size: 16px; }
+.act.suit.red { color: #b3202a; }
+.mini-row { display: inline-flex; gap: 2px; vertical-align: middle; flex-wrap: wrap; }
+.mini-row img { width: 26px; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,.5); }

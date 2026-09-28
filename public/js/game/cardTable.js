@@ -49,7 +49,10 @@ export class CardTable {
     this.hooks = hooks;
     this.factory = new CardFactory(world.renderer);
     this.entities = [];
-    for (let i = 0; i < 52; i += 1) {
+    // 78 cartes (Tarot) ; les autres jeux n'en utilisent que 52, les autres
+    // restent cachees (zone "spare")
+    this.deckSize = 52;
+    for (let i = 0; i < 78; i += 1) {
       const g = this.factory.createCard();
       world.scene.add(g);
       const e = new Entity(i, g);
@@ -88,7 +91,7 @@ export class CardTable {
     const aces = SUITS.map((suit, i) => ({ id: "decor-A-" + suit, rank: "A", suit }));
     const figures = [{ rank: "R", suit: "coeur" }, { rank: "D", suit: "pique" }, { rank: "V", suit: "carreau" }];
     this.entities.forEach((e, i) => {
-      e.zone = "deck";
+      e.zone = i < this.deckSize ? "deck" : "spare";
       e.owner = null;
       e.slot = i;
       e.id = null;
@@ -119,10 +122,24 @@ export class CardTable {
     this.entities.forEach((e) => this.startFlight(e, { delay: e.index * 0.01, dur: 0.8, arc: 0.6 }));
   }
 
+  // Nombre de cartes du jeu en cours (52, ou 78 au Tarot).
+  setDeckSize(n) {
+    if (n === this.deckSize) return;
+    this.deckSize = n;
+    if (n > 52) {
+      const extra = [];
+      for (const suit of SUITS) extra.push({ rank: "C", suit }, { rank: "1", suit });
+      for (let k = 1; k <= 21; k += 1) extra.push({ rank: String(k), suit: "atout" });
+      extra.push({ rank: "E", suit: "excuse" });
+      this.factory.warmup(extra);
+    }
+    this.layoutAll();
+  }
+
   gatherToDeck(animate = true) {
     this.selected.clear();
     this.entities.forEach((e, i) => {
-      e.zone = "deck";
+      e.zone = i < this.deckSize ? "deck" : "spare";
       e.owner = null;
       e.slot = i;
       e.id = null;
@@ -130,7 +147,7 @@ export class CardTable {
     });
     this.layoutAll();
     this.entities.forEach((e) => {
-      if (animate) this.startFlight(e, { delay: (51 - e.index) * 0.006, dur: 0.55, arc: 0.4 });
+      if (animate) this.startFlight(e, { delay: Math.max(0, this.deckSize - 1 - e.index) * 0.006, dur: 0.55, arc: 0.4 });
       else this.snap(e);
     });
   }
@@ -169,6 +186,8 @@ export class CardTable {
   //   won: Map(id -> n)       plis remportes, en tas devant chaque joueur (Ascenseur)
   //   talon: n               cartes non distribuees, dans la boite (Ascenseur)
   //   trump: [carte]         carte d'atout retournee (Ascenseur)
+  //   chien: n               chien face cachee au centre (Tarot)
+  //   center: [cartes]       cartes retournees au centre (chien du Tarot)
   normalizeDesired(d) {
     return {
       me: d.me || [],
@@ -185,7 +204,9 @@ export class CardTable {
       pick: d.pick || 0,
       pickOwner: d.pickOwner || null,
       board: d.board || [],
-      shown: d.shown || []
+      shown: d.shown || [],
+      chien: d.chien || 0,
+      center: d.center || []
     };
   }
 
@@ -200,6 +221,7 @@ export class CardTable {
       const z = e.zone;
       if (destZone === "me" || destZone === "opp") {
         if (z === "pick" && (destZone === "me" || e.owner === destOwner)) return -1;
+        if (z === "center" || z === "chien") return -0.5;
         if (z === "reveal") return 0;
         if (z === "pile") return 1 - e.slot * 0.0001;
         if (z === "deck") return 2;
@@ -218,6 +240,8 @@ export class CardTable {
       }
       if (destZone === "won") {
         if (z === "trick") return 0 - e.slot * 0.0001;
+        if (z === "chien") return 0.5;
+        if (z === "me" || (z === "opp" && e.owner === destOwner)) return 1;
         return 2;
       }
       if (destZone === "pick") {
@@ -231,6 +255,15 @@ export class CardTable {
       }
       if (destZone === "board") {
         if (z === "talon" || z === "deck") return 0;
+        return 2;
+      }
+      if (destZone === "center") {
+        if (z === "chien") return 0;
+        if (z === "deck") return 1;
+        return 2;
+      }
+      if (destZone === "chien") {
+        if (z === "deck") return 0;
         return 2;
       }
       if (destZone === "talon" || destZone === "trump") {
@@ -278,6 +311,15 @@ export class CardTable {
     const desired = this.normalizeDesired(rawDesired);
     const E = this.entities;
     const assigned = new Set();
+    // cartes en trop pour ce jeu : cachees
+    for (const e of E) {
+      if (e.index >= this.deckSize) {
+        if (e.zone !== "spare") this.clearIdentity(e);
+        e.zone = "spare";
+        e.owner = null;
+        assigned.add(e);
+      }
+    }
     const moves = [];
     const byId = new Map();
     E.forEach((e) => { if (e.id) byId.set(e.id, e); });
@@ -302,6 +344,7 @@ export class CardTable {
     desired.trump.forEach((c, i) => knownDest.push({ zone: "trump", card: c, slot: i }));
     desired.board.forEach((b, i) => knownDest.push({ zone: "board", card: b.card, slot: i, win: !!b.win, ghost: !!b.ghost }));
     desired.shown.forEach((b, i) => knownDest.push({ zone: "shown", card: b.card, slot: i, owner: b.owner, j: b.j, win: !!b.win, keepOwner: true }));
+    desired.center.forEach((c, i) => knownDest.push({ zone: "center", card: c, slot: i }));
     const pendingKnown = [];
     for (const d of knownDest) {
       const e = byId.get(d.card.id);
@@ -333,6 +376,7 @@ export class CardTable {
     for (const [pid, n] of desired.won) wonDeficit.set(pid, keep("won", pid, n));
     const talonDeficit = keep("talon", null, desired.talon);
     const pickDeficit = keep("pick", desired.pickOwner, desired.pick);
+    const chienDeficit = keep("chien", null, desired.chien);
 
     // 3. cartes libres (celles qui doivent bouger)
     const free = E.filter((e) => !assigned.has(e));
@@ -393,6 +437,12 @@ export class CardTable {
       if (!e) break;
       this.clearIdentity(e);
       setZone(e, "pick", desired.pickOwner, this.nextSlot("pick", desired.pickOwner));
+    }
+    for (let k = 0; k < chienDeficit; k += 1) {
+      const e = this.takeFree(free, "chien", null);
+      if (!e) break;
+      this.clearIdentity(e);
+      setZone(e, "chien", null, this.nextSlot("chien", null));
     }
     for (let k = 0; k < talonDeficit; k += 1) {
       const e = this.takeFree(free, "talon", null);
@@ -476,7 +526,7 @@ export class CardTable {
   layoutAll() {
     const world = this.world;
     if (!world.dims) return;
-    const zones = { me: [], opp: new Map(), pile: [], reveal: [], tray: [], table: [], discard: [], deck: [], decor: [], trick: [], won: new Map(), talon: [], trump: [], pick: [], board: [], shown: [] };
+    const zones = { me: [], opp: new Map(), pile: [], reveal: [], tray: [], table: [], discard: [], deck: [], decor: [], trick: [], won: new Map(), talon: [], trump: [], pick: [], board: [], shown: [], chien: [], center: [], spare: [] };
     for (const e of this.entities) {
       if (e.zone === "opp" || e.zone === "won") {
         const m = zones[e.zone];
@@ -505,6 +555,9 @@ export class CardTable {
     this.layoutTrump(zones.trump);
     this.layoutPick(zones.pick);
     this.layoutBoard(zones.board);
+    this.layoutRow(zones.chien, false);
+    this.layoutRow(zones.center, true);
+    zones.spare.forEach((e) => this.layoutHidden(e));
     this.layoutShown(zones.shown);
     this.zones = zones;
   }
@@ -873,29 +926,167 @@ export class CardTable {
   }
 
   // Poker : a l'abattage, les cartes des adversaires retournees devant eux.
+  // Rangee de cartes au centre du tapis (chien du Tarot), face cachee ou
+  // visible.
+  layoutRow(list, faceUp) {
+    const p = this.world.anchors.pile;
+    const n = list.length;
+    const step = Math.min(0.56, 3.2 / Math.max(1, n));
+    list.forEach((e, i) => {
+      e.space = "world";
+      e.tPos.set(p.x + (i - (n - 1) / 2) * step, 0.016 + i * 0.003, p.z);
+      e.tQuat.copy(yawQuat((i - (n - 1) / 2) * 0.03)).multiply(faceUp ? Q_FACE_UP : Q_FACE_DOWN);
+      e.tScale = faceUp ? 0.92 : 0.8;
+      e.emissive = faceUp ? 0.34 : 0.12;
+      e.glowTarget = faceUp ? 0.35 : 0;
+      e.glowColor.set(0xffd35a);
+    });
+  }
+
+  // Emprise au sol (rectangle aligne x/z) d'une carte a sa position cible.
+  static cardBox(pos, quat, scale, margin = 0) {
+    const hw = (CARD_WORLD_W / 2) * scale;
+    const hh = (CARD_WORLD_H / 2) * scale;
+    let minX = Infinity; let maxX = -Infinity; let minZ = Infinity; let maxZ = -Infinity;
+    for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+      const c = V(sx * hw, sy * hh, 0).applyQuaternion(quat);
+      minX = Math.min(minX, pos.x + c.x); maxX = Math.max(maxX, pos.x + c.x);
+      minZ = Math.min(minZ, pos.z + c.z); maxZ = Math.max(maxZ, pos.z + c.z);
+    }
+    return { minX: minX - margin, maxX: maxX + margin, minZ: minZ - margin, maxZ: maxZ + margin };
+  }
+
+  static boxOverlap(a, b) {
+    const w = Math.min(a.maxX, b.maxX) - Math.max(a.minX, b.minX);
+    const h = Math.min(a.maxZ, b.maxZ) - Math.max(a.minZ, b.minZ);
+    return w > 0 && h > 0 ? w * h : 0;
+  }
+
+  // Cartes montrees devant un joueur (poker, jeu devoile du Trou du cul au
+  // President). Elles se placent entre le centre et le joueur, en reculant
+  // vers lui tant qu'elles chevauchent le tableau ou d'autres cartes.
   layoutShown(list) {
     const p = this.world.anchors.pile;
-    // nombre de cartes montrees par joueur (2 au poker, toute une main pour
-    // le jeu devoile du Trou du cul au President)
-    const per = new Map();
-    list.forEach((e) => per.set(e.owner, Math.max(per.get(e.owner) || 0, (e.qj || 0) + 1)));
+    const byOwner = new Map();
     list.forEach((e) => {
-      const phi = this.phiOf(e.owner);
+      if (!byOwner.has(e.owner)) byOwner.set(e.owner, []);
+      byOwner.get(e.owner).push(e);
+    });
+    // obstacles : tableau du poker, cartes posees, eventails des adversaires
+    const obstacles = [];
+    for (const e of this.entities) {
+      if (e.space !== "world" || !["board", "opp", "table", "trick", "pile"].includes(e.zone) || !(e.tScale > 0.05)) continue;
+      obstacles.push(CardTable.cardBox(e.tPos, e.tQuat, e.tScale, 0.04));
+    }
+    for (const [owner, cards] of byOwner) {
+      cards.sort((a, b) => (a.qj || 0) - (b.qj || 0));
+      const n = Math.max(cards.length, ...cards.map((e) => (e.qj || 0) + 1));
+      const phi = this.phiOf(owner);
       const seat = this.world.seatPoint(phi, 0.8);
-      const n = per.get(e.owner) || 1;
-      const c = V(p.x, 0, p.z).lerp(seat, n > 2 ? 0.55 : 0.62);
       const side = V(Math.cos(phi), 0, -Math.sin(phi));
       const step = n > 2 ? Math.min(0.4, 2.6 / n) : 0.52;
       const mid = (n - 1) / 2;
-      const off = ((e.qj || 0) - mid) * step;
-      e.space = "world";
-      e.tPos.set(c.x + side.x * off, 0.03 + (e.qj || 0) * 0.004, c.z + side.z * off);
-      e.tQuat.copy(yawQuat(phi * 0.3 + (n > 2 ? 0 : ((e.qj || 0) - 0.5) * 0.18))).multiply(Q_FACE_UP);
-      e.tScale = 0.8;
-      e.emissive = e.win ? 0.45 : 0.3;
-      e.glowTarget = e.win ? 0.9 : 0;
-      e.glowColor.set(0x7dffa8);
-    });
+      // on cherche (distance vers le joueur, decalage lateral, taille) le
+      // placement qui ne chevauche rien, en restant le plus pres possible du
+      // placement naturel
+      const place = (t, shift = 0, scale = 0.8) => cards.map((e) => {
+        const j = e.qj || 0;
+        const c = V(p.x, 0, p.z).lerp(seat, t).addScaledVector(side, shift);
+        const off = (j - mid) * step * (scale / 0.8);
+        const pos = V(c.x + side.x * off, 0.03 + j * 0.004, c.z + side.z * off);
+        const quat = yawQuat(phi * 0.3 + (n > 2 ? 0 : (j - 0.5) * 0.18)).multiply(Q_FACE_UP);
+        return { e, pos, quat };
+      });
+      const overlapAt = (t, shift, scale) => {
+        let o = 0;
+        for (const q of place(t, shift, scale)) {
+          const box = CardTable.cardBox(q.pos, q.quat, scale);
+          for (const ob of obstacles) o += CardTable.boxOverlap(box, ob);
+        }
+        return o;
+      };
+      const t0 = n > 2 ? 0.55 : 0.62;
+      let best = { t: t0, shift: 0, scale: 0.8 };
+      let bestCost = overlapAt(t0, 0, 0.8) * 1000;
+      if (bestCost > 0) {
+        for (const scale of [0.8, 0.72, 0.64, 0.56]) {
+          for (let t = t0; t <= 0.97; t += 0.04) {
+            for (const shift of [0, 0.2, -0.2, 0.4, -0.4, 0.6, -0.6, 0.8, -0.8]) {
+              const cost = overlapAt(t, shift, scale) * 1000 + (0.8 - scale) * 3 + (t - t0) + Math.abs(shift) * 0.8;
+              if (cost < bestCost) {
+                bestCost = cost;
+                best = { t, shift, scale };
+              }
+            }
+          }
+        }
+      }
+      const scale = best.scale;
+      for (const q of place(best.t, best.shift, best.scale)) {
+        const e = q.e;
+        e.space = "world";
+        e.tPos.copy(q.pos);
+        e.tQuat.copy(q.quat);
+        e.tScale = scale;
+        e.emissive = e.win ? 0.45 : 0.3;
+        e.glowTarget = e.win ? 0.9 : 0;
+        e.glowColor.set(0x7dffa8);
+        obstacles.push(CardTable.cardBox(q.pos, q.quat, scale, 0.04));
+      }
+    }
+  }
+
+  // Place libre pour le jeton de tour, pres de base : ni sur une carte posee
+  // sur la table, ni sous la main du joueur, et toujours sur le tapis.
+  freeSpot(base, keep = null, r = 0.4, screenRects = []) {
+    const world = this.world;
+    const boxes = [];
+    for (const e of this.entities) {
+      if (e.space !== "world" || !(e.tScale > 0.05) || e.zone === "decor" || e.zone === "deck") continue;
+      boxes.push(CardTable.cardBox(e.tPos, e.tQuat, e.tScale));
+    }
+    const { ax, az } = world.dims || { ax: 3, az: 2 };
+    const handTopY = window.innerHeight * (1 - (this.handTopFrac || 0));
+    // penalite d'un emplacement : 0 = parfait
+    const cost = (pt) => {
+      let c = 0;
+      const e2 = (pt.x / ax) ** 2 + (pt.z / az) ** 2;
+      if (e2 > 0.7) c += 3 + (e2 - 0.7) * 10;
+      for (const b of boxes) {
+        const dx = Math.max(b.minX - pt.x, 0, pt.x - b.maxX);
+        const dz = Math.max(b.minZ - pt.z, 0, pt.z - b.maxZ);
+        if (dx * dx + dz * dz < r * r) { c += 5; break; }
+      }
+      const sc = world.toScreen(V(pt.x, 0.05, pt.z));
+      const edge = world.toScreen(V(pt.x, 0.05, pt.z + r));
+      if (edge.y > handTopY - 6 || sc.y > handTopY - 6) c += 10;
+      // boutons et bandeaux HTML par-dessus la table
+      const rad = Math.max(12, Math.hypot(edge.x - sc.x, edge.y - sc.y));
+      for (const q of screenRects) {
+        const dx = Math.max(q.left - sc.x, 0, sc.x - q.right);
+        const dy = Math.max(q.top - sc.y, 0, sc.y - q.bottom);
+        if (dx * dx + dy * dy < rad * rad) { c += 10; break; }
+      }
+      if (!sc.visible || sc.y < 0 || sc.x < 0 || sc.x > window.innerWidth) c += 20;
+      return c;
+    };
+    if (keep && keep.distanceTo(base) < 1.3 && cost(keep) === 0) return keep;
+    let best = base;
+    let bestC = cost(base);
+    if (bestC === 0) return base;
+    for (const rad of [0.3, 0.55, 0.8, 1.05, 1.3, 1.6, 1.9, 2.3]) {
+      for (let k = 0; k < 16; k += 1) {
+        const a = (k / 16) * Math.PI * 2;
+        const cand = V(base.x + Math.cos(a) * rad, 0, base.z + Math.sin(a) * rad);
+        const c = cost(cand) + rad * 3.5; // rester pres du joueur concerne
+        if (c < bestC) {
+          best = cand;
+          bestC = c;
+        }
+      }
+      if (bestC < rad * 3.5 + 0.5) return best;
+    }
+    return best;
   }
 
   layoutHidden(e) {

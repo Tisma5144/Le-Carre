@@ -4,9 +4,9 @@ Jeu de cartes en ligne entre amis, façon Kahoot : un code de table à 4 lettres
 (ou un QR code), pas d'inscription, tout se passe dans le navigateur — sur
 téléphone comme sur ordinateur.
 
-Cinq jeux sont disponibles, choisis par le patron de la table dans le salon :
-**Le Menteur**, **Le Président**, **L'Ascenseur**, **Le Pouilleux** et le
-**Poker Texas Hold'em**.
+Six jeux sont disponibles, choisis par le patron de la table dans le salon :
+**Le Menteur**, **Le Président**, **L'Ascenseur**, **Le Pouilleux**, le
+**Poker Texas Hold'em** et **Le Tarot**.
 
 Le jeu se joue autour d'une **table de bar en 3D** : plateau en
 lattes de bois, tapis de feutre, lampe suspendue, pintes sur leurs sous-bocks,
@@ -99,6 +99,30 @@ illustrées (figures dessinées, As ornés, dos au masque vénitien).
   carte par carte au ralenti (battements de cœur, éclairs) avec les chances
   de gain de chacun, recalculées à chaque carte.
 
+## Règles du Tarot (officielles FFT, réglables)
+
+- 3 à 5 joueurs, 78 cartes : quatre couleurs de 14 cartes (1 à 10, Valet,
+  Cavalier, Dame, Roi), 21 atouts et l'Excuse. Chien de 6 cartes (3 à cinq).
+  Donne annulée si un joueur a le Petit sec.
+- Enchères en un tour : Prise ×1, Garde ×2, Garde sans ×4, Garde contre ×6.
+  Réglages du salon : première enchère « Prise » ou « Petite », Garde sans et
+  Garde contre activables. Tout le monde passe : on redistribue.
+- À 5 joueurs, le preneur appelle un Roi (une Dame s'il a les quatre Rois…) :
+  son propriétaire est le partenaire secret, révélé quand la carte tombe.
+- Prise / Garde : chien montré, écart du preneur (ni Roi ni bout, atouts
+  seulement s'il n'a pas le choix, et montrés). Garde sans : le chien va au
+  preneur ; Garde contre : à la défense.
+- Fournir, sinon couper, et toujours monter à l'atout. L'Excuse reste à son
+  camp (échangée contre une demi-carte) sauf au dernier pli (hors chelem).
+- Comptage FFT : 56 / 51 / 41 / 36 points selon 0 / 1 / 2 / 3 bouts ;
+  (25 + écart + petit au bout) × multiplicateur + poignée + chelem, payé par
+  chaque défenseur (à 5 : preneur ×2, partenaire ×1).
+- Primes activables dans le salon : petit au bout, poignée (annoncée juste
+  avant sa première carte, atouts montrés), chelem (annoncé par le preneur
+  avant de jouer), misère (règle maison : 10 points par adversaire).
+- Durée : libre (le patron termine la partie) ou 5 / 10 / 20 donnes. Onglet
+  Scores : totaux, graphique et détail donne par donne.
+
 ## Ce que fait l'interface
 
 - On joue dans le sens des aiguilles d'une montre : le joueur suivant est
@@ -107,7 +131,7 @@ illustrées (figures dessinées, As ornés, dos au masque vénitien).
   chez tout le monde.
 - Robots : dans le salon, le patron peut ajouter des robots (« 🤖 Ajouter un
   robot ») pour compléter la table, et les renvoyer (✕). Ils savent jouer aux
-  cinq jeux (`server/bots.js`) et jouent à un rythme posé pour qu'on suive.
+  six jeux (`server/bots.js`) et jouent à un rythme posé pour qu'on suive.
 - Niveau des robots (salon) : 😴 Facile (joue souvent au hasard), 🙂 Normal,
   😈 Fort (calcule les probabilités au Menteur, simule les manches pour
   annoncer à l'Ascenseur, simule les tableaux au poker, garde ses 2 au
@@ -180,6 +204,7 @@ npm run test:president
 npm run test:ascenseur
 npm run test:pouilleux
 npm run test:poker
+npm run test:tarot
 npm run test:reconnexion
 npm run test:robots
 ```
@@ -202,6 +227,7 @@ server/
   games/ascenseur.js  moteur de l'Ascenseur (annonces, atout, plis, scores)
   games/pouilleux.js  moteur du Pouilleux
   games/poker.js      moteur du poker Texas Hold'em (+ pokerEval.js : mains)
+  games/tarot.js      moteur du Tarot (enchères, appel du Roi, chien, comptage FFT)
   bots.js             robots joueurs (les 5 jeux)
 public/
   index.html          structure de la page
@@ -210,6 +236,7 @@ public/
   js/games/menteur.js   interface propre au Menteur (annonce, révélation…)
   js/games/president.js interface propre au Président (pli, échange, scores)
   js/games/ascenseur.js interface propre à l'Ascenseur (annonces, pli, réglages)
+  js/games/tarot.js     interface propre au Tarot (enchères, écart, annonces, scores)
   js/cards/cardArt.js dessin procédural des cartes (canvas)
   js/scene/world.js   scène 3D : table, lampe, pintes, caméra adaptative
   js/scene/textures.js textures procédurales (bois, feutre, sous-bocks…)

@@ -59,7 +59,7 @@ function seqText(seq) {
 // dans l'ordre des sieges -> la couleur suit le joueur, jamais son rang.
 const SERIES = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"];
 
-function seriesColors(v) {
+export function seriesColors(v) {
   const out = {};
   v.seatOrder.forEach((id, i) => { out[id] = SERIES[i % SERIES.length]; });
   return out;
@@ -96,8 +96,8 @@ function chartSeries(v) {
 
 const CH = { w: 460, h: 230, l: 44, r: 14, t: 12, b: 28 };
 
-function scoreChartHtml(v, color) {
-  if (!v.roundResults.length) return `<p class="chart-empty">Le graphique apparaîtra à la fin de la première manche.</p>`;
+export function scoreChartHtml(v, color, opts = {}) {
+  if (!v.roundResults.length) return `<p class="chart-empty">Le graphique apparaîtra à la fin de la première ${opts.unit || "manche"}.</p>`;
   const series = chartSeries(v);
   const n = v.roundResults.length;
   const all = series.flatMap((s) => s.totals);
@@ -135,7 +135,7 @@ function scoreChartHtml(v, color) {
     <div class="chart-wrap">
       <svg viewBox="0 0 ${CH.w} ${CH.h}" class="score-chart" role="img" aria-label="Évolution des scores cumulés, manche par manche">
         ${grid}${xt.join("")}
-        <text x="${(CH.l + CH.w - right) / 2}" y="${CH.h}" class="axis-t" text-anchor="middle">manches</text>
+        <text x="${(CH.l + CH.w - right) / 2}" y="${CH.h}" class="axis-t" text-anchor="middle">${opts.unit || "manche"}s</text>
         <line class="xhair" x1="0" x2="0" y1="${CH.t}" y2="${CH.h - CH.b}" visibility="hidden"/>
         ${lines}${labels}
         <rect class="hit" x="${CH.l - 10}" y="0" width="${CH.w - CH.l - right + 20}" height="${CH.h}" fill="transparent"/>
@@ -145,7 +145,7 @@ function scoreChartHtml(v, color) {
   </div>`;
 }
 
-function bindScoreChart(root, v) {
+export function bindScoreChart(root, v, opts = {}) {
   const svg = root.querySelector(".score-chart");
   if (!svg || !v.roundResults.length) return;
   const series = chartSeries(v);
@@ -169,7 +169,7 @@ function bindScoreChart(root, v) {
       const d = res ? res.points : 0;
       return `<div><i style="background:${color[s.id]}"></i>${escHtml(s.name)} <b>${s.totals[i]}</b> <span class="${d >= 0 ? "ok" : "ko"}">(${signed(d)})</span></div>`;
     }).join("");
-    tip.innerHTML = `<div class="tip-h">Après la manche ${i} · ${cartes(rr.cards)}</div>${rows}`;
+    tip.innerHTML = `<div class="tip-h">${opts.tipHead ? opts.tipHead(rr, i) : `Après la manche ${i} · ${cartes(rr.cards)}`}</div>${rows}`;
     tip.classList.remove("hidden");
     const left = (x(i) / CH.w) * r.width;
     tip.style.left = `${Math.min(r.width - tip.offsetWidth - 4, Math.max(4, left + 12 > r.width / 2 ? left - tip.offsetWidth - 12 : left + 12))}px`;
