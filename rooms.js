@@ -38,6 +38,7 @@ class RoomManager {
         [playerId]: { id: playerId, name: hostName, connected: false, isHost: true }
       },
       game: null,
+      botLevel: "normal", // niveau des robots : facile | normal | fort
       createdAt: Date.now()
     };
     this.rooms.set(code, room);
@@ -61,19 +62,43 @@ class RoomManager {
     return { room, playerId };
   }
 
+  // Ajoute un robot a la table (salon uniquement, 8 joueurs max).
+  addBot(code, names) {
+    const room = this.getRoom(code);
+    if (!room) return { error: "Salon introuvable." };
+    if (room.status !== "lobby") return { error: "La partie a déjà commencé." };
+    if (room.order.length >= 8) return { error: "La table est complète (8 joueurs maximum)." };
+    const taken = new Set(room.order.map((id) => room.players[id].name));
+    const free = names.filter((n) => !taken.has(n));
+    const name = free.length ? free[Math.floor(Math.random() * free.length)] : `Robot ${room.order.length + 1}`;
+    const playerId = generatePlayerId();
+    room.order.push(playerId);
+    room.players[playerId] = { id: playerId, name, connected: true, isHost: false, isBot: true, socketId: null };
+    return { room, playerId };
+  }
+
   // Reassocie un joueur deja connu (apres refresh / coupure) a son nouveau socket.
   rejoin(code, playerId) {
     const room = this.getRoom(code);
-    if (!room || !room.players[playerId]) return { error: "Impossible de te reconnecter a ce salon." };
+    if (!room) return { error: "Cette table n'existe plus (le serveur a peut-être redémarré).", gone: true };
+    if (!room.players[playerId]) return { error: "Tu ne fais plus partie de cette table.", gone: true };
     return { room };
   }
 
   bindSocket(socketId, code, playerId) {
-    this.socketToPlayer.set(socketId, { code, playerId });
     const room = this.getRoom(code);
-    if (room && room.players[playerId]) {
-      room.players[playerId].connected = true;
-      room.players[playerId].socketId = socketId;
+    const player = room && room.players[playerId];
+    // Le joueur revient avec un nouveau socket : on oublie l'ancien, pour que
+    // sa "mort" (souvent detectee ~20 s plus tard sur mobile) ne deconnecte
+    // plus personne.
+    if (player && player.socketId && player.socketId !== socketId) {
+      this.socketToPlayer.delete(player.socketId);
+    }
+    this.socketToPlayer.set(socketId, { code, playerId });
+    if (player) {
+      player.connected = true;
+      player.socketId = socketId;
+      player.lastSeen = Date.now();
     }
   }
 
@@ -90,8 +115,12 @@ class RoomManager {
     this.socketToPlayer.delete(socketId);
     if (!link) return null;
     const room = this.getRoom(link.code);
-    if (room && room.players[link.playerId]) {
-      room.players[link.playerId].connected = false;
+    const player = room && room.players[link.playerId];
+    // Correctif "je perds le fil" : on ne marque le joueur hors ligne que si
+    // c'est bien SA connexion actuelle qui tombe (et pas un ancien socket).
+    if (player && player.socketId === socketId) {
+      player.connected = false;
+      player.socketId = null;
     }
     return room;
   }

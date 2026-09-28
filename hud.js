@@ -10,7 +10,7 @@ export function rankBadgeUrl(rank) {
   return badgeCache.get(rank);
 }
 const miniCache = new Map();
-function miniCardUrl(card) {
+export function miniCardUrl(card) {
   const key = card.rank + card.suit;
   if (!miniCache.has(key)) miniCache.set(key, createCardFaceCanvas(card, 0.25).toDataURL());
   return miniCache.get(key);
@@ -25,6 +25,14 @@ export function claimText(count, rank) {
   const fem = rank === "D";
   const words = ["", fem ? "Une" : "Un", "Deux", "Trois", "Quatre"];
   return `${words[count] || count} ${count > 1 ? plur : sing} !`;
+}
+
+// Rythme commun des clignotements (doit valoir --beat en CSS et BEAT dans
+// world.js) : on cale la phase de l'animation CSS sur l'horloge de la page
+// pour qu'elle batte exactement en meme temps que le jeton 3D.
+export const BEAT_MS = 1400;
+export function syncBeat(el) {
+  if (el) el.style.animationDelay = `-${(performance.now() % BEAT_MS) / 1000}s`;
 }
 
 export function avatarColor(name) {
@@ -92,7 +100,7 @@ export class Hud {
     $("game-menu-hint").textContent = isHost ? "Choisis le jeu de la soirée :" : "Le patron choisit le jeu :";
   }
 
-  renderLobby(room, meId, url, qrFactory) {
+  renderLobby(room, meId, url, qrFactory, onRemoveBot, minPlayers = 3) {
     $("lobby-code").textContent = room.code;
     const ul = $("lobby-players");
     const prev = new Set([...ul.querySelectorAll("li")].map((li) => li.dataset.id));
@@ -101,16 +109,28 @@ export class Hud {
       const li = document.createElement("li");
       li.dataset.id = p.id;
       if (prev.has(p.id)) li.style.animation = "none";
-      li.innerHTML = `<span>${esc(p.name)}${p.id === meId ? " <span class='tag'>(toi)</span>" : ""}</span>
-        <span class="tag">${p.isHost ? "👑 patron" : ""}${!p.connected ? " · parti fumer" : ""}</span>`;
+      li.innerHTML = `<span>${p.isBot ? "🤖 " : ""}${esc(p.name)}${p.id === meId ? " <span class='tag'>(toi)</span>" : ""}</span>
+        <span class="tag">${p.isHost ? "👑 patron" : ""}${p.isBot ? "robot" : ""}${!p.connected ? " · parti fumer" : ""}${p.isBot && room.hostId === meId ? ` <button class="bot-kick" data-bot="${p.id}" aria-label="Renvoyer ce robot" data-no-fs>✕</button>` : ""}</span>`;
+      const kick = li.querySelector(".bot-kick");
+      if (kick && onRemoveBot) kick.addEventListener("click", () => onRemoveBot(p.id));
       ul.appendChild(li);
     });
     const isHost = room.hostId === meId;
     const n = room.players.length;
     $("btn-start").classList.toggle("hidden", !isHost);
-    $("btn-start").disabled = n < 3;
+    $("btn-add-bot").classList.toggle("hidden", !isHost || n >= 8);
+    // niveau des robots : reglable par le patron, affiche aux autres s'il y a des robots
+    const hasBots = room.players.some((p) => p.isBot && !p.leftGame);
+    const lvl = $("bot-level");
+    lvl.classList.toggle("hidden", !isHost && !hasBots);
+    lvl.classList.toggle("readonly", !isHost);
+    for (const b of lvl.querySelectorAll("button")) {
+      b.classList.toggle("on", b.dataset.level === (room.botLevel || "normal"));
+      b.disabled = !isHost;
+    }
+    $("btn-start").disabled = n < minPlayers;
     $("lobby-status").textContent = isHost
-      ? n < 3 ? `Il faut au moins 3 joueurs (${n}/3)… invite tes potes !` : `${n} joueurs autour de la table. On y va ?`
+      ? n < minPlayers ? `Il faut au moins ${minPlayers} joueurs (${n}/${minPlayers}) : invite tes potes ou ajoute des robots !` : `${n} joueurs autour de la table. On y va ?`
       : "Le patron va bientôt distribuer les cartes…";
     const qrEl = $("qr");
     if (qrEl.dataset.url !== url && qrFactory) {
@@ -147,7 +167,7 @@ export class Hud {
       if (!el) {
         el = document.createElement("div");
         el.className = "plate";
-        el.innerHTML = `<div class="bubble"></div><div class="plate-inner"><div class="avatar"></div><span class="plate-name"></span><span class="plate-count"></span></div><div class="plate-status"></div>`;
+        el.innerHTML = `<div class="bubble"></div><div class="plate-inner"><div class="avatar"></div><span class="plate-name"></span><span class="plate-left" title="Parti, remplacé par un robot">🤖 robot</span><span class="plate-count"></span></div><div class="plate-status"></div>`;
         root.appendChild(el);
         this.plates.set(p.id, el);
       }
@@ -155,9 +175,13 @@ export class Hud {
       av.textContent = (p.name || "?").trim().charAt(0).toUpperCase();
       av.style.background = avatarColor(p.name || "?");
       el.querySelector(".plate-name").textContent = p.name;
+      // joueur parti en pleine partie : un robot joue a sa place
+      el.classList.toggle("left", !!(this.leftIds && this.leftIds.has(p.id)));
       const count = el.querySelector(".plate-count");
       count.textContent = p.count === undefined ? "" : String(p.count);
+      count.dataset.icon = p.countIcon || "";
       count.style.display = p.count === undefined ? "none" : "";
+      if (!!p.active !== el.classList.contains("active")) syncBeat(el.querySelector(".plate-inner"));
       el.classList.toggle("active", !!p.active);
       el.classList.toggle("finished", !!p.finished);
       el.classList.toggle("offline", !p.connected);
@@ -168,6 +192,16 @@ export class Hud {
   }
 
   positionPlates(project) {
+    // Elements du haut de l'ecran que les etiquettes ne doivent pas chevaucher
+    // (plaque de l'annonce / de l'atout, boutons menu et son).
+    const obstacles = [];
+    if (!$("hud").classList.contains("hidden")) {
+      for (const id of ["announce", "btn-menu", "btn-sound", "btn-emote"]) {
+        const r = $(id).getBoundingClientRect();
+        if (r.height > 0) obstacles.push(r);
+      }
+    }
+    const items = [];
     for (const [id, el] of this.plates) {
       const s = project(id);
       if (!s) {
@@ -177,9 +211,65 @@ export class Hud {
       el.style.opacity = "";
       // on garde l'etiquette entierement a l'ecran (bords des telephones)
       const half = (el.offsetWidth || 120) / 2 + 6;
+      const h = el.offsetHeight || 40;
       const x = Math.max(half, Math.min(window.innerWidth - half, s.x));
-      el.style.transform = `translate(${x}px, ${s.y}px) translate(-50%, -100%)`;
+      let y = Math.max(s.y, h + 4);
+      // si l'etiquette passe sous la plaque du haut, on la descend juste en dessous
+      for (const r of obstacles) {
+        const overlapX = x + half > r.left - 4 && x - half < r.right + 4;
+        if (overlapX && y - h < r.bottom + 6) y = r.bottom + 6 + h;
+      }
+      items.push({ el, x, y, half, h });
     }
+    // etiquettes qui se chevauchent entre elles (beaucoup de joueurs sur un
+    // ecran etroit) : on decale vers le bas celle qui est la plus basse
+    items.sort((p, q) => p.y - q.y);
+    for (let i = 0; i < items.length; i += 1) {
+      for (let j = 0; j < i; j += 1) {
+        const a = items[j];
+        const b = items[i];
+        const overlapX = Math.abs(a.x - b.x) < a.half + b.half - 10;
+        if (overlapX && b.y - b.h < a.y - 2 && b.y > a.y - a.h) b.y = a.y + b.h + 2;
+      }
+    }
+    const W = window.innerWidth;
+    for (const it of items) {
+      it.el.style.transform = `translate(${it.x}px, ${it.y}px) translate(-50%, -100%)`;
+      // la bulle de dialogue reste entierement a l'ecran (la pointe, elle,
+      // continue de viser le joueur)
+      const b = it.el.querySelector(".bubble");
+      if (b) {
+        const bw = b.offsetWidth;
+        const over = it.x + bw / 2 - (W - 6);
+        const under = 6 - (it.x - bw / 2);
+        const bx = over > 0 ? -over : under > 0 ? under : 0;
+        b.style.setProperty("--bx", `${Math.round(bx)}px`);
+      }
+    }
+  }
+
+  // Emoji qui s'envole au-dessus d'un joueur (target = "me" ou id).
+  floatEmote(target, emoji) {
+    let r = null;
+    if (target === "me") r = $("my-plate").getBoundingClientRect();
+    else {
+      const plate = this.plates.get(target);
+      if (!plate || plate.style.opacity === "0") return;
+      r = plate.querySelector(".plate-inner").getBoundingClientRect();
+    }
+    if (!r || !r.width) return;
+    const el = document.createElement("span");
+    el.className = "emote-float";
+    el.textContent = emoji;
+    const x = target === "me" ? r.left + 26 : r.left + r.width / 2;
+    el.style.left = `${x}px`;
+    const high = r.top < window.innerHeight * 0.3;
+    el.style.top = `${high ? r.bottom : r.top}px`;
+    if (high) el.classList.add("down");
+    el.style.setProperty("--dx", `${Math.round((Math.random() - 0.5) * 50)}px`);
+    document.body.appendChild(el);
+    el.addEventListener("animationend", () => el.remove());
+    setTimeout(() => el.remove(), 6000);
   }
 
   bubble(target, text, kind = "") {
@@ -214,13 +304,14 @@ export class Hud {
 
   // ------------------------------------------------------------ annonce / aide
 
-  setAnnounce({ label, value, sub, rank, key }) {
+  setAnnounce({ label, value, sub, rank, img, key }) {
     const box = $("announce");
     $("announce-label").textContent = label;
     $("announce-value").textContent = value;
     $("announce-sub").textContent = sub || "";
-    box.classList.toggle("no-card", !rank);
-    if (rank) $("announce-card").src = rankBadgeUrl(rank);
+    box.classList.toggle("no-card", !rank && !img);
+    const src = img || (rank ? rankBadgeUrl(rank) : null);
+    if (src && $("announce-card").getAttribute("src") !== src) $("announce-card").src = src;
     if (key !== this.lastAnnounceKey) {
       this.lastAnnounceKey = key;
       box.classList.remove("pulse");
@@ -232,20 +323,29 @@ export class Hud {
   setHint(html, myTurn) {
     const h = $("hint");
     h.innerHTML = html || "";
+    if (!!myTurn !== h.classList.contains("my-turn")) syncBeat(h);
     h.classList.toggle("my-turn", !!myTurn);
   }
 
-  showTurnBanner(text) {
+  showTurnBanner(text, variant = "") {
     const b = $("turn-banner");
     $("turn-banner-text").textContent = text;
-    b.classList.remove("show");
+    b.classList.remove("show", "gold", "allin");
+    if (variant) b.classList.add(variant);
     void b.offsetWidth;
     b.classList.add("show");
   }
 
-  setMyPlate(name, count, finishedText) {
-    $("my-plate").innerHTML = `<div class="avatar" style="background:${avatarColor(name || "?")}">${esc((name || "?").charAt(0).toUpperCase())}<span class="me-count">${count}</span></div>
-      <div class="me-text"><div class="me-name">${esc(name || "Toi")}</div><small>${finishedText || `${count} carte${count > 1 ? "s" : ""} en main`}</small></div>`;
+  // text : ligne detaillee (grands ecrans) ; short : version courte pour
+  // les telephones (ex : "🎯 2 · ✋ 1" a l'Ascenseur).
+  setMyPlate(name, count, text, short) {
+    const long = text || `${count} carte${count > 1 ? "s" : ""} en main`;
+    const html = `<div class="avatar" style="background:${avatarColor(name || "?")}">${esc((name || "?").charAt(0).toUpperCase())}<span class="me-count">${count}</span></div>
+      <div class="me-text"><div class="me-name">${esc(name || "Toi")}</div><small class="me-long">${long}</small><small class="me-short">${short || long}</small></div>`;
+    if ($("my-plate").dataset.html !== html) {
+      $("my-plate").dataset.html = html;
+      $("my-plate").innerHTML = html;
+    }
   }
 
   // Boutons dores flottants au-dessus de la main (carres, carre magique...).
@@ -262,6 +362,40 @@ export class Hud {
       b.addEventListener("click", it.onClick);
       bar.appendChild(b);
     });
+  }
+
+  // ------------------------------------------------------------ annonces (Ascenseur)
+
+  // Barre de choix d'un nombre (0..max) au-dessus de la main : on voit ses
+  // cartes pendant qu'on reflechit.
+  showBidBar({ title, sub, max, forbidden, key, onPick }) {
+    const bar = $("bid-bar");
+    $("bid-title").textContent = title;
+    $("bid-sub").innerHTML = sub || "";
+    if (bar.dataset.key !== key) {
+      bar.dataset.key = key;
+      const grid = $("bid-grid");
+      grid.innerHTML = "";
+      for (let i = 0; i <= max; i += 1) {
+        const b = document.createElement("button");
+        b.className = "bid-btn" + (i === forbidden ? " forbidden" : "");
+        b.textContent = String(i);
+        if (i === forbidden) {
+          b.disabled = true;
+          b.title = "Interdit : le total tomberait juste";
+        } else {
+          b.addEventListener("click", () => onPick(i));
+        }
+        grid.appendChild(b);
+      }
+    }
+    bar.classList.remove("hidden");
+  }
+
+  hideBidBar() {
+    const bar = $("bid-bar");
+    bar.classList.add("hidden");
+    bar.dataset.key = "";
   }
 
   // ------------------------------------------------------------ choix de valeur
@@ -319,7 +453,7 @@ export class Hud {
   // ------------------------------------------------------------ fin
 
   // entries : [{ medal, name, me, title, extra }]
-  showEnd({ title, entries, primary, secondary, wait, onLeave, key }) {
+  showEnd({ title, entries, primary, secondary, extra, wait, onLeave, key, cards }) {
     const box = $("end");
     const already = !box.classList.contains("hidden") && box.dataset.key === key;
     box.dataset.key = key || "";
@@ -333,6 +467,13 @@ export class Hud {
       li.innerHTML = `<span class="medal">${p.medal}</span><span class="who">${esc(p.name)}${p.me ? " (toi)" : ""}${p.sub ? `<small>${esc(p.sub)}</small>` : ""}</span><span class="title">${esc(p.title || "")}</span>${p.extra !== undefined ? `<span class="pts">${esc(p.extra)}</span>` : ""}`;
       list.appendChild(li);
     });
+    // cartes a montrer (ex : jeu du Trou du cul au President)
+    const cb = $("end-cards");
+    cb.classList.toggle("hidden", !(cards && cards.list && cards.list.length));
+    if (cards && cards.list && cards.list.length) {
+      cb.querySelector(".end-cards-label").textContent = cards.label || "";
+      cb.querySelector(".end-cards-row").innerHTML = cards.list.map((c, i) => `<img src="${miniCardUrl(c)}" alt="" style="animation-delay:${already ? 0 : 0.4 + i * 0.08}s" />`).join("");
+    }
     const b1 = $("btn-again");
     b1.classList.toggle("hidden", !primary);
     if (primary) {
@@ -344,6 +485,12 @@ export class Hud {
     if (secondary) {
       b2.textContent = secondary.label;
       b2.onclick = secondary.onClick;
+    }
+    const b3 = $("btn-end-extra");
+    b3.classList.toggle("hidden", !extra);
+    if (extra) {
+      b3.textContent = extra.label;
+      b3.onclick = extra.onClick;
     }
     $("end-wait").textContent = wait || "";
     $("btn-end-leave").onclick = onLeave;
@@ -359,6 +506,7 @@ export class Hud {
   openModal(title, html, onClose) {
     $("modal-title").textContent = title;
     $("modal-body").innerHTML = html;
+    $("modal-body").scrollTop = 0;
     $("modal").classList.remove("hidden");
     this.modalOnClose = onClose || null;
   }

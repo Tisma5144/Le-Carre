@@ -57,7 +57,14 @@ export default {
     const opp = new Map(v.opponents.map((o) => [o.id, o.cardCount]));
     const table = [];
     v.trick.forEach((play, p) => play.cards.forEach((card, j) => table.push({ card, play: p, j, size: play.cards.length, owner: play.playerId })));
-    return { me, opp, table, discard: v.discardCount };
+    // fin de manche : le jeu du Trou du cul est retourne devant lui
+    const shown = [];
+    const tr = v.trouReveal;
+    if (tr && opp.has(tr.id)) {
+      tr.cards.forEach((card, j) => shown.push({ card, owner: tr.id, j }));
+      opp.set(tr.id, 0);
+    }
+    return { me, opp, table, discard: v.discardCount, shown };
   },
 
   turnBanner: (v) => (v.trick.length === 0 ? "À toi d'ouvrir !" : "À toi de jouer !"),
@@ -67,7 +74,8 @@ export default {
   magicCards(v) {
     if (v.phase !== "playing" || v.you.isFinished || !v.run || !v.run.rank || v.run.rank === "2") return null;
     const need = 4 - v.run.count;
-    if (need < 2) return null; // un carre magique se ferme avec 2 ou 3 cartes
+    if (need < 1) return null;
+    if (need === 1 && v.top && v.top.count === 3) return null; // en triple, jamais la 4e seule
     const mine = v.hand.filter((c) => c.rank === v.run.rank);
     return mine.length === need ? mine : null;
   },
@@ -80,7 +88,8 @@ export default {
     if (!cards.length || cards.length > 4) return { ok: false, why: "Pose 1 à 4 cartes." };
     const rank = cards[0].rank;
     if (!cards.every((c) => c.rank === rank)) return { ok: false, why: "Les cartes doivent avoir la même valeur." };
-    if (v.run && v.run.rank === rank && rank !== "2" && cards.length >= 2 && v.run.count + cards.length === 4) return { ok: true, magic: true };
+    if (cards.length === 1 && v.top && v.top.count === 3 && v.top.rank === rank) return { ok: false, why: "On joue en triple : impossible de fermer le carré avec la 4e carte seule." };
+    if (v.run && v.run.rank === rank && rank !== "2" && v.run.count + cards.length === 4) return { ok: true, magic: true };
     if (!v.you.isYourTurn) return { ok: false, why: `Pas si vite ! C'est au tour de ${v.currentTurnName}.` };
     if (v.you.passed) return { ok: false, why: "Tu as passé : attends le prochain pli." };
     if (v.top) {
@@ -198,7 +207,8 @@ export default {
     } else if (v.phase === "exchange") {
       hud.setAnnounce({ label: `Manche ${v.round}`, value: "Échange des cartes", sub: "Président ↔ Trou du cul", rank: null, key: "ex" + v.round });
     } else if (v.phase === "round_end") {
-      hud.setAnnounce({ label: `Manche ${v.round}`, value: "Terminée !", sub: "", rank: null, key: "end" + v.round });
+      const tr = v.trouReveal;
+      hud.setAnnounce({ label: `Manche ${v.round}`, value: "Terminée !", sub: tr ? `Le jeu de ${tr.id === S.me.id ? "toi" : tr.name} est dévoilé 🕳️` : "", rank: null, key: "end" + v.round + (tr ? "t" : "") });
     } else if (v.top) {
       hud.setAnnounce({
         label: "À battre",
@@ -258,7 +268,12 @@ export default {
 
     // plaques
     const myRole = you.role;
-    hud.setMyPlate(S.me.name, v.hand.length, you.isFinished ? "A fini la manche 🏁" : myRole ? `${ROLE_EMOJI[myRole]} ${ROLE_SHORT[myRole]} · ${v.hand.length} cartes` : null);
+    hud.setMyPlate(
+      S.me.name,
+      v.hand.length,
+      you.isFinished ? "A fini la manche 🏁" : myRole ? `${ROLE_EMOJI[myRole]} ${ROLE_SHORT[myRole]} · ${v.hand.length} cartes` : null,
+      you.isFinished ? "🏁 fini" : myRole ? `${ROLE_EMOJI[myRole]} ${ROLE_SHORT[myRole]}` : `🃏 ${v.hand.length}`
+    );
     hud.syncPlates(v.opponents.map((o) => {
       const role = roleOf(o.id);
       let status = "";
@@ -304,16 +319,18 @@ export default {
       }));
       const isHost = S.room.hostId === S.me.id;
       const leader = v.scores.slice().sort((a, b) => b.score - a.score)[0];
+      const tr = v.trouReveal;
       hud.showEnd({
         key,
         title: `Fin de la manche ${v.round}`,
         entries,
+        cards: tr ? { label: tr.id === S.me.id ? `${tr.isTrou ? "🕳️ " : ""}Les cartes qu'il te restait` : `${tr.isTrou ? "🕳️ Le jeu du Trou du cul" : "Les cartes qui restaient"} (${tr.name})`, list: tr.cards } : null,
         primary: isHost ? { label: "▶ Manche suivante", onClick: () => app.emit("game:nextRound", {}) } : null,
         secondary: isHost ? { label: "🎲 Changer de jeu", onClick: () => app.emit("room:playAgain", {}) } : null,
         wait: isHost ? `En tête : ${leader.name} (${leader.score} pts)` : `En tête : ${leader.name} (${leader.score} pts). Le patron lance la manche suivante…`,
         onLeave: app.leaveTable
       });
-    }, 1400);
+    }, v.trouReveal ? 3200 : 1400);
   },
 
   hideOverlays() {
@@ -352,13 +369,17 @@ export default {
 
   rulesHtml() {
     return `
-      <p class="rule"><i>🃏</i><span>Tout le paquet est distribué. Ordre des valeurs : <b>3 &lt; 4 &lt; … &lt; Roi &lt; As &lt; 2</b>.</span></p>
-      <p class="rule"><i>👸</i><span>Première manche : celui qui a la <b>Dame de cœur</b> ouvre. Ensuite, c'est le Trou du cul.</span></p>
-      <p class="rule"><i>⬆️</i><span>On pose 1 à 4 cartes de même valeur. Pour suivre : <b>le même nombre</b>, de valeur égale ou supérieure. Sinon on passe… et on est hors du pli jusqu'à ce qu'il soit ramassé.</span></p>
-      <p class="rule"><i>🎯</i><span><b>« Ou rien »</b> : si tu poses la même valeur que le joueur d'avant, le suivant doit poser cette valeur ou passer.</span></p>
-      <p class="rule"><i>💥</i><span>Un <b>2</b> ferme le pli : tu rejoues ce que tu veux. Mais <b>interdit de finir sur un 2</b> : sinon tu finis Trou du cul !</span></p>
-      <p class="rule"><i>✨</i><span><b>Carré magique</b> : si tu as 2 ou 3 cartes qui complètent un carré au sommet du pli, pose-les, même hors de ton tour (pas avec une seule carte). Le pli est fermé et tu rejoues.</span></p>
-      <p class="rule"><i>🔄</i><span>Nouvelle manche : le Trou du cul donne ses 2 meilleures cartes au Président qui lui en rend 2 au choix (1 carte entre Vice-trou et Vice-président).</span></p>
-      <p class="rule"><i>📊</i><span>Points : Président +2, Vice +1, Neutre 0, Vice-trou −1, Trou du cul −2.</span></p>`;
+      <p class="rule"><i>🃏</i><span>Tout le paquet est distribué. Ordre des valeurs, de la plus faible à la plus forte : <b>3, 4, 5… Roi, As, 2</b>.</span></p>
+      <p class="rule"><i>👸</i><span>À la première manche, le joueur qui a la <b>Dame de cœur</b> commence. Aux manches suivantes, c'est le Trou du cul.</span></p>
+      <p class="rule"><i>⬆️</i><span>Le premier joueur du pli pose 1 à 4 cartes de même valeur. Les suivants doivent poser <b>le même nombre de cartes</b>, d'une valeur égale ou supérieure. Sinon, ils passent et ne rejouent plus avant le pli suivant.</span></p>
+      <p class="rule"><i>🎯</i><span><b>« Ou rien »</b> : si tu poses la même valeur que le joueur précédent, le joueur suivant doit poser cette valeur à son tour, ou passer.</span></p>
+      <p class="rule"><i>💥</i><span>Un <b>2</b> ferme le pli : celui qui l'a posé recommence avec ce qu'il veut. Attention : il est <b>interdit de finir sur un 2</b>, sinon on termine Trou du cul.</span></p>
+      <p class="rule"><i>🧱</i><span>Quatre cartes de même valeur posées à la suite forment un <b>carré</b>, qui ferme le pli.</span></p>
+      <p class="rule"><i>✨</i><span><b>Carré magique</b> : si tu as la ou les cartes (une, deux ou trois) qui complètent le carré au sommet du pli, tu peux les poser même si ce n'est pas ton tour. Le pli est fermé et tu rejoues.</span></p>
+      <p class="rule"><i>✋</i><span><b>Exception</b> : quand on joue des brelans, personne ne peut fermer le carré avec la quatrième carte seule.</span></p>
+      <p class="rule"><i>🧹</i><span>Quand tous les autres joueurs ont passé, le pli est ramassé et le dernier à avoir posé recommence.</span></p>
+      <p class="rule"><i>🔄</i><span>Au début de chaque nouvelle manche, le Trou du cul donne ses <b>deux meilleures cartes</b> au Président, qui lui en rend deux de son choix. À partir de 4 joueurs, le Vice-trou du cul et le Vice-président échangent une carte de la même façon.</span></p>
+      <p class="rule"><i>📊</i><span>Points : Président +2, Vice-président +1, Neutre 0, Vice-trou du cul −1, Trou du cul −2.</span></p>
+`;
   }
 };

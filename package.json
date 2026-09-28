@@ -1,6 +1,6 @@
 {
   "name": "site-carte",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Le Carre - bar a cartes en 3D (Menteur, President), salons a code 4 lettres",
   "main": "server/index.js",
   "type": "commonjs",

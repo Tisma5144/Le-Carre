@@ -85,7 +85,8 @@ export class World {
     this.warm = new THREE.PointLight(0xff8a3c, 60, 30, 2);
     this.warm.position.set(-8, 4, 5);
     this.scene.add(this.warm);
-    this.cool = new THREE.PointLight(0x7f9cff, 18, 30, 2);
+    // contre-jour chaud (l'ancien bleute faisait un reflet desagreable)
+    this.cool = new THREE.PointLight(0xffc48a, 7, 30, 2);
     this.cool.position.set(9, 5, -6);
     this.scene.add(this.cool);
   }
@@ -601,7 +602,9 @@ export class World {
       this.token.rotation.y = e * Math.PI * 2;
       if (f.t >= 1) this.tokenFlight = null;
     }
-    this.tokenTopMat.emissiveIntensity = 0.25 + (Math.sin(time * 4) * 0.5 + 0.5) * 0.35;
+    // meme rythme que l'etiquette du joueur actif (--beat en CSS, BEAT_MS dans hud.js)
+    const phase = (performance.now() % 1400) / 1400;
+    this.tokenTopMat.emissiveIntensity = 0.2 + (0.5 - 0.5 * Math.cos(phase * Math.PI * 2)) * 0.55;
 
     // anneau du tapis
     const ringMat = this.pileRing.material;

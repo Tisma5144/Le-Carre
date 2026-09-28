@@ -115,12 +115,9 @@ async function main() {
     const quadRank = Object.keys(rankCounts).find((r) => rankCounts[r] === 4);
 
     if (quadRank) {
-      log(`  ${bot.name} sort le carre de ${quadRank}`);
-      bot.socket.emit("game:quadDiscard", { rank: quadRank }, (res) => {
-        bot.busy = false;
-        if (!res.ok) log(`  !! erreur quad pour ${bot.name}: ${res.error}`);
-      });
-      return;
+      // les carres doivent sortir tout seuls : on ne doit jamais en avoir en main
+      console.error(`ECHEC: ${bot.name} a un carre de ${quadRank} en main (sortie automatique attendue)`);
+      process.exit(1);
     }
 
     if (game.you.canAccuseNow && Math.random() < 0.2) {

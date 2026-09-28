@@ -123,6 +123,17 @@ export class Sfx {
       case "win":
         [523, 659, 784, 1047, 1319].forEach((f, i) => this.tone({ freq: f, dur: 0.7, gain: 0.14, delay: i * 0.09, type: "triangle" }));
         break;
+      case "heartbeat":
+        // "boum-boum" sourd (suspense d'un tapis)
+        this.tone({ freq: 62, slideTo: 40, dur: 0.16, gain: 0.55, type: "sine", attack: 0.005 });
+        this.tone({ freq: 58, slideTo: 38, dur: 0.14, gain: 0.38, type: "sine", delay: 0.2, attack: 0.005 });
+        break;
+      case "allin":
+        this.tone({ freq: 110, dur: 0.9, gain: 0.3, type: "sawtooth", attack: 0.02 });
+        this.tone({ freq: 164.8, dur: 0.9, gain: 0.2, type: "sawtooth", attack: 0.02, delay: 0.05 });
+        this.tone({ freq: 55, slideTo: 35, dur: 0.8, gain: 0.6, type: "sine" });
+        this.noiseBurst({ freq: 300, q: 0.5, dur: 0.4, gain: 0.45 });
+        break;
       case "error":
         this.tone({ freq: 220, dur: 0.18, gain: 0.15, type: "square" });
         break;

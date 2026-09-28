@@ -8,9 +8,14 @@ import { Sfx } from "./ui/audio.js";
 import { ensureCardFonts, createCardBackCanvas, createCardFaceCanvas } from "./cards/cardArt.js";
 import menteurUi from "./games/menteur.js";
 import presidentUi from "./games/president.js";
+import ascenseurUi from "./games/ascenseur.js";
+import pouilleuxUi from "./games/pouilleux.js";
+import pokerUi from "./games/poker.js";
 import qrcode from "/vendor/qrcode.mjs";
+import * as FS from "./ui/fullscreen.js";
 
-const ADAPTERS = { menteur: menteurUi, president: presidentUi };
+const EMOTES = ["😂", "😱", "🔥", "👏", "😡", "🤡", "🍺", "🤔", "😎", "💀", "😭", "🙏"];
+const ADAPTERS = { menteur: menteurUi, president: presidentUi, ascenseur: ascenseurUi, pouilleux: pouilleuxUi, poker: pokerUi };
 const SESSION_KEY = "menteurSession";
 const SUIT_INDEX = { pique: 0, coeur: 1, trefle: 2, carreau: 3 };
 const $ = (id) => document.getElementById(id);
@@ -96,6 +101,9 @@ function buildCatalog() {
   CATALOG = [
     { ...pick(menteurUi), art: createCardBackCanvas(0.22).toDataURL() },
     { ...pick(presidentUi), art: createCardFaceCanvas({ rank: "R", suit: "coeur" }, 0.22).toDataURL() },
+    { ...pick(ascenseurUi), art: createCardFaceCanvas({ rank: "A", suit: "pique" }, 0.22).toDataURL() },
+    { ...pick(pouilleuxUi), art: createCardFaceCanvas({ rank: "V", suit: "pique" }, 0.22).toDataURL() },
+    { ...pick(pokerUi), art: createCardFaceCanvas({ rank: "A", suit: "coeur" }, 0.22).toDataURL() },
     { id: "custom", name: "Tes propres jeux", emoji: "🛠️", tagline: "Bientôt : invente tes règles", players: "", soon: true }
   ];
 }
@@ -118,8 +126,10 @@ function updateHandCssVar() {
 function computeSeats(orderedIds) {
   const idx = orderedIds.indexOf(S.me.id);
   const rel = idx >= 0 ? orderedIds.slice(idx + 1).concat(orderedIds.slice(0, idx)) : orderedIds.slice();
+  // Sens des aiguilles d'une montre : le joueur qui joue apres moi est
+  // assis a ma gauche, puis on tourne vers le haut de la table et la droite.
   const phis = World.opponentPhis(rel.length);
-  return rel.map((id, i) => ({ id, phi: phis[i] }));
+  return rel.map((id, i) => ({ id, phi: phis[phis.length - 1 - i] }));
 }
 
 function applySeats(orderedIds) {
@@ -146,12 +156,27 @@ function isConnected(id) {
 // ------------------------------------------------------------------ routage
 
 function onState({ room, game }) {
+  // on vient de quitter la table : on ignore les derniers messages en vol
+  if (S.leaving) return;
+  noticeLeavers(S.room, room);
   S.room = room;
   S.game = game;
   if (!room) return showHome();
   saveSession();
   if (room.status === "lobby" || !game) showLobby();
   else showGame();
+}
+
+// Joueurs partis en cours de partie (remplaces par un robot) : badge a cote
+// de leur nom et petit message pour les autres.
+function noticeLeavers(prev, room) {
+  const ids = new Set(room && room.status !== "lobby" ? room.players.filter((p) => p.leftGame).map((p) => p.id) : []);
+  if (prev && room && prev.code === room.code && room.status !== "lobby") {
+    const before = new Set(prev.players.filter((p) => p.leftGame).map((p) => p.id));
+    const fresh = room.players.filter((p) => p.leftGame && !before.has(p.id) && p.id !== S.me.id);
+    if (fresh.length) hud.toast(`${fresh.map((p) => p.name).join(", ")} a quitté la table : un robot joue à sa place 🤖`, 3600);
+  }
+  hud.leftIds = ids;
 }
 
 function leaveGameUi() {
@@ -199,25 +224,36 @@ function showLobby() {
   const seats = applySeats(room.players.map((p) => p.id));
   if (firstTime) table.gatherToDeck(true);
   const isHost = room.hostId === S.me.id;
-  hud.renderLobby(room, S.me.id, joinUrl(room.code), qrcode);
+  const AL = ADAPTERS[room.gameType] || menteurUi;
+  hud.renderLobby(room, S.me.id, joinUrl(room.code), qrcode, (botId) => app.emit("room:removeBot", { playerId: botId }), AL.minPlayers || 3);
   hud.renderGameMenu(CATALOG, room.gameType, isHost, (gameType) => {
     sfx.play("select");
     app.emit("room:setGame", { gameType });
   });
   const A = ADAPTERS[room.gameType] || menteurUi;
   $("btn-start").textContent = `Distribuer · ${A.name}`;
+  $("btn-rules-lobby").textContent = `📜 Lire les règles ${A.name.startsWith("L'") ? "de l'" + A.name.slice(2) : "du " + A.name.replace(/^Le /, "")}`;
+  const optEl = $("game-options");
+  if (A.renderLobbyOptions) {
+    optEl.classList.remove("hidden");
+    A.renderLobbyOptions(optEl, room, isHost, app);
+  } else {
+    optEl.classList.add("hidden");
+    optEl.dataset.key = "";
+  }
   hud.syncPlates(seats.map((s) => ({ id: s.id, name: playerName(s.id), connected: isConnected(s.id), statusText: "s'installe" })));
 }
 
 function handOrder(hand) {
   if (!S.sorted || !S.adapter) return hand.map((c) => c.id);
+  if (S.adapter.sortHand) return S.adapter.sortHand(hand, S.game).map((c) => c.id);
   const idx = Object.fromEntries(S.adapter.rankOrder.map((r, i) => [r, i]));
   return hand.slice().sort((a, b) => idx[a.rank] - idx[b.rank] || SUIT_INDEX[a.suit] - SUIT_INDEX[b.suit]).map((c) => c.id);
 }
 
 function updateSortButton() {
   $("btn-sort").classList.toggle("active", S.sorted);
-  $("btn-sort").textContent = S.sorted ? "✅ Triées" : "🔀 Trier";
+  $("btn-sort").innerHTML = S.sorted ? `✅<span class="pill-txt"> Triées</span>` : `🔀<span class="pill-txt"> Trier</span>`;
 }
 
 function showGame() {
@@ -227,6 +263,7 @@ function showGame() {
     if (S.adapter && S.adapter.hideOverlays) S.adapter.hideOverlays(app);
     S.adapter = A;
     table.maxSelect = A.maxSelect;
+    $("btn-sort").classList.toggle("hidden", !!A.hideSort);
     table.pendingFaceUp = A.pendingFaceUp;
     S.sorted = A.defaultSorted;
     updateSortButton();
@@ -255,17 +292,20 @@ function showGame() {
       S.dealing = true;
       table.gatherToDeck(true);
       setTimeout(() => {
-        table.applyState(A.desired(S.game, handOrder(S.game.hand)), { deal: true });
+        table.applyState(A.desired(S.game, handOrder(S.game.hand), app), { deal: true });
         setTimeout(() => {
           S.dealing = false;
+          // certains jeux affichent des cartes en plus une fois la donne finie
+          // (ex : les cartes tendues par le voisin au Pouilleux)
+          if (S.game && S.adapter === A && S.screen === "game") table.applyState(A.desired(S.game, handOrder(S.game.hand), app));
           refreshGameUi();
         }, 1900);
       }, 750);
     } else {
-      table.applyState(A.desired(g, handOrder(g.hand)), { instant: true });
+      table.applyState(A.desired(g, handOrder(g.hand), app), { instant: true });
     }
   } else if (!S.dealing) {
-    table.applyState(A.desired(g, handOrder(g.hand)));
+    table.applyState(A.desired(g, handOrder(g.hand), app));
   }
   processEvents(g);
   refreshGameUi();
@@ -291,13 +331,15 @@ function refreshGameUi() {
   table.setInteractive(!dealing && !you.isFinished && (playing || g.phase === "exchange" || g.phase === "reveal_pending"));
   table.setTurnGlow(dealing || !playing ? null : myTurn ? "__me" : g.currentTurn);
 
+  let tokenPos = null;
   if (!dealing && playing && g.currentTurn) {
-    const pos = g.currentTurn === S.me.id ? world.anchors.myToken : S.seatPhi.has(g.currentTurn) ? world.seatPoint(S.seatPhi.get(g.currentTurn), 0.5) : null;
-    if (pos) world.moveTokenTo(pos);
-  } else if (g.phase === "finished" || g.phase === "round_end" || g.phase === "exchange") {
+    tokenPos = g.currentTurn === S.me.id ? world.anchors.myToken : S.seatPhi.has(g.currentTurn) ? world.seatPoint(S.seatPhi.get(g.currentTurn), 0.5) : null;
+  } else if (["finished", "round_end", "exchange", "showdown", "waiting", "runout"].includes(g.phase)) {
     world.hideToken();
   }
-  if (!table.drag) world.setPileRing(myTurn ? "idle" : "hidden");
+  if (!tokenPos) S.tokenBase = null;
+  const ring = myTurn && (!A.showRing || A.showRing(g));
+  if (!table.drag) world.setPileRing(ring ? "idle" : "hidden");
 
   if (myTurn && !S.wasMyTurn) {
     hud.showTurnBanner(A.turnBanner(g));
@@ -308,6 +350,26 @@ function refreshGameUi() {
 
   A.refresh(g, app);
   updatePlayButton();
+  // le jeton se pose a cote des cartes (et des boutons), jamais dessus ;
+  // place calculee apres la mise a jour de l'interface
+  S.tokenBase = tokenPos;
+  placeToken();
+}
+
+// Elements HTML par-dessus la table que le jeton de tour doit eviter.
+const TOKEN_AVOID = ["action-bar", "hint", "btn-play", "bid-bar", "exchange", "btn-liar", "btn-pass", "pile-chip", "tray-chip"];
+function placeToken() {
+  if (!S.tokenBase || S.screen !== "game") return;
+  const rects = [];
+  for (const id of TOKEN_AVOID) {
+    const el = $(id);
+    if (!el || el.classList.contains("hidden") || getComputedStyle(el).display === "none") continue;
+    if (id === "hint" && !el.textContent.trim()) continue;
+    rects.push(el.getBoundingClientRect());
+  }
+  // boutons d'action ponctuels (carre magique, recave...)
+  for (const b of document.querySelectorAll("#quad-bar > *")) rects.push(b.getBoundingClientRect());
+  world.moveTokenTo(table.freeSpot(S.tokenBase, world.tokenTarget, 0.4, rects.filter((r) => r.width > 0 && r.height > 0)));
 }
 
 function updatePlayButton() {
@@ -320,6 +382,7 @@ function updatePlayButton() {
 }
 
 function leaveTable() {
+  S.leaving = true;
   socket.emit("room:leave", {}, () => {});
   clearSession();
   hud.closeModal();
@@ -349,7 +412,19 @@ function bindUi() {
     rememberName(n);
     return n;
   };
+  // Verrou anti double-clic : une seule demande "ouvrir / rejoindre" a la fois.
+  let joining = false;
+  let lockTimer = null;
+  const lock = (on) => {
+    joining = on;
+    clearTimeout(lockTimer);
+    if (on) lockTimer = setTimeout(() => lock(false), 8000);
+    $("btn-create").disabled = on;
+    $("btn-join").disabled = on;
+  };
   const onJoined = (res, name) => {
+    lock(false);
+    S.leaving = false;
     if (!res || !res.ok) {
       hud.toast((res && res.error) || "Impossible de rejoindre cette table.");
       sfx.play("error");
@@ -363,8 +438,11 @@ function bindUi() {
   };
 
   $("btn-create").addEventListener("click", () => {
+    if (joining) return;
     const name = needName();
     if (!name) return;
+    lock(true);
+    S.leaving = false;
     socket.emit("room:create", { name }, (res) => onJoined(res, name));
   });
   $("btn-join").addEventListener("click", () => {
@@ -376,16 +454,34 @@ function bindUi() {
       codeInput.focus();
       return;
     }
+    if (joining) return;
+    lock(true);
+    S.leaving = false;
     socket.emit("room:join", { name, code }, (res) => onJoined(res, name));
   });
   codeInput.addEventListener("keydown", (e) => { if (e.key === "Enter") $("btn-join").click(); });
   nameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") (codeInput.value.length === 4 ? $("btn-join") : $("btn-create")).click(); });
 
+  $("btn-fullscreen-home").addEventListener("click", fullscreenAction);
   $("btn-rules-home").addEventListener("click", () => {
     hud.openModal("Les règles de la maison", Object.values(ADAPTERS).map((A) => `<h4 class="rules-game">${A.emoji} ${A.name}</h4>${A.rulesHtml()}`).join(""));
   });
 
   $("btn-start").addEventListener("click", () => app.emit("room:start", {}));
+  for (const b of document.querySelectorAll("#bot-level button")) {
+    b.addEventListener("click", () => {
+      sfx.play("select");
+      app.emit("room:setBotLevel", { level: b.dataset.level });
+    });
+  }
+  $("btn-add-bot").addEventListener("click", () => {
+    sfx.play("select");
+    app.emit("room:addBot", {});
+  });
+  $("btn-rules-lobby").addEventListener("click", () => {
+    const A = ADAPTERS[S.room && S.room.gameType] || menteurUi;
+    hud.openModal(`Règles · ${A.name}`, A.rulesHtml());
+  });
   $("btn-leave").addEventListener("click", leaveTable);
   $("btn-share").addEventListener("click", async () => {
     const url = joinUrl(S.room.code);
@@ -398,6 +494,31 @@ function bindUi() {
         hud.toast("Lien copié ! Colle-le dans ta conv 📋");
       }
     } catch (e) { /* partage annule */ }
+  });
+
+  // emotes
+  const palette = $("emote-palette");
+  palette.innerHTML = EMOTES.map((e) => `<button data-emote="${e}" data-no-fs aria-label="${e}">${e}</button>`).join("");
+  const closePalette = () => {
+    palette.classList.add("hidden");
+    $("btn-emote").classList.remove("open");
+  };
+  $("btn-emote").addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    const open = palette.classList.toggle("hidden") === false;
+    $("btn-emote").classList.toggle("open", open);
+  });
+  palette.addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-emote]");
+    if (!b) return;
+    ev.stopPropagation();
+    closePalette();
+    socket.emit("room:emote", { emoji: b.dataset.emote }, (res) => {
+      if (res && res.error) hud.toast(res.error, 1200);
+    });
+  });
+  document.addEventListener("pointerdown", (ev) => {
+    if (!palette.classList.contains("hidden") && !ev.target.closest("#emote-palette, #btn-emote")) closePalette();
   });
 
   $("btn-liar").addEventListener("click", () => app.emit("game:accuse", {}));
@@ -429,13 +550,15 @@ function bindUi() {
       <button class="btn wood" data-act="history">📜 Historique</button>
       <button class="btn wood" data-act="tray">🗃️ ${A ? A.trayTitle : "Cartes sorties"}</button>
       <button class="btn wood" data-act="rules">📖 Règles ${A ? "du " + A.name.replace(/^Le /, "") : ""}</button>
+      ${FS.isStandalone() ? "" : `<button class="btn wood" data-act="fs" data-no-fs>${fsLabel()}</button>`}
       ${isHost ? `<button class="btn wood" data-act="lobby">🎲 Changer de jeu</button>` : ""}
       <button class="btn brass" data-act="leave">🚪 Quitter la table</button>
-    </div>`);
+    </div>${S.version ? `<p class="menu-version">Le Carré · version ${S.version}</p>` : ""}`);
     document.querySelectorAll("[data-act]").forEach((b) => b.addEventListener("click", () => {
       const act = b.dataset.act;
       if (act === "history") openHistory();
       else if (act === "tray") openTray();
+      else if (act === "fs") fullscreenAction();
       else if (act === "rules") hud.openModal(`Règles · ${A ? A.name : ""}`, A ? A.rulesHtml() : "");
       else if (act === "lobby") {
         hud.closeModal();
@@ -445,13 +568,132 @@ function bindUi() {
   });
 }
 
+// ------------------------------------------------------------------ plein ecran
+
+function fsLabel() {
+  if (FS.isFullscreen() && !FS.isStandalone()) return "⛶ Quitter le plein écran";
+  if (!FS.canFullscreen() && FS.canInstall()) return "📲 Installer l'appli";
+  return FS.isIOS() ? "📲 Plein écran" : "⛶ Plein écran";
+}
+
+function updateFsButton() {
+  const b = $("btn-fullscreen-home");
+  b.classList.toggle("hidden", FS.isStandalone());
+  b.textContent = fsLabel();
+}
+
+function fullscreenAction() {
+  if (FS.canFullscreen()) {
+    FS.toggleFullscreen();
+    hud.closeModal();
+  } else if (FS.canInstall()) {
+    FS.promptInstall();
+  } else {
+    hud.openModal("Jouer en plein écran", FS.helpHtml());
+  }
+}
+
+// ------------------------------------------------------------------ connexion
+//
+// Sur telephone, la connexion saute souvent (ecran qui s'eteint, appli mise
+// en arriere-plan, Wi-Fi du bar). On se reconnecte tout seul, on
+// resynchronise l'etat quand l'appli revient au premier plan, et on verifie
+// regulierement qu'on est toujours a jour.
+
+let netTimer = null;
+let syncing = false;
+
+function setNetBanner(show) {
+  clearTimeout(netTimer);
+  const el = $("net-banner");
+  if (!show) {
+    el.classList.add("hidden");
+    return;
+  }
+  // petit delai : pas de clignotement pour une micro-coupure
+  netTimer = setTimeout(() => {
+    if (!socket.connected && S.screen && S.screen !== "home") el.classList.remove("hidden");
+  }, 1200);
+}
+
+// Se rassoit a sa table (apres une coupure ou un refresh). Renvoie false s'il
+// n'y a pas de table memorisee.
+function doRejoin() {
+  const saved = loadSession();
+  if (!saved || !saved.playerId || !saved.code) return false;
+  S.me.id = saved.playerId;
+  S.me.name = saved.name;
+  socket.emit("room:rejoin", { code: saved.code, playerId: saved.playerId }, (res) => {
+    if (!res || !res.ok) {
+      if (res && res.gone) {
+        clearSession();
+        if (S.screen && S.screen !== "home") hud.toast(res.error || "Cette table n'existe plus.", 4000);
+        if (S.screen !== "home") showHome();
+      }
+    }
+  });
+  return true;
+}
+
+// Verifie qu'on est bien a jour ; sinon se reconnecte / se rassoit.
+function resync() {
+  if (!loadSession() || syncing) return;
+  if (!socket.connected) {
+    socket.connect();
+    return;
+  }
+  syncing = true;
+  let answered = false;
+  const guard = setTimeout(() => {
+    // pas de reponse : connexion "zombie" -> on repart sur une connexion neuve
+    syncing = false;
+    if (!answered) {
+      socket.disconnect();
+      socket.connect();
+    }
+  }, 5000);
+  socket.emit("room:sync", {}, (res) => {
+    answered = true;
+    syncing = false;
+    clearTimeout(guard);
+    if (!res || !res.ok) doRejoin();
+  });
+}
+
+function setupConnectionWatch() {
+  socket.on("disconnect", () => setNetBanner(true));
+  socket.io.on("reconnect_attempt", () => setNetBanner(true));
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") resync();
+  });
+  window.addEventListener("pageshow", resync);
+  window.addEventListener("online", resync);
+  window.addEventListener("focus", resync);
+  // filet de securite : toutes les 15 s tant que l'appli est affichee
+  setInterval(() => {
+    if (document.visibilityState === "visible" && S.screen && S.screen !== "home") resync();
+  }, 15000);
+}
+
 function openHistory() {
   if (!S.game || !S.adapter) return;
-  hud.openModal("Ce qui s'est passé", S.adapter.historyHtml(S.game.history, esc));
+  const A = S.adapter;
+  if (A.fetchHistory) {
+    // historique complet demande au serveur (il n'est pas envoye a chaque coup)
+    hud.openModal("Ce qui s'est passé", A.historyHtml(S.game.history, esc));
+    socket.emit("game:history", {}, (res) => {
+      if (res && res.ok && S.adapter === A && !$("modal").classList.contains("hidden")) {
+        $("modal-body").innerHTML = A.historyHtml(res.history, esc);
+      }
+    });
+    return;
+  }
+  hud.openModal("Ce qui s'est passé", A.historyHtml(S.game.history, esc));
 }
 function openTray() {
   if (!S.game || !S.adapter) return;
   hud.openModal(S.adapter.trayTitle, S.adapter.trayHtml(S.game, hud));
+  if (S.adapter.bindTray) S.adapter.bindTray($("modal-body"), S.game);
 }
 
 // ------------------------------------------------------------------ boucle HUD
@@ -472,6 +714,12 @@ function hudFrame() {
     hud.positionChip("pile-chip", pile, chips.pile);
     const ta = table.trayAnchor();
     hud.positionChip("tray-chip", ta ? world.toScreen(ta) : null, chips.tray);
+    // les bandeaux apparaissent parfois apres coup : on reverifie la place du jeton
+    const now = performance.now();
+    if (S.tokenBase && world.token.visible && now - (S.tokenCheckAt || 0) > 400) {
+      S.tokenCheckAt = now;
+      placeToken();
+    }
   } else {
     hud.positionChip("pile-chip", null, "");
     hud.positionChip("tray-chip", null, "");
@@ -499,6 +747,7 @@ async function boot() {
     canDrop: (ids) => !!(S.adapter && S.game && S.adapter.canDrop(ids, S.game, app)),
     onDrop: (ids) => { if (S.adapter && S.game) S.adapter.commitPlay(ids, S.game, app); },
     onHandTop: () => updateHandCssVar(),
+    onPick: (slot) => { if (S.adapter && S.adapter.onPick && S.game) S.adapter.onPick(slot, S.game, app); },
     onSelectionChange: () => {
       sfx.play("select");
       updatePlayButton();
@@ -521,6 +770,7 @@ async function boot() {
     sfx,
     get socket() { return socket; },
     who: (id) => (id === S.me.id ? "me" : id),
+    playerName,
     shake() {
       document.body.classList.remove("shake");
       void document.body.offsetWidth;
@@ -536,7 +786,8 @@ async function boot() {
         updatePlayButton();
       });
     },
-    leaveTable
+    leaveTable,
+    openTray: () => openTray()
   };
 
   world.onResize = () => {
@@ -545,24 +796,27 @@ async function boot() {
   };
   updateHandCssVar();
   world.onFrame(hudFrame);
+  // numero de version affiche en bas de l'accueil et du salon
+  fetch("/version.json").then((r) => r.json()).then((d) => {
+    S.version = d.version;
+    $("app-version").textContent = `Le Carré · v${d.version}`;
+  }).catch(() => {});
+  FS.setupFullscreen();
   bindUi();
+  FS.onChange(updateFsButton);
+  updateFsButton();
 
-  socket = io();
+  socket = io({ reconnectionDelay: 500, reconnectionDelayMax: 3000, timeout: 8000 });
   socket.on("state", onState);
+  setupConnectionWatch();
+  socket.on("emote", ({ playerId, emoji }) => {
+    if (S.screen !== "game") return;
+    hud.floatEmote(playerId === S.me.id ? "me" : playerId, emoji);
+    sfx.play("select");
+  });
   socket.on("connect", () => {
-    const saved = loadSession();
-    if (saved && saved.playerId && saved.code) {
-      S.me.id = saved.playerId;
-      S.me.name = saved.name;
-      socket.emit("room:rejoin", { code: saved.code, playerId: saved.playerId }, (res) => {
-        if (!res || !res.ok) {
-          clearSession();
-          if (S.screen !== "home") showHome();
-        }
-      });
-    } else if (!S.screen) {
-      showHome();
-    }
+    setNetBanner(false);
+    if (!doRejoin() && !S.screen) showHome();
   });
   if (!loadSession()) showHome();
 

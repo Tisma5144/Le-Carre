@@ -207,14 +207,15 @@ function drawIndex(ctx, card, W, H) {
     ctx.fillStyle = color;
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
+    // index agrandi : lisible meme sur les cartes posees au loin (telephone)
     const isTen = card.rank === "10";
-    const fs = isTen ? 50 : 60;
+    const fs = isTen ? 92 : 106;
     ctx.font = `900 ${fs}px ${INDEX_FONT}`;
-    ctx.translate(40, 70);
-    if (isTen) ctx.scale(0.82, 1);
+    ctx.translate(46, 102);
+    if (isTen) ctx.scale(0.64, 1);
     ctx.fillText(card.rank, 0, 0);
     ctx.restore();
-    drawSuit(ctx, card.suit, 40, 102, 38, 0, null, { shine: false });
+    drawSuit(ctx, card.suit, 46, 160, 66, 0, null, { shine: false });
   };
   draw();
   ctx.save();
@@ -287,18 +288,18 @@ function drawAce(ctx, card, W, H) {
   ctx.strokeStyle = GOLD;
   ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.ellipse(cx, cy, W * 0.34, H * 0.27, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, cy, W * 0.27, H * 0.27, 0, 0, Math.PI * 2);
   ctx.stroke();
   ctx.lineWidth = 1.2;
   ctx.beginPath();
-  ctx.ellipse(cx, cy, W * 0.36, H * 0.285, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, cy, W * 0.29, H * 0.285, 0, 0, Math.PI * 2);
   ctx.stroke();
   // perles autour
   for (let i = 0; i < 36; i += 1) {
     const a = (i / 36) * Math.PI * 2;
     ctx.fillStyle = i % 2 ? GOLD : GOLD_LIGHT;
     ctx.beginPath();
-    ctx.arc(cx + Math.cos(a) * W * 0.35, cy + Math.sin(a) * H * 0.2775, 2.4, 0, Math.PI * 2);
+    ctx.arc(cx + Math.cos(a) * W * 0.28, cy + Math.sin(a) * H * 0.2775, 2.4, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.restore();
@@ -956,7 +957,7 @@ function drawFigureHalf(ctx, fw, fh, card) {
 }
 
 function drawFaceCard(ctx, card, W, H) {
-  const x0 = 66;
+  const x0 = 88; // laisse la place aux index agrandis
   const y0 = 28;
   const fw = W - x0 * 2;
   const fh = (H - y0 * 2) / 2;

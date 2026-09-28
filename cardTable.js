@@ -165,6 +165,10 @@ export class CardTable {
   //   tray: [{card,quad,j}]  cartes sorties (carres du Menteur)
   //   table: [{card,play,j}] pli face visible au centre (President)
   //   discard: n             defausse face cachee (President)
+  //   trick: [{card,owner,win}] pli en cours, chaque carte devant son joueur (Ascenseur)
+  //   won: Map(id -> n)       plis remportes, en tas devant chaque joueur (Ascenseur)
+  //   talon: n               cartes non distribuees, dans la boite (Ascenseur)
+  //   trump: [carte]         carte d'atout retournee (Ascenseur)
   normalizeDesired(d) {
     return {
       me: d.me || [],
@@ -173,7 +177,15 @@ export class CardTable {
       reveal: d.reveal || [],
       tray: d.tray || [],
       table: d.table || [],
-      discard: d.discard || 0
+      discard: d.discard || 0,
+      trick: d.trick || [],
+      won: d.won || new Map(),
+      talon: d.talon || 0,
+      trump: d.trump || [],
+      pick: d.pick || 0,
+      pickOwner: d.pickOwner || null,
+      board: d.board || [],
+      shown: d.shown || []
     };
   }
 
@@ -187,6 +199,7 @@ export class CardTable {
     const prio = (e) => {
       const z = e.zone;
       if (destZone === "me" || destZone === "opp") {
+        if (z === "pick" && (destZone === "me" || e.owner === destOwner)) return -1;
         if (z === "reveal") return 0;
         if (z === "pile") return 1 - e.slot * 0.0001;
         if (z === "deck") return 2;
@@ -196,6 +209,33 @@ export class CardTable {
       }
       if (destZone === "table") {
         if (z === "me" || z === "opp") return 0;
+        return 2;
+      }
+      if (destZone === "trick") {
+        if (z === "opp" && e.owner === destOwner) return 0;
+        if (z === "opp") return 1;
+        return 2;
+      }
+      if (destZone === "won") {
+        if (z === "trick") return 0 - e.slot * 0.0001;
+        return 2;
+      }
+      if (destZone === "pick") {
+        if (z === "opp" && e.owner === destOwner) return 0;
+        return 2;
+      }
+      if (destZone === "shown") {
+        if (z === "opp" && e.owner === destOwner) return 0;
+        if (z === "opp") return 1;
+        return 2;
+      }
+      if (destZone === "board") {
+        if (z === "talon" || z === "deck") return 0;
+        return 2;
+      }
+      if (destZone === "talon" || destZone === "trump") {
+        if (z === "deck") return 0;
+        if (z === "talon") return 0.5;
         return 2;
       }
       if (destZone === "discard") {
@@ -258,11 +298,18 @@ export class CardTable {
     desired.reveal.forEach((c, i) => knownDest.push({ zone: "reveal", card: c, slot: i }));
     desired.tray.forEach((t, i) => knownDest.push({ zone: "tray", card: t.card, slot: i, quad: t.quad, j: t.j, owner: t.owner }));
     desired.table.forEach((t, i) => knownDest.push({ zone: "table", card: t.card, slot: i, quad: t.play, j: t.j, owner: t.owner, size: t.size }));
+    desired.trick.forEach((t, i) => knownDest.push({ zone: "trick", card: t.card, slot: i, owner: t.owner, win: !!t.win, keepOwner: true }));
+    desired.trump.forEach((c, i) => knownDest.push({ zone: "trump", card: c, slot: i }));
+    desired.board.forEach((b, i) => knownDest.push({ zone: "board", card: b.card, slot: i, win: !!b.win, ghost: !!b.ghost }));
+    desired.shown.forEach((b, i) => knownDest.push({ zone: "shown", card: b.card, slot: i, owner: b.owner, j: b.j, win: !!b.win, keepOwner: true }));
     const pendingKnown = [];
     for (const d of knownDest) {
       const e = byId.get(d.card.id);
       if (e && e.zone === d.zone && !assigned.has(e)) {
         e.slot = d.slot;
+        e.win = !!d.win;
+      e.ghost = !!d.ghost;
+        e.ghost = !!d.ghost;
         e.quad = d.quad || 0;
         e.qj = d.j || 0;
         e.qsize = d.size || 1;
@@ -282,6 +329,10 @@ export class CardTable {
     for (const [pid, n] of desired.opp) oppDeficit.set(pid, keep("opp", pid, n));
     const pileDeficit = keep("pile", null, desired.pile);
     const discardDeficit = keep("discard", null, desired.discard);
+    const wonDeficit = new Map();
+    for (const [pid, n] of desired.won) wonDeficit.set(pid, keep("won", pid, n));
+    const talonDeficit = keep("talon", null, desired.talon);
+    const pickDeficit = keep("pick", desired.pickOwner, desired.pick);
 
     // 3. cartes libres (celles qui doivent bouger)
     const free = E.filter((e) => !assigned.has(e));
@@ -300,8 +351,9 @@ export class CardTable {
       e.quad = d.quad || 0;
       e.qj = d.j || 0;
       e.qsize = d.size || 1;
-      if (d.zone === "table") e.jitter = { dx: (Math.random() - 0.5) * 0.08, dz: (Math.random() - 0.5) * 0.08, yaw: (Math.random() - 0.5) * 0.18 };
-      setZone(e, d.zone, null, d.slot);
+      if (d.zone === "table" || d.zone === "trick") e.jitter = { dx: (Math.random() - 0.5) * 0.08, dz: (Math.random() - 0.5) * 0.08, yaw: (Math.random() - 0.5) * 0.18 };
+      e.win = !!d.win;
+      setZone(e, d.zone, d.keepOwner ? d.owner : null, d.slot);
     }
 
     // 5. destinations anonymes
@@ -326,6 +378,27 @@ export class CardTable {
       this.clearIdentity(e);
       e.jitter = { dx: (Math.random() - 0.5) * 0.3, dz: (Math.random() - 0.5) * 0.2, yaw: (Math.random() - 0.5) * 0.5 };
       setZone(e, "discard", null, this.nextSlot("discard", null));
+    }
+    for (const [pid, def] of wonDeficit) {
+      for (let k = 0; k < def; k += 1) {
+        const e = this.takeFree(free, "won", pid);
+        if (!e) break;
+        this.clearIdentity(e);
+        e.jitter = { dx: (Math.random() - 0.5) * 0.03, dz: (Math.random() - 0.5) * 0.03, yaw: (Math.random() - 0.5) * 0.12 };
+        setZone(e, "won", pid, this.nextSlot("won", pid));
+      }
+    }
+    for (let k = 0; k < pickDeficit; k += 1) {
+      const e = this.takeFree(free, "pick", desired.pickOwner);
+      if (!e) break;
+      this.clearIdentity(e);
+      setZone(e, "pick", desired.pickOwner, this.nextSlot("pick", desired.pickOwner));
+    }
+    for (let k = 0; k < talonDeficit; k += 1) {
+      const e = this.takeFree(free, "talon", null);
+      if (!e) break;
+      this.clearIdentity(e);
+      setZone(e, "talon", null, this.nextSlot("talon", null));
     }
     for (const e of free) {
       this.clearIdentity(e);
@@ -385,7 +458,8 @@ export class CardTable {
       let dur = 0.6;
       let arc = 1.1;
       let sound = "flick";
-      if (to === "pile" || to === "table") { step = 0.14; dur = 0.55; arc = 0.9; sound = "flick"; }
+      if (to === "pile" || to === "table" || to === "trick") { step = 0.14; dur = 0.55; arc = 0.9; sound = "flick"; }
+      else if (to === "won") { step = 0.035; dur = 0.6; arc = 0.45; sound = "pickup"; }
       else if (to === "discard") { step = 0.025; dur = 0.55; arc = 0.5; sound = "pickup"; }
       else if (to === "reveal") { step = 0.16; dur = 0.7; arc = 0.5; sound = "flip"; }
       else if (to === "tray") { step = 0.09; dur = 0.75; arc = 1.2; sound = "flick"; }
@@ -402,17 +476,19 @@ export class CardTable {
   layoutAll() {
     const world = this.world;
     if (!world.dims) return;
-    const zones = { me: [], opp: new Map(), pile: [], reveal: [], tray: [], table: [], discard: [], deck: [], decor: [] };
+    const zones = { me: [], opp: new Map(), pile: [], reveal: [], tray: [], table: [], discard: [], deck: [], decor: [], trick: [], won: new Map(), talon: [], trump: [], pick: [], board: [], shown: [] };
     for (const e of this.entities) {
-      if (e.zone === "opp") {
-        if (!zones.opp.has(e.owner)) zones.opp.set(e.owner, []);
-        zones.opp.get(e.owner).push(e);
+      if (e.zone === "opp" || e.zone === "won") {
+        const m = zones[e.zone];
+        if (!m.has(e.owner)) m.set(e.owner, []);
+        m.get(e.owner).push(e);
       } else {
         (zones[e.zone] || zones.deck).push(e);
       }
     }
     Object.values(zones).forEach((z) => Array.isArray(z) && z.sort((a, b) => a.slot - b.slot));
     for (const list of zones.opp.values()) list.sort((a, b) => a.slot - b.slot);
+    for (const list of zones.won.values()) list.sort((a, b) => a.slot - b.slot);
 
     this.layoutHand(zones.me);
     for (const [pid, list] of zones.opp) this.layoutFan(pid, list);
@@ -423,6 +499,13 @@ export class CardTable {
     this.layoutDiscard(zones.discard);
     this.layoutDeck(zones.deck);
     this.layoutDecor(zones.decor);
+    this.layoutTrick(zones.trick);
+    for (const [pid, list] of zones.won) this.layoutWon(pid, list);
+    this.layoutTalon(zones.talon);
+    this.layoutTrump(zones.trump);
+    this.layoutPick(zones.pick);
+    this.layoutBoard(zones.board);
+    this.layoutShown(zones.shown);
     this.zones = zones;
   }
 
@@ -464,18 +547,22 @@ export class CardTable {
         if (selected) lift = cardH * liftMax;
         else if (pressed) lift = cardH * Math.min(0.12, liftMax);
         else if (this.hoverId === e.id) lift = cardH * 0.07;
-        // La carte monte le long de son propre axe (et non a la verticale) :
-        // ses bords restent alignes et elle ne deborde pas sur les voisines.
+        y += lift; // elevation purement verticale
         const rot = -u * spread * 2;
+        // Profondeur : chaque carte est nettement plus proche de la camera que
+        // sa voisine de gauche (et la rangee de devant plus proche que celle
+        // du fond). La position et la taille sont corrigees de la perspective,
+        // donc a l'ecran rien ne change, mais l'ordre d'affichage est garanti
+        // sur tous les telephones : une carte soulevee reste derriere ses
+        // voisines de droite et ne les masque jamais.
+        const k = r * per + i;
+        const d = hm.dist - k * 0.012;
+        const f = d / hm.dist;
         e.space = "camera";
-        // Cartes parfaitement face a la camera : l'ordre de profondeur ne
-        // depend que de la position dans la main, jamais de la hauteur.
-        // Une carte soulevee reste donc derriere sa voisine de droite et
-        // toutes les cartes restent touchables.
-        e.tPos.set(x - Math.sin(rot) * lift, y + Math.cos(rot) * lift, -hm.dist - rowFromFront * 0.03 + i * 0.0025);
+        e.tPos.set(x * f, y * f, -d);
         e.tQuat.setFromEuler(new THREE.Euler(0, 0, rot));
-        e.tScale = s;
-        e.emissive = 0.62;
+        e.tScale = s * f;
+        e.emissive = this.dimIds && this.dimIds.has(e.id) ? 0.12 : 0.62;
       });
     }
     // Hauteur occupee par la main (carte soulevee comprise), en fraction
@@ -661,6 +748,277 @@ export class CardTable {
     });
   }
 
+  // Angle du siege d'un joueur (0 = moi, en bas).
+  phiOf(pid) {
+    return this.seatPhi.has(pid) ? this.seatPhi.get(pid) : 0;
+  }
+
+  // Pli de l'Ascenseur : chaque carte est posee face visible sur le tapis,
+  // devant le joueur qui l'a jouee. La carte gagnante brille.
+  layoutTrick(list) {
+    const p = this.world.anchors.pile;
+    const fr = this.world.feltRadius;
+    list.forEach((e, k) => {
+      const phi = this.phiOf(e.owner);
+      const r = 0.6;
+      e.space = "world";
+      e.tPos.set(p.x + Math.sin(phi) * fr.x * r * 0.92 + e.jitter.dx * 0.5, 0.016 + k * 0.006, p.z + Math.cos(phi) * fr.z * r + e.jitter.dz * 0.5);
+      e.tQuat.copy(yawQuat(phi * 0.25 + e.jitter.yaw * 0.6)).multiply(Q_FACE_UP);
+      e.tScale = 0.82;
+      e.emissive = e.win ? 0.42 : 0.26;
+      e.glowTarget = e.win ? 0.95 : 0;
+      e.glowColor.set(e.win ? 0x7dffa8 : 0xffd35a);
+    });
+  }
+
+  // Plis remportes : petit tas face cachee devant chaque joueur, un pli sur
+  // deux croise pour qu'on puisse les compter d'un coup d'oeil.
+  wonAnchor(pid) {
+    const p = this.world.anchors.pile;
+    const fr = this.world.feltRadius;
+    if (!this.seatPhi.has(pid)) return V(p.x + fr.x * 0.86, 0, p.z + fr.z * 0.92);
+    const phi = this.seatPhi.get(pid);
+    const s = this.world.seatPoint(phi, 0.8);
+    // entre le tapis et l'eventail du joueur, un peu decale sur le cote
+    const c = V(p.x + Math.sin(phi) * fr.x * 0.98, 0, p.z + Math.cos(phi) * fr.z * 0.98);
+    return c.lerp(s, 0.62);
+  }
+
+  layoutWon(pid, list) {
+    const a = this.wonAnchor(pid);
+    const per = this.trickSize || 4;
+    list.forEach((e, k) => {
+      const t = Math.floor(k / per);
+      e.space = "world";
+      e.tPos.set(a.x + e.jitter.dx, 0.014 + k * 0.0042, a.z + e.jitter.dz);
+      e.tQuat.copy(yawQuat((t % 2 ? 0.55 : -0.1) + e.jitter.yaw)).multiply(Q_FACE_DOWN);
+      e.tScale = 0.62;
+      e.emissive = 0.12;
+      e.glowTarget = 0;
+    });
+  }
+
+  layoutTalon(list) {
+    const tray = this.world.tray;
+    if (!tray) return list.forEach((e) => this.layoutHidden(e));
+    const rot = yawQuat(tray.rotation.y);
+    list.forEach((e, k) => {
+      const local = V(-0.24 + Math.sin(k * 1.7) * 0.01, 0.07 + k * 0.0035, Math.cos(k * 2.1) * 0.01).applyQuaternion(rot);
+      e.space = "world";
+      e.tPos.copy(tray.position).add(local);
+      e.tQuat.copy(rot).multiply(yawQuat(0.05)).multiply(Q_FACE_DOWN);
+      e.tScale = 0.6;
+      e.emissive = 0.1;
+      e.glowTarget = 0;
+    });
+  }
+
+  layoutTrump(list) {
+    const tray = this.world.tray;
+    if (!tray) return list.forEach((e) => this.layoutHidden(e));
+    const rot = yawQuat(tray.rotation.y);
+    list.forEach((e) => {
+      const local = V(0.26, 0.09, 0.02).applyQuaternion(rot);
+      e.space = "world";
+      e.tPos.copy(tray.position).add(local);
+      e.tQuat.copy(rot).multiply(yawQuat(-0.12)).multiply(Q_FACE_UP);
+      e.tScale = 0.64;
+      e.emissive = 0.4;
+      e.glowTarget = 0.45;
+      e.glowColor.set(0xffd35a);
+    });
+  }
+
+  // Pouilleux : les cartes du voisin, tendues face cachee au-dessus de ma
+  // main ; je touche celle que je veux tirer.
+  layoutPick(list) {
+    const m = list.length;
+    if (!m) return;
+    const hm = this.world.handMetrics();
+    const portrait = this.world.camera.aspect < 0.9;
+    const cardH = hm.visH * (portrait ? 0.15 : 0.2);
+    const s = cardH / CARD_WORLD_H;
+    const cardW = CARD_WORLD_W * s;
+    const avail = hm.visW * 0.92;
+    const step = m > 1 ? Math.min(cardW * 1.08, (avail - cardW) / (m - 1)) : 0;
+    const baseY = hm.bottom + hm.visH * (portrait ? 0.44 : 0.42);
+    list.forEach((e, j) => {
+      const u = m > 1 ? j / (m - 1) - 0.5 : 0;
+      const hover = this.pickHover === j;
+      e.space = "camera";
+      e.tPos.set((j - (m - 1) / 2) * step, baseY - u * u * cardH * 0.25 + (hover ? cardH * 0.12 : 0), -hm.dist * 1.1 + j * 0.004);
+      e.tQuat.setFromEuler(new THREE.Euler(0, Math.PI, u * 0.25));
+      e.tScale = s * 1.1;
+      e.emissive = 0.3;
+      e.glowTarget = hover ? 0.9 : this.pickable ? 0.3 : 0;
+      e.glowColor.set(0xffd35a);
+    });
+  }
+
+  // Poker : les cartes communes alignees au centre du tapis.
+  layoutBoard(list) {
+    const p = this.world.anchors.pile;
+    list.forEach((e) => {
+      const i = e.slot;
+      e.space = "world";
+      // carte "fantome" (ce qui serait tombe) : un peu decalee, assombrie,
+      // halo bleute
+      e.tPos.set(p.x + (i - 2) * 0.68, 0.016 + i * 0.002, p.z + 0.05 + (e.ghost ? 0.2 : 0));
+      e.tQuat.copy(Q_FACE_UP);
+      e.tScale = e.ghost ? 0.9 : 0.98;
+      e.emissive = e.ghost ? 0.1 : e.win ? 0.45 : 0.28;
+      e.glowTarget = e.ghost ? 0.55 : e.win ? 0.95 : 0;
+      e.glowColor.set(e.ghost ? 0x8fb4ff : 0x7dffa8);
+    });
+  }
+
+  // Poker : a l'abattage, les cartes des adversaires retournees devant eux.
+  // Emprise au sol (rectangle aligne x/z) d'une carte a sa position cible.
+  static cardBox(pos, quat, scale, margin = 0) {
+    const hw = (CARD_WORLD_W / 2) * scale;
+    const hh = (CARD_WORLD_H / 2) * scale;
+    let minX = Infinity; let maxX = -Infinity; let minZ = Infinity; let maxZ = -Infinity;
+    for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+      const c = V(sx * hw, sy * hh, 0).applyQuaternion(quat);
+      minX = Math.min(minX, pos.x + c.x); maxX = Math.max(maxX, pos.x + c.x);
+      minZ = Math.min(minZ, pos.z + c.z); maxZ = Math.max(maxZ, pos.z + c.z);
+    }
+    return { minX: minX - margin, maxX: maxX + margin, minZ: minZ - margin, maxZ: maxZ + margin };
+  }
+
+  static boxOverlap(a, b) {
+    const w = Math.min(a.maxX, b.maxX) - Math.max(a.minX, b.minX);
+    const h = Math.min(a.maxZ, b.maxZ) - Math.max(a.minZ, b.minZ);
+    return w > 0 && h > 0 ? w * h : 0;
+  }
+
+  // Cartes montrees devant un joueur (poker, jeu devoile du Trou du cul au
+  // President). Elles se placent entre le centre et le joueur, en reculant
+  // vers lui tant qu'elles chevauchent le tableau ou d'autres cartes.
+  layoutShown(list) {
+    const p = this.world.anchors.pile;
+    const byOwner = new Map();
+    list.forEach((e) => {
+      if (!byOwner.has(e.owner)) byOwner.set(e.owner, []);
+      byOwner.get(e.owner).push(e);
+    });
+    // obstacles : tableau du poker, cartes posees, eventails des adversaires
+    const obstacles = [];
+    for (const e of this.entities) {
+      if (e.space !== "world" || !["board", "opp", "table", "trick", "pile"].includes(e.zone) || !(e.tScale > 0.05)) continue;
+      obstacles.push(CardTable.cardBox(e.tPos, e.tQuat, e.tScale, 0.04));
+    }
+    for (const [owner, cards] of byOwner) {
+      cards.sort((a, b) => (a.qj || 0) - (b.qj || 0));
+      const n = Math.max(cards.length, ...cards.map((e) => (e.qj || 0) + 1));
+      const phi = this.phiOf(owner);
+      const seat = this.world.seatPoint(phi, 0.8);
+      const side = V(Math.cos(phi), 0, -Math.sin(phi));
+      const step = n > 2 ? Math.min(0.4, 2.6 / n) : 0.52;
+      const mid = (n - 1) / 2;
+      // on cherche (distance vers le joueur, decalage lateral, taille) le
+      // placement qui ne chevauche rien, en restant le plus pres possible du
+      // placement naturel
+      const place = (t, shift = 0, scale = 0.8) => cards.map((e) => {
+        const j = e.qj || 0;
+        const c = V(p.x, 0, p.z).lerp(seat, t).addScaledVector(side, shift);
+        const off = (j - mid) * step * (scale / 0.8);
+        const pos = V(c.x + side.x * off, 0.03 + j * 0.004, c.z + side.z * off);
+        const quat = yawQuat(phi * 0.3 + (n > 2 ? 0 : (j - 0.5) * 0.18)).multiply(Q_FACE_UP);
+        return { e, pos, quat };
+      });
+      const overlapAt = (t, shift, scale) => {
+        let o = 0;
+        for (const q of place(t, shift, scale)) {
+          const box = CardTable.cardBox(q.pos, q.quat, scale);
+          for (const ob of obstacles) o += CardTable.boxOverlap(box, ob);
+        }
+        return o;
+      };
+      const t0 = n > 2 ? 0.55 : 0.62;
+      let best = { t: t0, shift: 0, scale: 0.8 };
+      let bestCost = overlapAt(t0, 0, 0.8) * 1000;
+      if (bestCost > 0) {
+        for (const scale of [0.8, 0.72, 0.64, 0.56]) {
+          for (let t = t0; t <= 0.97; t += 0.04) {
+            for (const shift of [0, 0.2, -0.2, 0.4, -0.4, 0.6, -0.6, 0.8, -0.8]) {
+              const cost = overlapAt(t, shift, scale) * 1000 + (0.8 - scale) * 3 + (t - t0) + Math.abs(shift) * 0.8;
+              if (cost < bestCost) {
+                bestCost = cost;
+                best = { t, shift, scale };
+              }
+            }
+          }
+        }
+      }
+      const scale = best.scale;
+      for (const q of place(best.t, best.shift, best.scale)) {
+        const e = q.e;
+        e.space = "world";
+        e.tPos.copy(q.pos);
+        e.tQuat.copy(q.quat);
+        e.tScale = scale;
+        e.emissive = e.win ? 0.45 : 0.3;
+        e.glowTarget = e.win ? 0.9 : 0;
+        e.glowColor.set(0x7dffa8);
+        obstacles.push(CardTable.cardBox(q.pos, q.quat, scale, 0.04));
+      }
+    }
+  }
+
+  // Place libre pour le jeton de tour, pres de base : ni sur une carte posee
+  // sur la table, ni sous la main du joueur, et toujours sur le tapis.
+  freeSpot(base, keep = null, r = 0.4, screenRects = []) {
+    const world = this.world;
+    const boxes = [];
+    for (const e of this.entities) {
+      if (e.space !== "world" || !(e.tScale > 0.05) || e.zone === "decor" || e.zone === "deck") continue;
+      boxes.push(CardTable.cardBox(e.tPos, e.tQuat, e.tScale));
+    }
+    const { ax, az } = world.dims || { ax: 3, az: 2 };
+    const handTopY = window.innerHeight * (1 - (this.handTopFrac || 0));
+    // penalite d'un emplacement : 0 = parfait
+    const cost = (pt) => {
+      let c = 0;
+      const e2 = (pt.x / ax) ** 2 + (pt.z / az) ** 2;
+      if (e2 > 0.7) c += 3 + (e2 - 0.7) * 10;
+      for (const b of boxes) {
+        const dx = Math.max(b.minX - pt.x, 0, pt.x - b.maxX);
+        const dz = Math.max(b.minZ - pt.z, 0, pt.z - b.maxZ);
+        if (dx * dx + dz * dz < r * r) { c += 5; break; }
+      }
+      const sc = world.toScreen(V(pt.x, 0.05, pt.z));
+      const edge = world.toScreen(V(pt.x, 0.05, pt.z + r));
+      if (edge.y > handTopY - 6 || sc.y > handTopY - 6) c += 10;
+      // boutons et bandeaux HTML par-dessus la table
+      const rad = Math.max(12, Math.hypot(edge.x - sc.x, edge.y - sc.y));
+      for (const q of screenRects) {
+        const dx = Math.max(q.left - sc.x, 0, sc.x - q.right);
+        const dy = Math.max(q.top - sc.y, 0, sc.y - q.bottom);
+        if (dx * dx + dy * dy < rad * rad) { c += 10; break; }
+      }
+      if (!sc.visible || sc.y < 0 || sc.x < 0 || sc.x > window.innerWidth) c += 20;
+      return c;
+    };
+    if (keep && keep.distanceTo(base) < 1.3 && cost(keep) === 0) return keep;
+    let best = base;
+    let bestC = cost(base);
+    if (bestC === 0) return base;
+    for (const rad of [0.3, 0.55, 0.8, 1.05, 1.3, 1.6, 1.9, 2.3]) {
+      for (let k = 0; k < 16; k += 1) {
+        const a = (k / 16) * Math.PI * 2;
+        const cand = V(base.x + Math.cos(a) * rad, 0, base.z + Math.sin(a) * rad);
+        const c = cost(cand) + rad * 3.5; // rester pres du joueur concerne
+        if (c < bestC) {
+          best = cand;
+          bestC = c;
+        }
+      }
+      if (bestC < rad * 3.5 + 0.5) return best;
+    }
+    return best;
+  }
+
   layoutHidden(e) {
     e.space = "world";
     e.tPos.set(0, -3, 0);
@@ -797,6 +1155,15 @@ export class CardTable {
     this.layoutAll();
   }
 
+  // Cartes de ma main assombries (ex : celles qu'on n'a pas le droit de jouer).
+  setDimmed(ids) {
+    const next = new Set(ids || []);
+    const same = this.dimIds && this.dimIds.size === next.size && [...next].every((id) => this.dimIds.has(id));
+    if (same) return;
+    this.dimIds = next;
+    this.layoutAll();
+  }
+
   setHandOrder(ids) {
     const index = new Map(ids.map((id, i) => [id, i]));
     for (const e of this.entities) if (e.zone === "me" && index.has(e.id)) e.slot = index.get(e.id);
@@ -874,8 +1241,37 @@ export class CardTable {
     return dx * dx + dy * dy <= 1;
   }
 
+  // Carte du voisin visee (Pouilleux) : renvoie son rang dans la rangee.
+  pickPickZone() {
+    const list = this.entities.filter((e) => e.zone === "pick" && !e.flight);
+    if (!list.length) return null;
+    this.raycaster.setFromCamera(this.pointerNdc, this.world.camera);
+    const hits = this.raycaster.intersectObjects(list.map((e) => e.group), true);
+    if (!hits.length) return null;
+    let o = hits[0].object;
+    while (o && !list.some((e) => e.group === o)) o = o.parent;
+    const e = list.find((x) => x.group === o);
+    return e ? e.slot : null;
+  }
+
+  setPickable(on) {
+    this.pickable = !!on;
+    if (!on) this.pickHover = null;
+    this.layoutAll();
+  }
+
   onDown(ev) {
     this.setNdc(ev);
+    if (this.pickable && this.hooks.onPick) {
+      const slot = this.pickPickZone();
+      if (slot !== null) {
+        ev.preventDefault();
+        this.pickHover = slot;
+        this.layoutAll();
+        this.hooks.onPick(slot);
+        return;
+      }
+    }
     if (this.interactive) {
       const e = this.pickHand();
       if (e) {
@@ -901,6 +1297,15 @@ export class CardTable {
     if (this.drag) {
       this.updateDrag();
       return;
+    }
+    if (ev.pointerType === "mouse" && this.pickable) {
+      const slot = this.pickPickZone();
+      if (slot !== this.pickHover) {
+        this.pickHover = slot;
+        this.layoutAll();
+      }
+      this.world.canvas.style.cursor = slot !== null ? "pointer" : "";
+      if (slot !== null) return;
     }
     if (ev.pointerType === "mouse" && this.interactive) {
       const e = this.pickHand();
@@ -984,7 +1389,10 @@ export class CardTable {
       const e = this.press.entity;
       this.press = null;
       if (this.selected.has(e.id)) this.selected.delete(e.id);
-      else if (this.selected.size < this.maxSelect) this.selected.add(e.id);
+      else if (this.maxSelect === 1) {
+        this.selected.clear();
+        this.selected.add(e.id);
+      } else if (this.selected.size < this.maxSelect) this.selected.add(e.id);
       else if (this.hooks.onSelectLimit) this.hooks.onSelectLimit();
       if (this.hooks.onSelectionChange) this.hooks.onSelectionChange(this.getSelected());
       this.layoutAll();
