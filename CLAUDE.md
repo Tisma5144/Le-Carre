@@ -39,6 +39,9 @@ en commentaire en tête de chaque moteur `server/games/*.js`.
   dans `public/js/games/*.js` (desired, refresh, onEvent, legality,
   commitPlay, playButton, chips, trayHtml, historyHtml, rulesHtml,
   renderLobbyOptions…).
+- Jetons de poker en 3D : `public/js/scene/chips.js` (`ChipLayer` : piles de
+  mise, pot, vols mise → pile, piles → pot, pot → gagnant), piloté par
+  `syncChips` dans `public/js/games/poker.js`.
 - Cartes entièrement dessinées en canvas : `public/js/cards/cardArt.js`
   (figures, As, atouts et Excuse du Tarot, dos). Aperçus : `/dev/cards.html`,
   `/dev/tarot.html`.
@@ -76,12 +79,7 @@ table, world, hud pour les scripts.
 
 ## À faire / pistes
 
-- Ménage du dépôt : supprimer les fichiers en double laissés à la racine par
-  les anciens téléversements manuels (`ascenseur (3).js`, `poker (5).js`,
-  `simulate-*.js` à la racine, dossier `download`, copies à plat de fichiers
-  de `public/` et `server/`, etc.) et les vieux `public/app.js`,
-  `public/style.css`. Le vrai code est dans `server/`, `public/`, `test/`.
-- Poker : jetons 3D sur la table, minuteur de parole optionnel.
+- Poker : minuteur de parole optionnel.
 - Jeux personnalisés (tuile « bientôt » dans le menu).
 - Si Render gratuit gêne (mise en veille, tables perdues) : plan payant ou
   sauvegarde des tables.

@@ -3,6 +3,7 @@
 // jetons sur les etiquettes, abattage avec les meilleures cartes en lumiere.
 
 import { createCardFaceCanvas } from "../cards/cardArt.js";
+import { ChipLayer } from "../scene/chips.js";
 
 const $ = (id) => document.getElementById(id);
 const STREET = { preflop: "Pré-flop", flop: "Flop", turn: "Turn", river: "River" };
@@ -243,7 +244,82 @@ export default {
       statusText: !o.connected ? "hors ligne" : status(o) + (o.handName ? ` · ${o.handName}` : "")
     })));
 
+    this.syncChips(v, app);
     this.updateEnd(v, app);
+  },
+
+  // Jetons 3D : pile de mise devant chaque joueur, pot au centre. On compare
+  // avec l'etat precedent pour animer : mise (du joueur vers sa pile), fin de
+  // tour (les piles glissent au pot), gains (le pot part chez le gagnant).
+  syncChips(v, app) {
+    const { world, S } = app;
+    if (!app.chips) app.chips = new ChipLayer(world);
+    const C = app.chips;
+    const me = S.me.id;
+    const fr = world.feltRadius;
+    const p = world.anchors.pile;
+    const at = (x, z) => p.clone().set(p.x + x, 0.012, p.z + z);
+    const potPos = at(0, fr.z * 0.62);
+    // ou poser la mise d'un joueur (sur le tapis, jamais sur les cartes communes)
+    const betPos = (id) => {
+      if (id === me) return at(fr.x * 0.5, fr.z * 0.64);
+      if (!S.seatPhi.has(id)) return null;
+      const phi = S.seatPhi.get(id);
+      // joueurs de cote : sous la rangee de cartes ; joueurs du haut :
+      // resserres vers le milieu (hors des etiquettes des voisins)
+      const side = Math.abs(Math.cos(phi)) < 0.45;
+      const x = Math.sin(phi) * fr.x * (side ? 0.78 : 0.55);
+      const z = side ? (Math.cos(phi) > -0.1 ? 0.95 : -0.8) : Math.cos(phi) * fr.z * 0.55;
+      return at(x, z);
+    };
+    // d'ou partent les jetons d'un joueur (et ou arrivent ses gains)
+    const seatPos = (id) => {
+      if (id === me || !S.seatPhi.has(id)) return at(0, fr.z * 1.12);
+      const phi = S.seatPhi.get(id);
+      return at(Math.sin(phi) * fr.x * 1.05, Math.cos(phi) * fr.z * 1.05);
+    };
+    const hand = `${v.uid}-${v.handNumber}`;
+    const bets = new Map(v.seats.filter((s) => s.bet > 0 && betPos(s.id)).map((s) => [s.id, s.bet]));
+    let inBets = 0;
+    for (const a of bets.values()) inBets += a;
+    const center = Math.max(0, v.pot - inBets);
+    const prev = this.chipPrev;
+    const cur = { hand, street: v.street, bets, center, paid: false };
+    this.chipPrev = cur;
+
+    // gains : une seule fois par main
+    if (v.phase === "showdown" && v.results) {
+      cur.paid = true;
+      if (prev && prev.hand === hand && !prev.paid) {
+        const won = new Map();
+        for (const w of v.results.winners) won.set(w.id, (won.get(w.id) || 0) + w.amount);
+        C.payout([...won].map(([id, amount]) => ({ amount, pos: seatPos(id) })));
+      } else if (!prev || prev.hand !== hand || prev.paid) C.clear();
+      return;
+    }
+    if (v.phase === "finished" || v.phase === "waiting") {
+      C.clear();
+      return;
+    }
+    // premiere vue (arrivee en cours de main) : tout en place, sans animation
+    if (!prev) {
+      C.clear();
+      for (const [id, a] of bets) C.setPile("bet:" + id, a, betPos(id));
+      C.setPile("pot", center, potPos);
+      return;
+    }
+    // nouvelle main : table vide, les blindes arrivent
+    const fresh = prev.hand !== hand;
+    if (fresh) C.clear();
+    const before = fresh ? new Map() : prev.bets;
+    // fin de tour : les mises partent au pot
+    const gone = [...before.keys()].filter((id) => (bets.get(id) || 0) < before.get(id));
+    if (gone.length) C.collect(gone.map((id) => "bet:" + id), "pot", center, potPos);
+    else C.setPile("pot", center, potPos);
+    for (const [id, a] of bets) {
+      if (a > (gone.includes(id) ? 0 : before.get(id) || 0)) C.bet("bet:" + id, a, betPos(id), seatPos(id));
+      else C.setPile("bet:" + id, a, betPos(id));
+    }
   },
 
   // Fin de main : qui a gagne (en clair), montrer ses cartes, voir le
@@ -454,7 +530,9 @@ export default {
     }, 1200);
   },
 
-  hideOverlays() {
+  hideOverlays(app) {
+    if (app && app.chips) app.chips.clear();
+    this.chipPrev = null;
     const bar = $("action-bar");
     bar.classList.add("hidden");
     bar.classList.remove("result");
