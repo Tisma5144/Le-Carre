@@ -84,6 +84,14 @@
     <div class="chalk-small lobby-sub lobby-players-title">Autour de la table</div>
     <ul id="lobby-players" class="chalk-list"></ul>
     <button id="btn-add-bot" class="btn wood small hidden" data-no-fs>🤖 Ajouter un robot</button>
+    <div id="bot-level" class="bot-level hidden" role="radiogroup" aria-label="Niveau des robots">
+      <span class="bot-level-label">Niveau des robots</span>
+      <div class="seg">
+        <button data-level="facile" data-no-fs>😴 Facile</button>
+        <button data-level="normal" data-no-fs>🙂 Normal</button>
+        <button data-level="fort" data-no-fs>😈 Fort</button>
+      </div>
+    </div>
     <p id="lobby-status" class="chalk-small"></p>
     <button id="btn-start" class="btn brass hidden">Distribuer les cartes</button>
     <button id="btn-leave" class="text-link">Quitter la table</button>
@@ -177,6 +185,7 @@
   <div class="panel wood-panel end-panel">
     <div id="end-title" class="end-title">Fin de la partie</div>
     <ol id="end-list" class="end-list"></ol>
+    <div id="end-cards" class="end-cards hidden"><div class="end-cards-label"></div><div class="end-cards-row"></div></div>
     <button id="btn-again" class="btn brass hidden">🔁 Revanche !</button>
     <button id="btn-end-alt" class="btn wood hidden">🎲 Changer de jeu</button>
     <button id="btn-end-extra" class="btn wood small hidden">📊 Voir les scores</button>

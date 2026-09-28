@@ -48,6 +48,8 @@ illustrées (figures dessinées, As ornés, dos au masque vénitien).
 - Échange : le Trou du cul donne ses 2 meilleures cartes au Président qui en
   rend 2 au choix ; 1 carte entre Vice-trou et Vice-président (dès 4 joueurs).
 - Points : Président +2, Vice +1, Neutre 0, Vice-trou −1, Trou du cul −2.
+- Fin de manche : les cartes restées dans la main du dernier joueur (le Trou
+  du cul) sont retournées sur la table et affichées dans le récapitulatif.
 
 ## Règles de l'Ascenseur (règles maison)
 
@@ -88,6 +90,14 @@ illustrées (figures dessinées, As ornés, dos au masque vénitien).
 - Meilleure main de 5 cartes parmi 7 ; pots annexes et partages gérés.
 - Plus de jetons : éliminé, ou recave possible (réglage du patron, qui
   arrête alors la partie quand il veut).
+- Fin de main : un panneau dit clairement qui gagne, combien et avec quelle
+  main. Le prochain donneur a le bouton « ▶ Main suivante » (le patron peut
+  lancer à sa place, et tout le monde après 30 s). En attendant, chacun peut
+  montrer ses cartes ou dévoiler les cartes qui seraient tombées.
+- Un joueur couché garde ses cartes sous les yeux (assombries).
+- Tapis de plusieurs joueurs : les mains sont retournées, le tableau tombe
+  carte par carte au ralenti (battements de cœur, éclairs) avec les chances
+  de gain de chacun, recalculées à chaque carte.
 
 ## Ce que fait l'interface
 
@@ -97,10 +107,15 @@ illustrées (figures dessinées, As ornés, dos au masque vénitien).
   chez tout le monde.
 - Robots : dans le salon, le patron peut ajouter des robots (« 🤖 Ajouter un
   robot ») pour compléter la table, et les renvoyer (✕). Ils savent jouer aux
-  trois jeux (`server/bots.js`).
+  cinq jeux (`server/bots.js`) et jouent à un rythme posé pour qu'on suive.
+- Niveau des robots (salon) : 😴 Facile (joue souvent au hasard), 🙂 Normal,
+  😈 Fort (calcule les probabilités au Menteur, simule les manches pour
+  annoncer à l'Ascenseur, simule les tableaux au poker, garde ses 2 au
+  Président). Le Pouilleux reste un jeu de pur hasard.
 - Règles consultables depuis le salon (« 📜 Lire les règles »).
 - Quitter la table en pleine partie : un robot prend la place du joueur parti
-  (il quitte vraiment la table au retour au salon).
+  (il quitte vraiment la table au retour au salon). Un badge « 🤖 robot »
+  s'affiche à côté de son nom et les autres sont prévenus.
 - Numéro de version affiché en bas de l'accueil et du salon (`/version.json`).
 - Ascenseur : pendant une manche, l'historique ne montre que le dernier pli ;
   l'onglet Scores affiche un graphique de l'évolution des scores et le

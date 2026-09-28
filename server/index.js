@@ -4,7 +4,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 
 const { RoomManager } = require("./rooms");
-const { botActions, BOT_NAMES } = require("./bots");
+const { botActions, BOT_NAMES, LEVELS: BOT_LEVELS } = require("./bots");
 const menteur = require("./games/menteur");
 const president = require("./games/president");
 const ascenseur = require("./games/ascenseur");
@@ -52,13 +52,15 @@ function roomSummary(room) {
     status: room.status,
     gameType: room.gameType,
     options: room.options || {},
+    botLevel: room.botLevel || "normal",
     hostId: room.hostId,
     players: room.order.map((id) => ({
       id,
       name: room.players[id].name,
       connected: !!room.players[id].connected,
       isHost: room.players[id].isHost,
-      isBot: !!room.players[id].isBot
+      isBot: !!room.players[id].isBot,
+      leftGame: !!room.players[id].leftGame
     }))
   };
 }
@@ -129,19 +131,24 @@ function scheduleBots(room) {
   const game = GAMES[room.gameType];
   const uid = room.game.uid;
   for (const botId of bots) {
-    const first = botActions(room.gameType, room.game, botId)[0];
+    // un joueur absent est remplace par un robot "normal"
+    const level = room.players[botId].isBot && !room.players[botId].leftGame ? room.botLevel : "normal";
+    const first = botActions(room.gameType, room.game, botId, level)[0];
     if (!first) continue;
-    let delay = 900 + Math.random() * 900;
-    if (first.type === "pickup") delay = 1800;
-    else if (first.type === "accuse") delay = 1300;
-    else if (first.type === "give") delay = 1600;
+    // rythme volontairement pose pour que les humains suivent le jeu
+    let delay = 1700 + Math.random() * 1200;
+    if (first.type === "pickup") delay = 2600;
+    else if (first.type === "accuse") delay = 2100;
+    else if (first.type === "give") delay = 2500;
+    else if (first.type === "next_hand") delay = 6500;
+    else if (first.type === "rebuy") delay = 1500;
     if (!room.players[botId].isBot) delay = 20000;
     delay *= BOT_SPEED;
     room.botTimer = setTimeout(() => {
       if (!room.game || room.game.uid !== uid || room.status !== "playing") return;
       const p = room.players[botId];
       if (!p || (!p.isBot && p.connected)) return scheduleBots(room); // il est revenu
-      const actions = botActions(room.gameType, room.game, botId);
+      const actions = botActions(room.gameType, room.game, botId, level);
       if (!actions.length) return scheduleBots(room);
       for (const action of actions) {
         const res = game.applyAction(room.game, botId, action, { isHost: false });
@@ -299,6 +306,18 @@ io.on("connection", (socket) => {
   });
 
   // Reglages du jeu choisis par le patron (ex : manches de l'Ascenseur).
+  // Niveau des robots (le patron peut le changer a tout moment)
+  socket.on("room:setBotLevel", ({ level } = {}, ack) => {
+    const link = rooms.getBySocket(socket.id);
+    if (!link) return ack && ack({ ok: false, error: "Salon introuvable." });
+    const { room, playerId } = link;
+    if (room.hostId !== playerId) return ack && ack({ ok: false, error: "Seul le patron règle les robots." });
+    if (!BOT_LEVELS.includes(level)) return ack && ack({ ok: false, error: "Niveau inconnu." });
+    room.botLevel = level;
+    ack && ack({ ok: true });
+    broadcastRoom(room);
+  });
+
   socket.on("room:setOptions", ({ options }, ack) => {
     const link = rooms.getBySocket(socket.id);
     if (!link) return ack && ack({ ok: false, error: "Salon introuvable." });
@@ -414,6 +433,9 @@ io.on("connection", (socket) => {
   socket.on("game:bet", handleGameAction("bet", ["kind", "amount"]));
   socket.on("game:rebuy", handleGameAction("rebuy", []));
   socket.on("game:endGame", handleGameAction("end_game", []));
+  socket.on("game:nextHand", handleGameAction("next_hand", []));
+  socket.on("game:revealBoard", handleGameAction("reveal_board", []));
+  socket.on("game:showCards", handleGameAction("show_cards", []));
 
   // Historique complet a la demande (bouton Historique) : evite d'envoyer
   // des centaines d'evenements a chaque coup.

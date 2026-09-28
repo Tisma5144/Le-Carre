@@ -158,12 +158,25 @@ function isConnected(id) {
 function onState({ room, game }) {
   // on vient de quitter la table : on ignore les derniers messages en vol
   if (S.leaving) return;
+  noticeLeavers(S.room, room);
   S.room = room;
   S.game = game;
   if (!room) return showHome();
   saveSession();
   if (room.status === "lobby" || !game) showLobby();
   else showGame();
+}
+
+// Joueurs partis en cours de partie (remplaces par un robot) : badge a cote
+// de leur nom et petit message pour les autres.
+function noticeLeavers(prev, room) {
+  const ids = new Set(room && room.status !== "lobby" ? room.players.filter((p) => p.leftGame).map((p) => p.id) : []);
+  if (prev && room && prev.code === room.code && room.status !== "lobby") {
+    const before = new Set(prev.players.filter((p) => p.leftGame).map((p) => p.id));
+    const fresh = room.players.filter((p) => p.leftGame && !before.has(p.id) && p.id !== S.me.id);
+    if (fresh.length) hud.toast(`${fresh.map((p) => p.name).join(", ")} a quitté la table : un robot joue à sa place 🤖`, 3600);
+  }
+  hud.leftIds = ids;
 }
 
 function leaveGameUi() {
@@ -321,7 +334,7 @@ function refreshGameUi() {
   if (!dealing && playing && g.currentTurn) {
     const pos = g.currentTurn === S.me.id ? world.anchors.myToken : S.seatPhi.has(g.currentTurn) ? world.seatPoint(S.seatPhi.get(g.currentTurn), 0.5) : null;
     if (pos) world.moveTokenTo(pos);
-  } else if (["finished", "round_end", "exchange", "showdown", "waiting"].includes(g.phase)) {
+  } else if (["finished", "round_end", "exchange", "showdown", "waiting", "runout"].includes(g.phase)) {
     world.hideToken();
   }
   const ring = myTurn && (!A.showRing || A.showRing(g));
@@ -434,6 +447,12 @@ function bindUi() {
   });
 
   $("btn-start").addEventListener("click", () => app.emit("room:start", {}));
+  for (const b of document.querySelectorAll("#bot-level button")) {
+    b.addEventListener("click", () => {
+      sfx.play("select");
+      app.emit("room:setBotLevel", { level: b.dataset.level });
+    });
+  }
   $("btn-add-bot").addEventListener("click", () => {
     sfx.play("select");
     app.emit("room:addBot", {});
@@ -724,6 +743,7 @@ async function boot() {
     sfx,
     get socket() { return socket; },
     who: (id) => (id === S.me.id ? "me" : id),
+    playerName,
     shake() {
       document.body.classList.remove("shake");
       void document.body.offsetWidth;

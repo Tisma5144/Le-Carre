@@ -300,7 +300,7 @@ export class CardTable {
     desired.table.forEach((t, i) => knownDest.push({ zone: "table", card: t.card, slot: i, quad: t.play, j: t.j, owner: t.owner, size: t.size }));
     desired.trick.forEach((t, i) => knownDest.push({ zone: "trick", card: t.card, slot: i, owner: t.owner, win: !!t.win, keepOwner: true }));
     desired.trump.forEach((c, i) => knownDest.push({ zone: "trump", card: c, slot: i }));
-    desired.board.forEach((b, i) => knownDest.push({ zone: "board", card: b.card, slot: i, win: !!b.win }));
+    desired.board.forEach((b, i) => knownDest.push({ zone: "board", card: b.card, slot: i, win: !!b.win, ghost: !!b.ghost }));
     desired.shown.forEach((b, i) => knownDest.push({ zone: "shown", card: b.card, slot: i, owner: b.owner, j: b.j, win: !!b.win, keepOwner: true }));
     const pendingKnown = [];
     for (const d of knownDest) {
@@ -308,6 +308,8 @@ export class CardTable {
       if (e && e.zone === d.zone && !assigned.has(e)) {
         e.slot = d.slot;
         e.win = !!d.win;
+      e.ghost = !!d.ghost;
+        e.ghost = !!d.ghost;
         e.quad = d.quad || 0;
         e.qj = d.j || 0;
         e.qsize = d.size || 1;
@@ -859,27 +861,36 @@ export class CardTable {
     list.forEach((e) => {
       const i = e.slot;
       e.space = "world";
-      e.tPos.set(p.x + (i - 2) * 0.68, 0.016 + i * 0.002, p.z + 0.05);
+      // carte "fantome" (ce qui serait tombe) : un peu decalee, assombrie,
+      // halo bleute
+      e.tPos.set(p.x + (i - 2) * 0.68, 0.016 + i * 0.002, p.z + 0.05 + (e.ghost ? 0.2 : 0));
       e.tQuat.copy(Q_FACE_UP);
-      e.tScale = 0.98;
-      e.emissive = e.win ? 0.45 : 0.28;
-      e.glowTarget = e.win ? 0.95 : 0;
-      e.glowColor.set(0x7dffa8);
+      e.tScale = e.ghost ? 0.9 : 0.98;
+      e.emissive = e.ghost ? 0.1 : e.win ? 0.45 : 0.28;
+      e.glowTarget = e.ghost ? 0.55 : e.win ? 0.95 : 0;
+      e.glowColor.set(e.ghost ? 0x8fb4ff : 0x7dffa8);
     });
   }
 
   // Poker : a l'abattage, les cartes des adversaires retournees devant eux.
   layoutShown(list) {
     const p = this.world.anchors.pile;
+    // nombre de cartes montrees par joueur (2 au poker, toute une main pour
+    // le jeu devoile du Trou du cul au President)
+    const per = new Map();
+    list.forEach((e) => per.set(e.owner, Math.max(per.get(e.owner) || 0, (e.qj || 0) + 1)));
     list.forEach((e) => {
       const phi = this.phiOf(e.owner);
       const seat = this.world.seatPoint(phi, 0.8);
-      const c = V(p.x, 0, p.z).lerp(seat, 0.62);
+      const n = per.get(e.owner) || 1;
+      const c = V(p.x, 0, p.z).lerp(seat, n > 2 ? 0.55 : 0.62);
       const side = V(Math.cos(phi), 0, -Math.sin(phi));
-      const off = ((e.qj || 0) - 0.5) * 0.52;
+      const step = n > 2 ? Math.min(0.4, 2.6 / n) : 0.52;
+      const mid = (n - 1) / 2;
+      const off = ((e.qj || 0) - mid) * step;
       e.space = "world";
       e.tPos.set(c.x + side.x * off, 0.03 + (e.qj || 0) * 0.004, c.z + side.z * off);
-      e.tQuat.copy(yawQuat(phi * 0.3 + ((e.qj || 0) - 0.5) * 0.18)).multiply(Q_FACE_UP);
+      e.tQuat.copy(yawQuat(phi * 0.3 + (n > 2 ? 0 : ((e.qj || 0) - 0.5) * 0.18))).multiply(Q_FACE_UP);
       e.tScale = 0.8;
       e.emissive = e.win ? 0.45 : 0.3;
       e.glowTarget = e.win ? 0.9 : 0;

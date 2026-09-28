@@ -72,6 +72,16 @@ for (let game = 0; game < 60; game += 1) {
       const ranking = state.lastRanking;
       assert.strictEqual(ranking.length, n, "classement complet");
       assert.strictEqual(new Set(ranking.map((r) => r.id)).size, n);
+      // le jeu restant du Trou du cul est devoile a tout le monde
+      const holders = state.seatOrder.filter((id) => state.hands[id].length);
+      assert.ok(holders.length <= 1, "un seul joueur garde des cartes");
+      const trou = holders[0] || ranking[ranking.length - 1].id;
+      const view = president.getViewForPlayer(state, ranking[0].id, Object.fromEntries(state.seatOrder.map((id) => [id, { name: id }])));
+      if (state.hands[trou].length) {
+        assert.ok(view.trouReveal && view.trouReveal.id === trou, "jeu du trou devoile");
+        assert.strictEqual(view.trouReveal.cards.length, state.hands[trou].length);
+        stats.trouReveals = (stats.trouReveals || 0) + 1;
+      }
       if (state.round === 4) break;
       const res = president.applyAction(state, host, { type: "next_round" }, { isHost: true });
       assert.ok(res.ok, res.error);

@@ -227,6 +227,10 @@ function checkRoundEnd(state) {
     points: ROLE_POINTS[roles[i]],
     onTwo: state.disqualified.includes(id)
   }));
+  // on devoile le jeu du dernier joueur (le Trou du cul, sauf si d'autres
+  // ont fini sur un 2) : les cartes qui lui sont restees en main
+  const lastId = active.length === 1 ? active[0] : ranking[ranking.length - 1];
+  state.trouReveal = lastId && (state.hands[lastId] || []).length ? { id: lastId, cards: state.hands[lastId].slice() } : null;
   state.discardCount += state.trick.reduce((s, p) => s + p.cards.length, 0);
   state.trick = [];
   state.phase = "round_end";
@@ -402,6 +406,9 @@ function getViewForPlayer(state, playerId, players) {
     roles: state.roles,
     roleLabels: ROLE_LABELS,
     scores: state.seatOrder.map((id) => ({ id, name: name(id), score: state.scores[id] || 0 })),
+    trouReveal: state.phase === "round_end" && state.trouReveal
+      ? { id: state.trouReveal.id, name: name(state.trouReveal.id), isTrou: state.roles[state.trouReveal.id] === "trou", cards: state.trouReveal.cards.map(cardPublicView) }
+      : null,
     ranking: state.lastRanking ? state.lastRanking.map((r) => ({ ...r, name: name(r.id), label: ROLE_LABELS[r.role] })) : null,
     finishedOrder: state.finishOrder.concat(state.disqualified).map((id) => ({ id, name: name(id) })),
     exchange,

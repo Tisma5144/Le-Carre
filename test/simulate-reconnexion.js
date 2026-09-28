@@ -81,6 +81,7 @@ const emit = (c, ev, data) => new Promise((r) => c.s.emit(ev, data || {}, r));
     const n3 = bob2.count;
     const bobNow = host.last.room.players.find((p) => p.id === joined.playerId);
     assert.ok(bobNow && bobNow.isBot, "un robot a pris sa place");
+    assert.ok(bobNow.leftGame, "les autres voient qu'il est parti (badge robot)");
     await emit(host, "room:playAgain", {});
     await sleep(300);
     assert.strictEqual(bob2.count, n3, "le joueur parti ne recoit plus la partie");

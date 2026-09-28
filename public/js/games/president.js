@@ -57,7 +57,14 @@ export default {
     const opp = new Map(v.opponents.map((o) => [o.id, o.cardCount]));
     const table = [];
     v.trick.forEach((play, p) => play.cards.forEach((card, j) => table.push({ card, play: p, j, size: play.cards.length, owner: play.playerId })));
-    return { me, opp, table, discard: v.discardCount };
+    // fin de manche : le jeu du Trou du cul est retourne devant lui
+    const shown = [];
+    const tr = v.trouReveal;
+    if (tr && opp.has(tr.id)) {
+      tr.cards.forEach((card, j) => shown.push({ card, owner: tr.id, j }));
+      opp.set(tr.id, 0);
+    }
+    return { me, opp, table, discard: v.discardCount, shown };
   },
 
   turnBanner: (v) => (v.trick.length === 0 ? "À toi d'ouvrir !" : "À toi de jouer !"),
@@ -200,7 +207,8 @@ export default {
     } else if (v.phase === "exchange") {
       hud.setAnnounce({ label: `Manche ${v.round}`, value: "Échange des cartes", sub: "Président ↔ Trou du cul", rank: null, key: "ex" + v.round });
     } else if (v.phase === "round_end") {
-      hud.setAnnounce({ label: `Manche ${v.round}`, value: "Terminée !", sub: "", rank: null, key: "end" + v.round });
+      const tr = v.trouReveal;
+      hud.setAnnounce({ label: `Manche ${v.round}`, value: "Terminée !", sub: tr ? `Le jeu de ${tr.id === S.me.id ? "toi" : tr.name} est dévoilé 🕳️` : "", rank: null, key: "end" + v.round + (tr ? "t" : "") });
     } else if (v.top) {
       hud.setAnnounce({
         label: "À battre",
@@ -311,16 +319,18 @@ export default {
       }));
       const isHost = S.room.hostId === S.me.id;
       const leader = v.scores.slice().sort((a, b) => b.score - a.score)[0];
+      const tr = v.trouReveal;
       hud.showEnd({
         key,
         title: `Fin de la manche ${v.round}`,
         entries,
+        cards: tr ? { label: tr.id === S.me.id ? `${tr.isTrou ? "🕳️ " : ""}Les cartes qu'il te restait` : `${tr.isTrou ? "🕳️ Le jeu du Trou du cul" : "Les cartes qui restaient"} (${tr.name})`, list: tr.cards } : null,
         primary: isHost ? { label: "▶ Manche suivante", onClick: () => app.emit("game:nextRound", {}) } : null,
         secondary: isHost ? { label: "🎲 Changer de jeu", onClick: () => app.emit("room:playAgain", {}) } : null,
         wait: isHost ? `En tête : ${leader.name} (${leader.score} pts)` : `En tête : ${leader.name} (${leader.score} pts). Le patron lance la manche suivante…`,
         onLeave: app.leaveTable
       });
-    }, 1400);
+    }, v.trouReveal ? 3200 : 1400);
   },
 
   hideOverlays() {

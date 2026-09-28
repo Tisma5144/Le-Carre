@@ -119,6 +119,15 @@ export class Hud {
     const n = room.players.length;
     $("btn-start").classList.toggle("hidden", !isHost);
     $("btn-add-bot").classList.toggle("hidden", !isHost || n >= 8);
+    // niveau des robots : reglable par le patron, affiche aux autres s'il y a des robots
+    const hasBots = room.players.some((p) => p.isBot && !p.leftGame);
+    const lvl = $("bot-level");
+    lvl.classList.toggle("hidden", !isHost && !hasBots);
+    lvl.classList.toggle("readonly", !isHost);
+    for (const b of lvl.querySelectorAll("button")) {
+      b.classList.toggle("on", b.dataset.level === (room.botLevel || "normal"));
+      b.disabled = !isHost;
+    }
     $("btn-start").disabled = n < minPlayers;
     $("lobby-status").textContent = isHost
       ? n < minPlayers ? `Il faut au moins ${minPlayers} joueurs (${n}/${minPlayers}) : invite tes potes ou ajoute des robots !` : `${n} joueurs autour de la table. On y va ?`
@@ -158,7 +167,7 @@ export class Hud {
       if (!el) {
         el = document.createElement("div");
         el.className = "plate";
-        el.innerHTML = `<div class="bubble"></div><div class="plate-inner"><div class="avatar"></div><span class="plate-name"></span><span class="plate-count"></span></div><div class="plate-status"></div>`;
+        el.innerHTML = `<div class="bubble"></div><div class="plate-inner"><div class="avatar"></div><span class="plate-name"></span><span class="plate-left" title="Parti, remplacé par un robot">🤖 robot</span><span class="plate-count"></span></div><div class="plate-status"></div>`;
         root.appendChild(el);
         this.plates.set(p.id, el);
       }
@@ -166,6 +175,8 @@ export class Hud {
       av.textContent = (p.name || "?").trim().charAt(0).toUpperCase();
       av.style.background = avatarColor(p.name || "?");
       el.querySelector(".plate-name").textContent = p.name;
+      // joueur parti en pleine partie : un robot joue a sa place
+      el.classList.toggle("left", !!(this.leftIds && this.leftIds.has(p.id)));
       const count = el.querySelector(".plate-count");
       count.textContent = p.count === undefined ? "" : String(p.count);
       count.dataset.icon = p.countIcon || "";
@@ -316,10 +327,11 @@ export class Hud {
     h.classList.toggle("my-turn", !!myTurn);
   }
 
-  showTurnBanner(text) {
+  showTurnBanner(text, variant = "") {
     const b = $("turn-banner");
     $("turn-banner-text").textContent = text;
-    b.classList.remove("show");
+    b.classList.remove("show", "gold", "allin");
+    if (variant) b.classList.add(variant);
     void b.offsetWidth;
     b.classList.add("show");
   }
@@ -441,7 +453,7 @@ export class Hud {
   // ------------------------------------------------------------ fin
 
   // entries : [{ medal, name, me, title, extra }]
-  showEnd({ title, entries, primary, secondary, extra, wait, onLeave, key }) {
+  showEnd({ title, entries, primary, secondary, extra, wait, onLeave, key, cards }) {
     const box = $("end");
     const already = !box.classList.contains("hidden") && box.dataset.key === key;
     box.dataset.key = key || "";
@@ -455,6 +467,13 @@ export class Hud {
       li.innerHTML = `<span class="medal">${p.medal}</span><span class="who">${esc(p.name)}${p.me ? " (toi)" : ""}${p.sub ? `<small>${esc(p.sub)}</small>` : ""}</span><span class="title">${esc(p.title || "")}</span>${p.extra !== undefined ? `<span class="pts">${esc(p.extra)}</span>` : ""}`;
       list.appendChild(li);
     });
+    // cartes a montrer (ex : jeu du Trou du cul au President)
+    const cb = $("end-cards");
+    cb.classList.toggle("hidden", !(cards && cards.list && cards.list.length));
+    if (cards && cards.list && cards.list.length) {
+      cb.querySelector(".end-cards-label").textContent = cards.label || "";
+      cb.querySelector(".end-cards-row").innerHTML = cards.list.map((c, i) => `<img src="${miniCardUrl(c)}" alt="" style="animation-delay:${already ? 0 : 0.4 + i * 0.08}s" />`).join("");
+    }
     const b1 = $("btn-again");
     b1.classList.toggle("hidden", !primary);
     if (primary) {

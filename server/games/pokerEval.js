@@ -92,4 +92,70 @@ function partialName(cards) {
   return `Hauteur ${sing(vals[0])}`;
 }
 
-module.exports = { VALUE, compare, eval5, bestHand, handName, partialName };
+// Score numerique rapide d'une main de 5 a 7 cartes (meme ordre que
+// bestHand + compare) : sert au calcul des chances pendant un tapis, ou il
+// faut evaluer des milliers de tableaux possibles.
+const SUIT_IDX = { pique: 0, coeur: 1, carreau: 2, trefle: 3 };
+function straightTop(mask) {
+  for (let v = 14; v >= 5; v -= 1) {
+    if (((mask >> (v - 4)) & 31) === 31) return v;
+  }
+  // roue A-2-3-4-5 (l'As compte aussi comme 1)
+  if ((mask & 0b100000000111100) === 0b100000000111100) return 5;
+  return 0;
+}
+function pack(cat, ks) {
+  let x = cat;
+  for (let i = 0; i < 5; i += 1) x = x * 16 + (ks[i] || 0);
+  return x;
+}
+function fastScore(cards) {
+  const cnt = new Array(15).fill(0);
+  const suitMask = [0, 0, 0, 0];
+  const suitN = [0, 0, 0, 0];
+  let mask = 0;
+  for (const c of cards) {
+    const v = VALUE[c.rank];
+    const si = SUIT_IDX[c.suit];
+    cnt[v] += 1;
+    mask |= 1 << v;
+    suitMask[si] |= 1 << v;
+    suitN[si] += 1;
+  }
+  let flushMask = 0;
+  for (let i = 0; i < 4; i += 1) if (suitN[i] >= 5) flushMask = suitMask[i];
+  if (flushMask) {
+    const sf = straightTop(flushMask);
+    if (sf) return pack(8, [sf]);
+  }
+  const quads = [], trips = [], pairs = [], singles = [];
+  for (let v = 14; v >= 2; v -= 1) {
+    if (cnt[v] === 4) quads.push(v);
+    else if (cnt[v] === 3) trips.push(v);
+    else if (cnt[v] === 2) pairs.push(v);
+    else if (cnt[v] === 1) singles.push(v);
+  }
+  const kick = (excl, n) => {
+    const out = [];
+    for (let v = 14; v >= 2 && out.length < n; v -= 1) if (cnt[v] && !excl.includes(v)) out.push(v);
+    return out;
+  };
+  if (quads.length) return pack(7, [quads[0], ...kick([quads[0]], 1)]);
+  if (trips.length && (trips.length > 1 || pairs.length)) {
+    const second = Math.max(trips[1] || 0, pairs[0] || 0);
+    return pack(6, [trips[0], second]);
+  }
+  if (flushMask) {
+    const ks = [];
+    for (let v = 14; v >= 2 && ks.length < 5; v -= 1) if (flushMask & (1 << v)) ks.push(v);
+    return pack(5, ks);
+  }
+  const st = straightTop(mask);
+  if (st) return pack(4, [st]);
+  if (trips.length) return pack(3, [trips[0], ...kick([trips[0]], 2)]);
+  if (pairs.length >= 2) return pack(2, [pairs[0], pairs[1], ...kick([pairs[0], pairs[1]], 1)]);
+  if (pairs.length) return pack(1, [pairs[0], ...kick([pairs[0]], 3)]);
+  return pack(0, kick([], 5));
+}
+
+module.exports = { VALUE, compare, eval5, bestHand, handName, partialName, fastScore };

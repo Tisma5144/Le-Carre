@@ -38,6 +38,7 @@ class RoomManager {
         [playerId]: { id: playerId, name: hostName, connected: false, isHost: true }
       },
       game: null,
+      botLevel: "normal", // niveau des robots : facile | normal | fort
       createdAt: Date.now()
     };
     this.rooms.set(code, room);

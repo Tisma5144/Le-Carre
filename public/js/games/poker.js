@@ -5,6 +5,14 @@
 const $ = (id) => document.getElementById(id);
 const STREET = { preflop: "Pré-flop", flop: "Flop", turn: "Turn", river: "River" };
 const fmt = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, "\u202f"); // espace insecable fine
+// Eclair lumineux quand une carte tombe pendant un tapis.
+function flashScreen(kind) {
+  const el = document.createElement("div");
+  el.className = "suspense-flash" + (kind ? " " + kind : "");
+  document.body.appendChild(el);
+  el.addEventListener("animationend", () => el.remove());
+  setTimeout(() => el.remove(), 2000);
+}
 const esc = (t) => String(t == null ? "" : t).replace(/[<>&"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]));
 
 export default {
@@ -29,20 +37,22 @@ export default {
     const S = app && app.S;
     const myId = S ? S.me.id : v.you.id;
     const byId = new Map(v.hand.map((c) => [c.id, c]));
-    const me = v.you.inHand ? handOrder.map((id) => byId.get(id)).filter(Boolean) : [];
+    // apres s'etre couche, on garde ses cartes sous les yeux (assombries)
+    const me = handOrder.map((id) => byId.get(id)).filter(Boolean);
     const best = new Set(Object.values((v.results && v.results.best) || {}).flat());
     const opp = new Map();
     const shown = [];
     let folded = 0;
     for (const s of v.seats) {
-      if (s.inHand && s.folded) folded += 2;
       if (s.id === myId) continue;
+      if (s.inHand && s.folded) folded += 2;
       if (s.cards) {
         s.cards.forEach((c, j) => shown.push({ card: c, owner: s.id, j, win: best.has(c.id) }));
         opp.set(s.id, 0);
       } else opp.set(s.id, s.cardCount);
     }
-    const board = v.board.map((c) => ({ card: c, win: best.has(c.id) }));
+    const board = v.board.map((c) => ({ card: c, win: best.has(c.id) }))
+      .concat((v.ghostBoard || []).map((c) => ({ card: c, ghost: true })));
     let used = me.length + shown.length + board.length + folded;
     for (const n of opp.values()) used += n;
     const talon = Math.max(0, 52 - used);
@@ -78,15 +88,37 @@ export default {
         else if (ev.kind === "fold") sfx.play("flick");
         break;
       case "street":
-        sfx.play("flip");
+        if (ev.runout) {
+          // tapis : chaque carte tombe comme un coup de tambour
+          sfx.play("stamp");
+          sfx.play("flip");
+          flashScreen(ev.street === "river" ? "big" : "");
+        } else sfx.play("flip");
+        break;
+      case "allin_reveal":
+        hud.showTurnBanner("⚡ TAPIS ! ⚡", "allin");
+        sfx.play("allin");
+        flashScreen("big");
         break;
       case "win":
         hud.bubble(who(ev.playerId), `+${fmt(ev.amount)} 🪙`, "gold");
+        hud.showTurnBanner(ev.playerId === me ? "🏆 Tu gagnes !" : `🏆 ${ev.playerName} gagne`, "gold");
         sfx.play(ev.playerId === me ? "win" : "truth");
         break;
-      case "showdown":
+      case "showdown": {
         for (const w of ev.winners) hud.bubble(who(w.id), `+${fmt(w.amount)} · ${w.handName}`, "gold");
+        const names = [...new Set(ev.winners.map((w) => w.id))];
+        const nm = (id) => (id === me ? "Toi" : app.playerName ? app.playerName(id) : "");
+        hud.showTurnBanner(names.length > 1 ? `🏆 ${names.map(nm).join(" & ")}` : names[0] === me ? "🏆 Tu gagnes !" : `🏆 ${nm(names[0])} gagne`, "gold");
         sfx.play(ev.winners.some((w) => w.id === me) ? "win" : "quad");
+        break;
+      }
+      case "show_cards":
+        if (ev.playerId !== me) hud.bubble(who(ev.playerId), "Regardez ! 👀", "");
+        sfx.play("flip");
+        break;
+      case "reveal_board":
+        sfx.play("flip");
         break;
       case "eliminated":
         hud.toast(`💀 ${ev.playerId === me ? "Tu es éliminé" : ev.playerName + " est éliminé"} (${ev.place}ᵉ).`, 3200);
@@ -114,6 +146,8 @@ export default {
       hud.setAnnounce({ label: "Poker", value: "Partie terminée", sub: "", key: "end" });
     } else if (v.phase === "waiting") {
       hud.setAnnounce({ label: "Poker", value: "En attente d'une recave", sub: "Il faut au moins deux joueurs avec des jetons", key: "wait" });
+    } else if (v.phase === "runout") {
+      hud.setAnnounce({ label: `Main ${v.handNumber} · tapis !`, value: v.board.length >= 5 ? "Et le gagnant est…" : v.board.length ? STREET[v.street] : "Cartes sur table", sub: `Pot : ${fmt(v.pot)}`, key: "ro" + v.handNumber + v.board.length });
     } else if (v.phase === "showdown" && v.results) {
       const ws = v.results.winners;
       const meWin = ws.some((x) => x.id === S.me.id);
@@ -129,14 +163,25 @@ export default {
     let hint = "";
     if (!dealing && v.phase === "betting") {
       const mine = you.handName ? `Tu as : <b>${esc(you.handName)}</b>` : "";
-      if (you.folded) hint = "Tu t'es couché : attends la main suivante.";
-      else if (myTurn) hint = `${mine}${mine ? " · " : ""}${you.legal.toCall ? `<b>${fmt(you.legal.toCall)}</b> à suivre` : "tu peux checker"}`;
+      if (you.folded) hint = `Tu t'es couché${you.handName ? ` (tu avais : <b>${esc(you.handName)}</b>)` : ""} : attends la main suivante.`;
+      // a mon tour, la description de ma main est integree a la barre
+      // d'actions (sinon les boutons la cachent)
+      else if (myTurn) {
+        this.myInfo = `${mine}${mine ? " · " : ""}${you.legal.toCall ? `<b>${fmt(you.legal.toCall)}</b> à suivre` : "tu peux checker"}`;
+        hint = "";
+      }
       else if (you.inHand) hint = `${mine}${mine ? " · " : ""}<b>${esc(v.currentTurnName)}</b> réfléchit…`;
       else hint = `<b>${esc(v.currentTurnName)}</b> réfléchit…`;
     }
     hud.setHint(hint, myTurn);
 
-    this.renderBar(v, app, myTurn);
+    // cartes gardees apres s'etre couche : assombries
+    app.table.setDimmed(you.folded ? v.hand.map((c) => c.id) : []);
+
+    if (!dealing && v.phase === "showdown" && v.results) this.renderResult(v, app);
+    else if (!dealing && v.phase === "runout") this.renderRunout(v, app);
+    else this.renderBar(v, app, myTurn);
+    this.suspense(!dealing && v.phase === "runout", app);
 
     $("btn-liar").classList.add("hidden");
     $("btn-pass").classList.add("hidden");
@@ -148,8 +193,12 @@ export default {
     hud.setActionChips(chips);
 
     // etiquettes
+    const wonBy = new Map();
+    if (v.phase === "showdown" && v.results) for (const w of v.results.winners) wonBy.set(w.id, (wonBy.get(w.id) || 0) + w.amount);
     const status = (s) => {
       const d = s.isDealer ? "🔘 " : "";
+      if (wonBy.has(s.id)) return `🏆 +${fmt(wonBy.get(s.id))}`;
+      if (v.phase === "runout" && s.equity !== null && s.equity !== undefined) return `🔥 ${s.equity} %`;
       if (s.eliminated) return "💀 éliminé";
       if (s.busted && !s.inHand) return "💸 plus de jetons";
       if (!s.inHand) return `${d}attend`;
@@ -171,16 +220,128 @@ export default {
       countIcon: "chips",
       connected: o.connected,
       finished: o.folded || o.eliminated || !o.inHand,
-      active: !dealing && v.phase === "betting" && o.id === v.currentTurn,
+      active: !dealing && ((v.phase === "betting" && o.id === v.currentTurn) || wonBy.has(o.id)),
       statusText: !o.connected ? "hors ligne" : status(o) + (o.handName ? ` · ${o.handName}` : "")
     })));
 
     this.updateEnd(v, app);
   },
 
+  // Fin de main : qui a gagne (en clair), montrer ses cartes, voir le
+  // tableau qui serait tombe, et bouton du prochain donneur.
+  renderResult(v, app) {
+    const { S } = app;
+    const bar = $("action-bar");
+    const me = S.me.id;
+    const r = v.results;
+    const meSeat = v.seats.find((s) => s.id === me);
+    const canShow = !!(meSeat && meSeat.inHand && !meSeat.cards && v.hand.length);
+    const canGhost = v.board.length < 5 && !(v.ghostBoard && v.ghostBoard.length);
+    const isHost = S.room.hostId === me;
+    const isDealer = !!v.you.isNextDealer;
+    // apres 30 s, tout le monde peut lancer la main suivante
+    const rk = `${v.uid}-${v.handNumber}`;
+    if (this.resultKey !== rk) {
+      this.resultKey = rk;
+      this.resultAt = Date.now();
+      clearTimeout(this.lateTimer);
+      this.lateTimer = setTimeout(() => { if (app.S.game && app.S.game.phase === "showdown") this.refresh(app.S.game, app); }, 30500);
+    }
+    const late = Date.now() - this.resultAt > 30000;
+    const key = JSON.stringify(["res", v.uid, v.handNumber, canShow, canGhost, isDealer, isHost, v.nextDealerId, late]);
+    bar.classList.remove("hidden");
+    bar.classList.add("result");
+    if (bar.dataset.key === key) return;
+    bar.dataset.key = key;
+    this.raiseOpen = false;
+    // gains par joueur (pots annexes additionnes)
+    const byId = new Map();
+    for (const w of r.winners) {
+      const cur = byId.get(w.id) || { id: w.id, name: w.name, amount: 0, handName: w.handName };
+      cur.amount += w.amount;
+      byId.set(w.id, cur);
+    }
+    const ws = [...byId.values()].sort((a, b) => b.amount - a.amount);
+    const nm = (w) => (w.id === me ? "Toi" : esc(w.name));
+    let head;
+    if (ws.length === 1) {
+      const w = ws[0];
+      head = `<div class="pr-title">🏆 ${w.id === me ? "Tu remportes" : `<b>${esc(w.name)}</b> remporte`} <b>${fmt(w.amount)}</b> 🪙</div>
+        <div class="pr-sub">${r.byFold ? "Tout le monde s'est couché" : `avec <b>${esc(w.handName)}</b>`}</div>`;
+    } else {
+      const split = ws.every((w) => w.handName === ws[0].handName);
+      head = `<div class="pr-title">🏆 ${split ? "Pot partagé !" : "Plusieurs pots"}</div>`
+        + ws.map((w) => `<div class="pr-line"><b>${nm(w)}</b> +${fmt(w.amount)} 🪙${w.handName ? ` <small>· ${esc(w.handName)}</small>` : ""}</div>`).join("");
+    }
+    const buttons = [];
+    if (canShow) buttons.push(`<button class="act show" data-act="show">👁 Montrer mes cartes</button>`);
+    if (canGhost) buttons.push(`<button class="act ghost" data-act="ghost">🔮 Voir la suite</button>`);
+    if (isDealer) buttons.push(`<button class="act next" data-act="next">▶ Main suivante</button>`);
+    let wait = "";
+    if (!v.nextDealerId) wait = "Fin de la partie…";
+    else if (isDealer) wait = "Tu es le prochain donneur : lance la main quand tout le monde a vu le résultat.";
+    else wait = `<b>${esc(v.nextDealerName)}</b> (prochain donneur) lance la main suivante…${isHost || late ? ` <button class="pr-link" data-act="next">Lancer à sa place</button>` : ""}`;
+    bar.innerHTML = `<div class="poker-result wood-panel">${head}</div>
+      ${buttons.length ? `<div class="act-row">${buttons.join("")}</div>` : ""}
+      <div class="pr-wait">${wait}</div>`;
+    bar.querySelectorAll("[data-act]").forEach((b) => b.addEventListener("click", () => {
+      app.sfx.play("select");
+      const act = b.dataset.act;
+      if (act === "show") app.emit("game:showCards", {});
+      else if (act === "ghost") app.emit("game:revealBoard", {});
+      else if (act === "next") app.emit("game:nextHand", {});
+    }));
+  },
+
+  // Tapis : mains retournees, cartes qui tombent au ralenti et chances de
+  // chacun qui evoluent.
+  renderRunout(v, app) {
+    const { S } = app;
+    const bar = $("action-bar");
+    bar.classList.remove("hidden");
+    bar.classList.add("result");
+    const key = `ro-${v.uid}-${v.handNumber}`;
+    if (bar.dataset.key !== key) {
+      bar.dataset.key = key;
+      bar.innerHTML = `<div class="allin-panel wood-panel"><div class="ap-title">⚡ Tapis ! Qui va l'emporter ?</div><div class="ap-rows"></div></div>`;
+    }
+    const box = bar.querySelector(".ap-rows");
+    const rows = v.seats.filter((s) => s.equity !== null && s.equity !== undefined);
+    for (const s of rows) {
+      let el = box.querySelector(`[data-id="${s.id}"]`);
+      if (!el) {
+        el = document.createElement("div");
+        el.className = "ap-row";
+        el.dataset.id = s.id;
+        el.innerHTML = `<span class="ap-name"></span><span class="ap-bar"><i></i></span><b class="ap-pct"></b>`;
+        box.appendChild(el);
+      }
+      el.querySelector(".ap-name").innerHTML = `${s.id === S.me.id ? "Toi" : esc(s.name)}${s.handName ? ` <small>${esc(s.handName)}</small>` : ""}`;
+      el.querySelector(".ap-bar i").style.width = `${Math.max(2, s.equity)}%`;
+      el.querySelector(".ap-pct").textContent = `${s.equity} %`;
+      el.classList.toggle("lead", s.equity >= 50);
+      el.classList.toggle("dead", s.equity === 0);
+      el.classList.toggle("me", s.id === S.me.id);
+    }
+  },
+
+  // Ambiance "suspense" pendant un tapis : bords de l'ecran assombris et
+  // battements de coeur.
+  suspense(on, app) {
+    document.body.classList.toggle("suspense", on);
+    if (on && !this.hb) {
+      app.sfx.play("heartbeat");
+      this.hb = setInterval(() => app.sfx.play("heartbeat"), 900);
+    } else if (!on && this.hb) {
+      clearInterval(this.hb);
+      this.hb = null;
+    }
+  },
+
   // Barre d'actions : se coucher / check / suivre / relancer / tapis.
   renderBar(v, app, myTurn) {
     const bar = $("action-bar");
+    bar.classList.remove("result");
     if (!myTurn || !v.you.legal) {
       bar.classList.add("hidden");
       bar.dataset.key = "";
@@ -188,7 +349,7 @@ export default {
       return;
     }
     const L = v.you.legal;
-    const key = `${v.uid}-${v.handNumber}-${v.street}-${v.currentBet}-${v.you.bet}-${this.raiseOpen ? 1 : 0}`;
+    const key = `${v.uid}-${v.handNumber}-${v.street}-${v.currentBet}-${v.you.bet}-${this.raiseOpen ? 1 : 0}-${this.myInfo}`;
     bar.classList.remove("hidden");
     if (bar.dataset.key === key) return;
     bar.dataset.key = key;
@@ -215,6 +376,7 @@ export default {
         </div>
         <button id="raise-ok" class="btn brass">✔ ${raiseLabel} à <span id="raise-ok-val">${fmt(this.raiseValue)}</span></button>
       </div>` : ""}
+      ${this.myInfo ? `<div class="act-info">${this.myInfo}</div>` : ""}
       <div class="act-row">
         <button class="act fold" data-act="fold">Se coucher</button>
         ${L.canCheck ? `<button class="act check" data-act="check">Check</button>` : `<button class="act call" data-act="call">Suivre ${fmt(L.toCall)}</button>`}
@@ -276,12 +438,20 @@ export default {
   hideOverlays() {
     const bar = $("action-bar");
     bar.classList.add("hidden");
+    bar.classList.remove("result");
     bar.dataset.key = "";
+    document.body.classList.remove("suspense");
+    if (this.hb) {
+      clearInterval(this.hb);
+      this.hb = null;
+    }
   },
 
   chips(v) {
     return {
-      pile: v.pot && v.phase === "betting" ? `Pot : <b>${fmt(v.pot)}</b>` : "",
+      pile: v.phase === "showdown" && v.ghostBoard && v.ghostBoard.length
+        ? `🔮 <b>${v.ghostBoard.length}</b> carte${v.ghostBoard.length > 1 ? "s" : ""} qui seraient tombée${v.ghostBoard.length > 1 ? "s" : ""}`
+        : v.pot && (v.phase === "betting" || v.phase === "runout") ? `Pot : <b>${fmt(v.pot)}</b>` : "",
       tray: "🪙 Jetons"
     };
   },
@@ -299,7 +469,10 @@ export default {
       switch (e.type) {
         case "hand_start": return `<li>🃏 <b>Main ${e.hand}</b> — ${escape(e.dealerName || "")} donne, blindes ${fmt(e.sb)}/${fmt(e.bb)}</li>`;
         case "bet": return `<li><b>${escape(e.playerName)}</b> : ${escape(e.label)}</li>`;
-        case "street": return `<li>🂠 ${STREET[e.street]}</li>`;
+        case "street": return `<li>🂠 ${STREET[e.street]}${e.runout ? " (tapis)" : ""}</li>`;
+        case "allin_reveal": return `<li>⚡ <b>Tapis !</b> Les mains sont retournées</li>`;
+        case "show_cards": return `<li>👀 <b>${escape(e.playerName)}</b> montre ses cartes</li>`;
+        case "reveal_board": return `<li>🔮 <b>${escape(e.playerName)}</b> dévoile les cartes qui seraient tombées</li>`;
         case "win": return `<li>🏆 <b>${escape(e.playerName)}</b> remporte ${fmt(e.amount)} (tout le monde s'est couché)</li>`;
         case "showdown": return `<li>🏆 Abattage : ${e.winners.map((w) => `${fmt(w.amount)} pour un joueur avec ${escape(w.handName)}`).join(" · ")}</li>`;
         case "eliminated": return `<li>💀 <b>${escape(e.playerName)}</b> est éliminé</li>`;
@@ -340,6 +513,8 @@ export default {
       <p class="rule"><i>🗣️</i><span>Avant chaque étape, un tour de paroles : <b>se coucher</b>, <b>check</b> (passer sans miser, si personne n'a misé), <b>suivre</b>, <b>relancer</b> (au moins autant que la dernière relance) ou faire <b>tapis</b>.</span></p>
       <p class="rule"><i>🏆</i><span>À l'abattage, chacun forme la <b>meilleure main de cinq cartes</b> avec ses deux cartes et les cinq du centre. Du plus faible au plus fort : hauteur, paire, double paire, brelan, quinte, couleur, full, carré, quinte flush.</span></p>
       <p class="rule"><i>⚖️</i><span>Un joueur à tapis ne peut gagner que ce qu'il a misé face à chacun : le reste forme un <b>pot annexe</b>. En cas d'égalité, le pot est partagé.</span></p>
+      <p class="rule"><i>⚡</i><span>Quand plusieurs joueurs sont <b>à tapis</b>, leurs mains sont retournées et les cartes tombent une à une, avec les <b>chances de gagner</b> de chacun.</span></p>
+      <p class="rule"><i>▶</i><span>À la fin d'une main, le <b>prochain donneur</b> lance la suivante. En attendant, chacun peut <b>montrer ses cartes</b> ou <b>voir les cartes qui seraient tombées</b>.</span></p>
       <p class="rule"><i>💸</i><span>Plus de jetons ? Selon le réglage du salon, tu es <b>éliminé</b> (le dernier joueur avec des jetons gagne) ou tu peux <b>te recaver</b> (le patron arrête alors la partie quand il veut).</span></p>`;
   }
 };

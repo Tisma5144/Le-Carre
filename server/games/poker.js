@@ -14,13 +14,17 @@
 
 const crypto = require("crypto");
 const { buildStandardDeck, shuffle, cardPublicView } = require("../deck");
-const { bestHand, compare, partialName } = require("./pokerEval");
+const { bestHand, compare, partialName, fastScore } = require("./pokerEval");
 
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 8;
-const SHOWDOWN_MS = 6000;
-const FOLD_WIN_MS = 2800;
 const WAIT_MS = 1500;
+const FINISH_MS = 5000;
+const NEXT_HAND_GRACE_MS = 30000; // derniere main : pause avant l'ecran de fin
+// Tapis de plusieurs joueurs : revelation au ralenti, carte par carte.
+const RUNOUT_START_MS = 3200;
+const RUNOUT_STREET_MS = 3000;
+const RUNOUT_RIVER_MS = 3800;
 
 function logEvent(state, entry) {
   state.eventSeq += 1;
@@ -133,6 +137,10 @@ function startHand(state) {
   state.board = [];
   state.results = null;
   state.lastAction = {};
+  state.shownBy = [];
+  state.ghostBoard = [];
+  state.equity = null;
+  state.nextDealerId = null;
   state.street = "preflop";
   state.phase = "betting";
   state.deck = shuffle(buildStandardDeck());
@@ -259,6 +267,15 @@ function advanceStreet(state) {
   collectStreet(state);
   // si plus personne (ou un seul) ne peut miser, on deroule tout le tableau
   const runOut = canAct(state).length <= 1;
+  if (runOut && active(state).length >= 2 && state.board.length < 5) {
+    // plusieurs joueurs a tapis : on retourne les mains et on revele le
+    // tableau au ralenti, avec les chances de chacun (suspense !)
+    state.phase = "runout";
+    state.currentTurn = null;
+    state.equity = equity(state);
+    logEvent(state, { type: "allin_reveal", players: active(state), equity: state.equity });
+    return { ok: true, schedule: RUNOUT_START_MS };
+  }
   do {
     const i = order.indexOf(state.street);
     if (i === 3) return showdown(state);
@@ -274,14 +291,59 @@ function advanceStreet(state) {
   return { ok: true };
 }
 
+function dealStreet(state) {
+  const order = ["preflop", "flop", "turn", "river"];
+  const i = order.indexOf(state.street);
+  state.street = order[i + 1];
+  const n = state.street === "flop" ? 3 : 1;
+  for (let k = 0; k < n; k += 1) state.board.push(state.deck.pop());
+  logEvent(state, { type: "street", street: state.street, cards: state.board.length, runout: true });
+}
+
+// Chances de gain de chaque joueur encore en course (egalites partagees) :
+// enumeration exacte s'il manque 1 ou 2 cartes, tirages aleatoires sinon.
+function equity(state) {
+  const players = active(state);
+  const need = 5 - state.board.length;
+  const deck = state.deck;
+  const wins = Object.fromEntries(players.map((id) => [id, 0]));
+  let total = 0;
+  const score = (board) => {
+    let best = -1;
+    let winners = [];
+    for (const id of players) {
+      const s = fastScore(state.holes[id].concat(board));
+      if (s > best) { best = s; winners = [id]; } else if (s === best) winners.push(id);
+    }
+    for (const id of winners) wins[id] += 1 / winners.length;
+    total += 1;
+  };
+  if (need === 0) score(state.board);
+  else if (need === 1) for (const c of deck) score(state.board.concat([c]));
+  else if (need === 2) {
+    for (let a = 0; a < deck.length; a += 1) for (let b = a + 1; b < deck.length; b += 1) score(state.board.concat([deck[a], deck[b]]));
+  } else {
+    for (let k = 0; k < 3000; k += 1) {
+      const pick = [];
+      const used = new Set();
+      while (pick.length < need) {
+        const i = Math.floor(Math.random() * deck.length);
+        if (!used.has(i)) { used.add(i); pick.push(deck[i]); }
+      }
+      score(state.board.concat(pick));
+    }
+  }
+  return Object.fromEntries(players.map((id) => [id, Math.round((wins[id] / total) * 100)]));
+}
+
 function winByFold(state) {
   collectStreet(state);
   const winner = active(state)[0];
   const pot = Object.values(state.contrib).reduce((a, b) => a + b, 0);
   state.stacks[winner] += pot;
-  state.results = { byFold: true, winners: [{ id: winner, amount: pot, handName: null }], shown: {}, best: {} };
+  state.results = { byFold: true, winners: [{ id: winner, amount: pot, handName: null }], shown: {}, best: {}, pot };
   logEvent(state, { type: "win", playerId: winner, amount: pot, byFold: true });
-  return endHand(state, FOLD_WIN_MS);
+  return endHand(state);
 }
 
 function showdown(state) {
@@ -324,15 +386,19 @@ function showdown(state) {
     winners: Object.entries(won).map(([id, amount]) => ({ id, amount, handName: hands[id].name })),
     shown: Object.fromEntries(contenders.map((id) => [id, hands[id].name])),
     best: Object.fromEntries(Object.keys(won).map((id) => [id, hands[id].cards.map((c) => c.id)])),
-    pots: pots.length
+    pots: pots.length,
+    pot: levels.length ? pots.reduce((t, p) => t + p.amount, 0) : 0
   };
   logEvent(state, { type: "showdown", winners: state.results.winners.map((w) => ({ id: w.id, amount: w.amount, handName: w.handName })) });
-  return endHand(state, SHOWDOWN_MS);
+  return endHand(state);
 }
 
-function endHand(state, pause) {
+// Fin de main : on attend que le prochain donneur lance la main suivante
+// (sauf si la partie est terminee).
+function endHand(state) {
   state.phase = "showdown";
   state.currentTurn = null;
+  state.equity = null;
   for (const id of state.inHand) {
     if (state.stacks[id] === 0) {
       if (state.options.rebuy) logEvent(state, { type: "busted", playerId: id });
@@ -342,15 +408,81 @@ function endHand(state, pause) {
       }
     }
   }
-  return { ok: true, schedule: pause };
+  const players = seated(state);
+  if (players.length < 2 && !state.options.rebuy) return { ok: true, schedule: FINISH_MS };
+  setNextDealer(state);
+  state.handEndedAt = Date.now();
+  return { ok: true };
 }
 
-// Apres la pause de l'abattage : main suivante.
+// Prochain donneur : le joueur assis apres le donneur actuel. C'est lui qui
+// lance la main suivante.
+function setNextDealer(state) {
+  const players = seated(state);
+  const n = state.seatOrder.length;
+  state.nextDealerId = null;
+  for (let k = 1; k <= n; k += 1) {
+    const cand = state.seatOrder[(state.dealerIdx + k) % n];
+    if (players.includes(cand)) {
+      state.nextDealerId = cand;
+      break;
+    }
+  }
+}
+
+// Pauses automatiques : revelation au ralenti d'un tapis, fin de partie,
+// reprise apres une recave.
 function tick(state) {
-  if (state.phase !== "showdown" && state.phase !== "waiting") return { ok: false };
-  if (state.phase === "waiting" && seated(state).length < 2) return { ok: false };
+  if (state.phase === "runout") {
+    if (state.board.length >= 5) return showdown(state);
+    dealStreet(state);
+    state.equity = equity(state); // au river : 100 % pour le gagnant
+    return { ok: true, schedule: state.board.length >= 5 ? RUNOUT_RIVER_MS : RUNOUT_STREET_MS };
+  }
+  if (state.phase === "showdown") {
+    // uniquement pour la fin de partie (sinon c'est le prochain donneur qui relance)
+    if (seated(state).length >= 2 || state.options.rebuy) return { ok: false };
+    return startHand(state) || { ok: true };
+  }
+  if (state.phase === "waiting" && seated(state).length >= 2) {
+    const r = startHand(state);
+    return { ok: true, schedule: r && r.schedule };
+  }
+  return { ok: false };
+}
+
+// Le prochain donneur (ou le patron) lance la main suivante.
+function doNextHand(state, id, ctx) {
+  if (state.phase !== "showdown") return { ok: false, error: "La main n'est pas terminée." };
+  // le prochain donneur lance ; le patron peut le faire a sa place, et
+  // n'importe qui apres 30 s (donneur parti chercher a boire...)
+  const late = Date.now() - (state.handEndedAt || 0) > NEXT_HAND_GRACE_MS;
+  if (id !== state.nextDealerId && !(ctx && ctx.isHost) && !late) return { ok: false, error: "C'est au prochain donneur de lancer la main." };
   const r = startHand(state);
   return { ok: true, schedule: r && r.schedule };
+}
+
+// Apres une main : voir les cartes qui seraient tombees.
+function doRevealBoard(state, id) {
+  if (state.phase !== "showdown") return { ok: false, error: "Attends la fin de la main." };
+  const missing = 5 - state.board.length;
+  if (missing <= 0) return { ok: false, error: "Tout le tableau est déjà retourné." };
+  if (state.ghostBoard.length) return { ok: true };
+  // les prochaines cartes du paquet, dans l'ordre ou elles seraient sorties
+  state.ghostBoard = state.deck.slice(-missing).reverse();
+  logEvent(state, { type: "reveal_board", playerId: id });
+  return { ok: true };
+}
+
+// Apres une main : montrer ses cartes a la table.
+function doShowCards(state, id) {
+  if (state.phase !== "showdown") return { ok: false, error: "Attends la fin de la main." };
+  if (!state.inHand.includes(id)) return { ok: false, error: "Tu n'étais pas dans cette main." };
+  if (!state.shownBy.includes(id)) {
+    state.shownBy.push(id);
+    logEvent(state, { type: "show_cards", playerId: id });
+  }
+  return { ok: true };
 }
 
 function finish(state, reason) {
@@ -365,10 +497,11 @@ function doRebuy(state, id) {
   if (!state.options.rebuy) return { ok: false, error: "Pas de recave dans cette partie." };
   if (state.phase === "finished") return { ok: false, error: "La partie est terminée." };
   if (state.stacks[id] > 0) return { ok: false, error: "Tu as encore des jetons." };
-  if (state.phase === "betting" && state.inHand.includes(id) && !state.folded.includes(id)) return { ok: false, error: "Attends la fin de la main." };
+  if ((state.phase === "betting" || state.phase === "runout") && state.inHand.includes(id) && !state.folded.includes(id)) return { ok: false, error: "Attends la fin de la main." };
   state.stacks[id] = state.options.startStack;
   state.buyins[id] += 1;
   logEvent(state, { type: "rebuy", playerId: id });
+  if (state.phase === "showdown") setNextDealer(state);
   if (state.phase === "waiting" && seated(state).length >= 2) return { ok: true, schedule: WAIT_MS };
   return { ok: true };
 }
@@ -377,7 +510,7 @@ function doEnd(state, ctx) {
   if (!ctx || !ctx.isHost) return { ok: false, error: "Seul le patron peut arrêter la partie." };
   if (state.phase === "finished") return { ok: false, error: "La partie est déjà terminée." };
   // main en cours : chacun recupere ses mises
-  if (state.phase === "betting") {
+  if (state.phase === "betting" || state.phase === "runout") {
     for (const [id, v] of Object.entries(state.contrib)) state.stacks[id] += v;
     state.contrib = {};
   }
@@ -390,6 +523,9 @@ function applyAction(state, playerId, action, ctx) {
     case "bet": return doBet(state, playerId, action);
     case "rebuy": return doRebuy(state, playerId);
     case "end_game": return doEnd(state, ctx);
+    case "next_hand": return doNextHand(state, playerId, ctx);
+    case "reveal_board": return doRevealBoard(state, playerId);
+    case "show_cards": return doShowCards(state, playerId);
     default: return { ok: false, error: `Action inconnue: ${action.type}` };
   }
 }
@@ -411,10 +547,15 @@ function getViewForPlayer(state, playerId, players) {
   const dealer = state.seatOrder[state.dealerIdx];
   const inHand = state.inHand.includes(playerId);
   const showdownNow = state.phase === "showdown" && state.results && !state.results.byFold;
+  const runout = state.phase === "runout";
   const myTurn = state.phase === "betting" && state.currentTurn === playerId;
   const pot = Object.values(state.contrib).reduce((a, b) => a + b, 0);
   const seatView = (id) => {
-    const shows = showdownNow && state.results.shown[id] !== undefined;
+    // cartes visibles : abattage, tapis revele, ou joueur qui choisit de montrer
+    const shows = (showdownNow && state.results.shown[id] !== undefined)
+      || (runout && active(state).includes(id))
+      || (state.phase === "showdown" && state.shownBy.includes(id));
+    const fullBoard = state.board.concat(state.ghostBoard || []);
     return {
       id,
       name: name(id),
@@ -430,7 +571,9 @@ function getViewForPlayer(state, playerId, players) {
       isBB: id === state.bbId && state.phase !== "waiting",
       cardCount: state.inHand.includes(id) && !state.folded.includes(id) ? 2 : 0,
       cards: shows ? state.holes[id].map(cardPublicView) : null,
-      handName: shows ? state.results.shown[id] : null,
+      handName: shows ? (showdownNow && state.results.shown[id]) || partialName(state.holes[id].concat(fullBoard.length >= 3 ? fullBoard : state.board)) : null,
+      equity: runout && state.equity ? state.equity[id] : null,
+      showedVoluntarily: state.shownBy.includes(id),
       lastAction: state.lastAction[id] || null,
       buyins: state.buyins[id],
       connected: players[id] ? players[id].connected !== false : false
@@ -457,13 +600,18 @@ function getViewForPlayer(state, playerId, players) {
     currentBet: state.currentBet,
     pot,
     board: state.board.map(cardPublicView),
+    ghostBoard: (state.ghostBoard || []).map(cardPublicView),
+    nextDealerId: state.nextDealerId || null,
+    nextDealerName: state.nextDealerId ? name(state.nextDealerId) : "",
+    runout,
     hand: myCards.map(cardPublicView),
     seats: state.seatOrder.map(seatView),
     opponents: state.seatOrder.filter((id) => id !== playerId).map(seatView),
     results: state.results ? {
       byFold: state.results.byFold,
       winners: state.results.winners.map((w) => ({ ...w, name: name(w.id) })),
-      best: showdownNow ? state.results.best : {}
+      best: showdownNow ? state.results.best : {},
+      pot: state.results.pot || 0
     } : null,
     ranking: ranking(state).map((r) => ({ ...r, name: name(r.id) })),
     history: state.history.slice(-40).map((e) => ({ ...e, playerName: e.playerId ? name(e.playerId) : undefined, dealerName: e.dealerId ? name(e.dealerId) : undefined })),
@@ -477,9 +625,11 @@ function getViewForPlayer(state, playerId, players) {
       allIn: state.allIn.includes(playerId),
       handName: inHand && myCards.length ? partialName(myCards.concat(state.board)) : null,
       legal: L,
-      canRebuy: state.options.rebuy && state.stacks[playerId] === 0 && state.phase !== "finished" && !(state.phase === "betting" && state.inHand.includes(playerId) && !state.folded.includes(playerId)),
+      canRebuy: state.options.rebuy && state.stacks[playerId] === 0 && state.phase !== "finished" && !((state.phase === "betting" || state.phase === "runout") && state.inHand.includes(playerId) && !state.folded.includes(playerId)),
       eliminated: state.eliminated.includes(playerId),
-      isFinished: state.eliminated.includes(playerId)
+      isFinished: state.eliminated.includes(playerId),
+      isNextDealer: state.phase === "showdown" && state.nextDealerId === playerId,
+      hasShown: state.shownBy.includes(playerId)
     }
   };
 }
@@ -494,5 +644,5 @@ module.exports = {
   tick,
   getViewForPlayer,
   normalizeOptions,
-  _internals: { legal, active, canAct, bestHand, showdown }
+  _internals: { legal, active, canAct, bestHand, showdown, equity }
 };

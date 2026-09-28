@@ -30,6 +30,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await sleep(100);
     assert.strictEqual(last.room.players.filter((p) => p.isBot).length, 3);
     const report = {};
+    // niveau des robots : reglable par le patron
+    assert.ok(!(await emit("room:setBotLevel", { level: "expert" })).ok, "niveau inconnu refuse");
+    assert.ok((await emit("room:setBotLevel", { level: "fort" })).ok);
+    await sleep(50);
+    assert.strictEqual(last.room.botLevel, "fort", "niveau diffuse a la table");
     for (const gameType of ["menteur", "president", "ascenseur", "pouilleux", "poker"]) {
       await emit("room:setGame", { gameType });
       if (gameType === "ascenseur") await emit("room:setOptions", { options: { maxCards: 3, mode: "up-down", step: 1 } });
@@ -64,6 +69,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
           if (g.phase === "playing" && you.isYourTurn) await emit("game:draw", { index: Math.floor(Math.random() * g.victimCount) });
         } else if (gameType === "poker") {
           if (you.isYourTurn && you.legal) await emit("game:bet", { kind: you.legal.canCheck ? "check" : Math.random() < 0.3 ? "fold" : "call" });
+          else if (g.phase === "showdown" && you.isNextDealer) await emit("game:nextHand");
         } else if (gameType === "ascenseur") {
           if (you.mustBid) await emit("game:bid", { bid: you.forbiddenBid === 0 ? 1 : 0 });
           else if (g.phase === "playing" && you.isYourTurn) await emit("game:play", { cardIds: [you.legalIds[0]] });

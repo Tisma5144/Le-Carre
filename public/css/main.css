@@ -411,6 +411,9 @@ body.revealing #vignette {
   flex: 0 0 auto;
 }
 .plate-name { font: 800 13px "Nunito", sans-serif; color: var(--cream); max-width: 92px; overflow: hidden; text-overflow: ellipsis; }
+.plate-left { display: none; font: 800 10px "Nunito", sans-serif; color: #1c130c; background: #c9d6e3; border-radius: 6px; padding: 1px 5px; margin-left: 4px; white-space: nowrap; }
+.plate.left .plate-left { display: inline-block; }
+.plate.left .plate-name { opacity: 0.8; }
 @media (max-width: 600px) {
   .plate-inner { gap: 5px; padding: 2px 8px 2px 2px; }
   .avatar { width: 26px; height: 26px; font-size: 13px; }
@@ -1325,3 +1328,86 @@ body.shake #scene { animation: screenShake .45s; }
 }
 body:has(#home:not(.hidden)) .app-version, body:has(#lobby:not(.hidden)) .app-version { display: block; }
 .menu-version { text-align: center; font: 700 12px "Nunito", sans-serif; opacity: .6; margin: 12px 0 0; }
+.act-info {
+  align-self: center;
+  max-width: 100%;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(118,26,40,.95), rgba(66,12,22,.95));
+  border: 2px solid #ffd35a;
+  color: #ffeab0;
+  font: 800 14px/1.25 "Nunito", sans-serif;
+  text-align: center;
+  box-shadow: 0 6px 16px rgba(0,0,0,.45);
+}
+.act-info b { color: #fff; }
+@media (max-height: 520px) { .act-info { padding: 3px 12px; font-size: 12.5px; } }
+
+/* ---------------------------------------------------------------- niveau des robots (salon) */
+.bot-level { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin: 8px 0 2px; }
+.bot-level.hidden { display: none; }
+.bot-level-label { font: 700 17px "Cabin Sketch", sans-serif; opacity: .9; }
+.bot-level .seg { display: flex; gap: 5px; }
+.bot-level .seg button {
+  border-radius: 999px; padding: 5px 10px;
+  border: 2px solid rgba(255,255,255,.3); background: rgba(255,255,255,.05);
+  color: #f3f1e8; font: 700 15px "Cabin Sketch", sans-serif; cursor: pointer;
+}
+.bot-level .seg button.on { border-color: #f3d27a; background: rgba(243,210,122,.2); color: #ffe39a; }
+.bot-level.readonly .seg button:not(.on) { display: none; }
+.bot-level .seg button:disabled { cursor: default; }
+.lobby-panel > #bot-level { grid-column: 2; }
+@media (min-width: 900px) and (min-height: 521px) { .lobby-panel > #bot-level { grid-column: 1; } }
+
+/* cartes devoilees dans le panneau de fin (jeu du Trou du cul) */
+.end-cards { margin: 4px 0 10px; text-align: center; }
+.end-cards.hidden { display: none; }
+.end-cards-label { font: 700 16px "Cabin Sketch", sans-serif; color: #ffe39a; margin-bottom: 6px; }
+.end-cards-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 3px; }
+.end-cards-row img { width: 38px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,.5); animation: endCardIn .45s cubic-bezier(.2,1.4,.4,1) both; }
+@keyframes endCardIn { from { transform: translateY(14px) rotate(-8deg) scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ---------------------------------------------------------------- poker : fin de main et tapis */
+.action-bar.result { gap: 6px; }
+.poker-result { border-radius: 16px; padding: 10px 14px; text-align: center; box-shadow: 0 10px 26px rgba(0,0,0,.55); border: 2px solid #ffd35a; }
+.pr-title { font: 900 20px/1.2 "Nunito", sans-serif; color: #ffeab0; }
+.pr-title b { color: #fff; }
+.pr-sub { font: 700 15px "Nunito", sans-serif; color: #f3e2bf; margin-top: 2px; }
+.pr-sub b { color: #7dffa8; }
+.pr-line { font: 800 16px "Nunito", sans-serif; color: #fff6e4; margin-top: 3px; }
+.pr-line small { color: #f3e2bf; font-weight: 700; }
+.pr-wait { align-self: center; text-align: center; font: 700 13px "Nunito", sans-serif; color: #f3e2bf; background: rgba(0,0,0,.45); padding: 4px 12px; border-radius: 999px; }
+.pr-link { background: none; border: 0; color: #ffe39a; text-decoration: underline; font: 800 13px "Nunito", sans-serif; cursor: pointer; padding: 0 0 0 4px; }
+.act.next { background: linear-gradient(180deg, #f8e19a, #c9962b); color: #3a2206; border-color: #5b3b0c; font-size: 16px; animation: nextPulse 1.4s ease-in-out infinite; }
+.act.show { background: linear-gradient(180deg, #3b5f8a, #203a5c); }
+.act.ghost { background: linear-gradient(180deg, #5b3f8c, #34205a); }
+@keyframes nextPulse { 50% { box-shadow: 0 0 0 4px rgba(255,211,90,.45), 0 4px 0 rgba(0,0,0,.55); } }
+.allin-panel { border-radius: 16px; padding: 10px 14px; border: 2px solid #ff5a4a; box-shadow: 0 0 24px rgba(255,70,50,.45), 0 10px 26px rgba(0,0,0,.55); }
+.ap-title { font: 900 18px "Nunito", sans-serif; color: #ffd0a8; text-align: center; margin-bottom: 6px; letter-spacing: .02em; }
+.ap-row { display: grid; grid-template-columns: minmax(0, 36%) 1fr 70px; align-items: center; gap: 8px; margin: 5px 0; transition: opacity .4s; }
+.ap-name { font: 800 15px/1.1 "Nunito", sans-serif; color: #fff6e4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ap-name small { display: block; font-weight: 700; font-size: 11.5px; color: #f3e2bf; overflow: hidden; text-overflow: ellipsis; }
+.ap-bar { height: 14px; border-radius: 999px; background: rgba(0,0,0,.45); overflow: hidden; border: 1px solid rgba(255,255,255,.18); }
+.ap-bar i { display: block; height: 100%; width: 50%; border-radius: 999px; background: linear-gradient(90deg, #c9962b, #f8e19a); transition: width 1.2s cubic-bezier(.3,1.3,.5,1); }
+.ap-row.lead .ap-bar i { background: linear-gradient(90deg, #2f9a5a, #7dffa8); }
+.ap-row.dead { opacity: .45; }
+.ap-pct { font: 900 18px "Nunito", sans-serif; color: #ffe39a; text-align: right; white-space: nowrap; }
+.ap-row.me .ap-name { color: #ffe39a; }
+/* ambiance suspense : vignette qui bat comme un coeur */
+body.suspense::after {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 3;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(40,0,0,.55) 100%);
+  animation: heartVignette .9s ease-in-out infinite;
+}
+@keyframes heartVignette { 0%, 100% { opacity: .75; } 12% { opacity: 1; } 30% { opacity: .8; } 42% { opacity: .95; } }
+.suspense-flash { position: fixed; inset: 0; pointer-events: none; z-index: 4; background: radial-gradient(circle at 50% 45%, rgba(255,240,200,.45), rgba(255,240,200,0) 60%); animation: sFlash .7s ease-out forwards; }
+.suspense-flash.big { background: radial-gradient(circle at 50% 45%, rgba(255,255,255,.7), rgba(255,200,120,.15) 70%); animation-duration: 1.1s; }
+@keyframes sFlash { from { opacity: 1; } to { opacity: 0; } }
+.turn-banner.gold .ribbon { background: linear-gradient(180deg, #f8e19a, #b8821f); color: #3a2206; text-shadow: 0 2px 0 rgba(255,255,255,.35); }
+.turn-banner.allin .ribbon { background: linear-gradient(180deg, #d6252f, #6b0f14); animation: allinShake .5s ease-in-out 2; }
+@keyframes allinShake { 25% { transform: rotate(-2deg) scale(1.04); } 75% { transform: rotate(2deg) scale(1.04); } }
+@media (max-height: 520px) {
+  .poker-result, .allin-panel { padding: 5px 10px; }
+  .pr-title { font-size: 16px; }
+  .ap-row { margin: 2px 0; }
+}
