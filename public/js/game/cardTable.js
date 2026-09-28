@@ -278,6 +278,7 @@ export class CardTable {
       }
       if (destZone === "reveal") {
         if (z === "pile") return 0 - e.slot * 0.0001;
+        if (z === "pick") return 0.5;
         if (z === "me" || z === "opp") return 1;
         return 2;
       }
@@ -413,7 +414,7 @@ export class CardTable {
       const e = this.takeFree(free, "pile", null);
       if (!e) break;
       this.clearIdentity(e);
-      e.jitter = { dx: (Math.random() - 0.5) * 0.7, dz: (Math.random() - 0.5) * 0.55, yaw: (Math.random() - 0.5) * 1.6 };
+      e.jitter = { dx: (Math.random() - 0.5) * 0.4, dz: (Math.random() - 0.5) * 0.3, yaw: (Math.random() - 0.5) * 1.2 };
       setZone(e, "pile", null, this.nextSlot("pile", null));
     }
     for (let k = 0; k < discardDeficit; k += 1) {

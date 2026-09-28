@@ -38,6 +38,16 @@ for (let g = 0; g < 200; g += 1) {
     assert.ok(r.schedule > 0);
     if (isPouilleux(card)) stats.pouilleuxDrawn += 1;
     p.tick(s);
+    if (s.showPair) {
+      // la paire formee reste montree au centre avant d'aller au plateau
+      assert.strictEqual(s.phase, "pairing");
+      assert.strictEqual(s.showPair.cards[0].id, card.id, "la carte tiree en premier");
+      assert.ok(!s.hands[cur].some((c) => s.showPair.cards.includes(c)), "la paire a quitte la main");
+      const view = p.getViewForPlayer(s, other, {});
+      assert.ok(view.showPair && view.showPair.cards.length === 2);
+      assert.strictEqual(view.pairs.length, s.pairs.length - 1, "pas encore dans le plateau");
+      stats.shownPairs = (stats.shownPairs || 0) + 1;
+    }
     stats.draws += 1;
     stats.pairs += s.pairs.length - before;
     assert.strictEqual(count(), 51);

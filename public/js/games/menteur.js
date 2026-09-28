@@ -40,11 +40,12 @@ export default {
       app.hud.bubble(who(ev.playerId), `Carré de ${rankPlural(ev.rank)} !`, "gold");
       app.sfx.play("quad");
     } else if (ev.type === "accuse") {
+      // la table ne tremble qu'une fois, quand le tampon tombe
       app.hud.bubble(who(ev.accuserId), "MENTEUR !", "liar");
       app.sfx.play("liar");
-      app.shake();
-    } else if (ev.type === "pickup") {
-      app.hud.bubble(who(ev.playerId), ev.count >= 10 ? `Aïe… ${ev.count} cartes` : "Je ramasse…");
+    } else if (ev.type === "pickup" && ev.count >= 10) {
+      // la revelation a deja dit qui ramasse : bulle seulement pour les gros tas
+      app.hud.bubble(who(ev.playerId), `Aïe… ${ev.count} cartes`);
     }
   },
 

@@ -484,7 +484,23 @@ body.revealing #vignette {
 .bubble.gold::after { border-top-color: #d9a845; }
 .plate .bubble { left: calc(50% + var(--bx, 0px)); }
 .plate .bubble::after { left: calc(50% - var(--bx, 0px)); }
-.bubble.mine { position: fixed; bottom: calc(var(--hand-top) + 58px); left: 50%; }
+/* bulle sous l'etiquette quand il n'y a pas la place au-dessus (joueur du haut) */
+.plate .bubble.below { bottom: auto; top: calc(100% + 10px); transform-origin: 50% 0; }
+.plate .bubble.below::after { top: auto; bottom: 100%; border-top-color: transparent; border-bottom-color: #fffaf0; }
+.plate .bubble.below.liar::after { border-bottom-color: #c62828; }
+.plate .bubble.below.gold::after { border-bottom-color: #fde8a4; }
+/* ma bulle : au-dessus de ma plaque, en bas a gauche (jamais sur l'aide ni
+   sur les boutons du centre) */
+.bubble.mine { position: fixed; bottom: calc(var(--rail-h) + var(--safe-b) + 10px); left: 10px; transform: scale(.5); transform-origin: 22px 100%; }
+.bubble.mine::after { left: 22px; }
+.bubble.mine.show { transform: scale(1); }
+.bubble.mine.liar.show { animation: shakeMine .45s; }
+@keyframes shakeMine {
+  0%, 100% { rotate: 0deg; }
+  20% { rotate: -5deg; }
+  40% { rotate: 5deg; }
+  60% { rotate: -3deg; }
+}
 @keyframes shake {
   0%, 100% { transform: translateX(-50%) rotate(0); }
   20% { transform: translateX(-54%) rotate(-5deg); }
@@ -827,6 +843,7 @@ body.shake #scene { animation: screenShake .45s; }
   box-shadow: 0 10px 26px rgba(0,0,0,.55);
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast.over-announce { display: flex; align-items: center; justify-content: center; width: max-content; box-sizing: border-box; padding: 6px 14px; }
 
 @media (min-width: 900px) {
   .announce-value { font-size: 26px; }

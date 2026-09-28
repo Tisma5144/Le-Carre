@@ -73,6 +73,27 @@ export class Hud {
   toast(msg, ms = 2400) {
     const t = $("toast");
     t.textContent = msg;
+    // en partie, le message se pose sur la plaque d'annonce (entre les
+    // boutons du haut) au lieu de recouvrir le joueur d'en face
+    const inGame = !$("hud").classList.contains("hidden");
+    const a = inGame ? $("announce").getBoundingClientRect() : null;
+    const left = inGame ? $("btn-menu").getBoundingClientRect() : null;
+    const right = inGame ? $("btn-sound").getBoundingClientRect() : null;
+    if (a && a.height > 0 && left && right && left.width > 0 && right.width > 0) {
+      const c = window.innerWidth / 2;
+      const room = 2 * Math.min(c - left.right - 6, right.left - 6 - c);
+      t.classList.add("over-announce");
+      t.style.top = `${Math.round(a.top)}px`;
+      t.style.minHeight = `${Math.round(a.height)}px`;
+      t.style.maxWidth = `${Math.max(200, Math.round(room))}px`;
+      t.style.minWidth = `${Math.min(Math.round(a.width), Math.max(200, Math.round(room)))}px`;
+    } else {
+      t.style.minWidth = "";
+      t.classList.remove("over-announce");
+      t.style.top = "";
+      t.style.minHeight = "";
+      t.style.maxWidth = "";
+    }
     t.classList.add("show");
     clearTimeout(this.toastTimer);
     this.toastTimer = setTimeout(() => t.classList.remove("show"), ms);
@@ -237,17 +258,56 @@ export class Hud {
     const W = window.innerWidth;
     for (const it of items) {
       it.el.style.transform = `translate(${it.x}px, ${it.y}px) translate(-50%, -100%)`;
-      // la bulle de dialogue reste entierement a l'ecran (la pointe, elle,
-      // continue de viser le joueur)
+      // la bulle de dialogue s'ecarte des etiquettes voisines et reste
+      // entierement a l'ecran (la pointe, elle, continue de viser le joueur)
       const b = it.el.querySelector(".bubble");
       if (b) {
         const bw = b.offsetWidth;
-        const over = it.x + bw / 2 - (W - 6);
-        const under = 6 - (it.x - bw / 2);
-        const bx = over > 0 ? -over : under > 0 ? under : 0;
+        const bh = b.offsetHeight;
+        // pas la place au-dessus (plaque d'annonce, boutons) : bulle en dessous
+        const aboveTop = it.y - it.h - 10 - bh;
+        const below = obstacles.some((r) => aboveTop < r.bottom + 4 && it.x + bw / 2 > r.left && it.x - bw / 2 < r.right);
+        b.classList.toggle("below", below);
+        const bottom = below ? it.y + 10 + bh : it.y - it.h - 10;
+        const top = bottom - bh;
+        let bx = 0;
+        for (const o of items) {
+          if (o === it || o.y < top || o.y - o.h > bottom) continue;
+          const oL = o.x - o.half + 6;
+          const oR = o.x + o.half - 6;
+          const l = it.x + bx - bw / 2;
+          const r = it.x + bx + bw / 2;
+          if (r <= oL - 4 || l >= oR + 4) continue;
+          const toRight = oR + 4 - l;
+          const toLeft = oL - 4 - r;
+          bx += Math.abs(toLeft) <= toRight ? toLeft : toRight;
+        }
+        // la pointe doit rester sous la bulle
+        const maxShift = Math.max(0, bw / 2 - 18);
+        bx = Math.max(-maxShift, Math.min(maxShift, bx));
+        const over = it.x + bx + bw / 2 - (W - 6);
+        const under = 6 - (it.x + bx - bw / 2);
+        if (over > 0) bx -= over;
+        else if (under > 0) bx += under;
         b.style.setProperty("--bx", `${Math.round(bx)}px`);
       }
     }
+  }
+
+  // Les deux pastilles du tapis (pile / plateau) ne se chevauchent jamais.
+  separateChips() {
+    const a = $("tray-chip");
+    const b = $("pile-chip");
+    if (a.classList.contains("hidden") || b.classList.contains("hidden")) return;
+    const ra = a.getBoundingClientRect();
+    const rb = b.getBoundingClientRect();
+    if (ra.right + 6 <= rb.left || rb.right + 6 <= ra.left || ra.bottom + 4 <= rb.top || rb.bottom + 4 <= ra.top) return;
+    const cb = (rb.left + rb.right) / 2;
+    const push = cb >= (ra.left + ra.right) / 2 ? ra.right + 6 - rb.left : ra.left - 6 - rb.right;
+    const m = /translate\(([-\d.]+)px, ([-\d.]+)px\)/.exec(b.style.transform);
+    if (!m) return;
+    const x = Math.max(rb.width / 2 + 4, Math.min(window.innerWidth - rb.width / 2 - 4, Number(m[1]) + push));
+    b.style.transform = `translate(${x}px, ${m[2]}px) translate(-50%, 0)`;
   }
 
   // Emoji qui s'envole au-dessus d'un joueur (target = "me" ou id).
@@ -283,7 +343,7 @@ export class Hud {
       el = plate.querySelector(".bubble");
     }
     el.textContent = text;
-    el.className = `bubble ${target === "me" ? "mine" : ""} ${kind}`;
+    el.className = `bubble ${target === "me" ? "mine" : ""} ${kind} ${el.classList.contains("below") ? "below" : ""}`;
     void el.offsetWidth;
     el.classList.add("show");
     clearTimeout(this.bubbleTimers.get(target));
@@ -334,8 +394,42 @@ export class Hud {
     $("turn-banner-text").textContent = text;
     b.classList.remove("show", "gold", "allin");
     if (variant) b.classList.add(variant);
+    this.placeTurnBanner();
     void b.offsetWidth;
     b.classList.add("show");
+  }
+
+  // Le bandeau "A toi de jouer" se cale entre les etiquettes des joueurs
+  // (au plus pres de sa place habituelle) pour ne pas cacher leurs noms.
+  placeTurnBanner() {
+    const b = $("turn-banner");
+    b.style.top = "";
+    const ribbon = b.querySelector(".ribbon");
+    const H = window.innerHeight;
+    const base = parseFloat(getComputedStyle(b).top) || H * 0.36;
+    const bh = ribbon.offsetHeight || 70;
+    const rw = ribbon.offsetWidth || window.innerWidth;
+    const bl = (window.innerWidth - rw) / 2;
+    const obstacles = [];
+    for (const el of this.plates.values()) {
+      if (el.style.opacity === "0") continue;
+      const r = el.querySelector(".plate-inner").getBoundingClientRect();
+      if (r.width && r.right > bl && r.left < bl + rw) obstacles.push(r);
+    }
+    for (const id of ["announce", "hint"]) {
+      const r = $(id).getBoundingClientRect();
+      if (r.height > 0) obstacles.push(r);
+    }
+    const free = (y) => obstacles.every((r) => y + bh + 4 <= r.top || y - 4 >= r.bottom);
+    for (let d = 0; d < H * 0.3; d += 6) {
+      for (const y of [base + d, base - d]) {
+        if (y < H * 0.15 || y + bh > H * 0.7) continue;
+        if (free(y)) {
+          b.style.top = `${Math.round(y)}px`;
+          return;
+        }
+      }
+    }
   }
 
   // text : ligne detaillee (grands ecrans) ; short : version courte pour

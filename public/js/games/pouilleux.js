@@ -29,13 +29,17 @@ export default {
   isFreshDeal: (v) => v.history.every((e) => e.type === "deal" || e.type === "pair" || e.type === "safe"),
 
   desired(v, handOrder, app) {
+    // carte que je viens de tirer : montree en grand avant de rejoindre ma main
+    const drawn = this.myDrawnCard(v, app);
     const byId = new Map(v.hand.map((c) => [c.id, c]));
-    const me = handOrder.map((id) => byId.get(id)).filter(Boolean);
+    const me = handOrder.map((id) => byId.get(id)).filter((c) => c && (!drawn || c.id !== drawn.id));
     const opp = new Map(v.opponents.map((o) => [o.id, o.cardCount]));
     const tray = [];
     v.pairs.forEach((p, qi) => p.cards.forEach((c, j) => tray.push({ card: c, quad: qi, j, owner: p.playerId })));
     // le valet de trefle retire du jeu reste dans la boite, face cachee
-    const out = { me, opp, tray, talon: 1 };
+    // la paire qui vient de se former est montree a tous, en grand
+    const reveal = v.showPair ? v.showPair.cards : drawn ? [drawn] : [];
+    const out = { me, opp, tray, talon: 1, reveal };
     const dealing = app && app.S.dealing;
     // a mon tour, le voisin me tend ses cartes
     if (!dealing && v.you.isYourTurn && v.you.victimId && v.phase === "playing") {
@@ -44,6 +48,12 @@ export default {
       opp.set(v.you.victimId, 0);
     }
     return out;
+  },
+
+  myDrawnCard(v, app) {
+    const d = v.lastDraw;
+    if (v.pairingStep !== "drawn" || !d || !d.card || d.to !== (app && app.S.me.id)) return null;
+    return d.card;
   },
 
   turnBanner: () => "À toi de tirer !",
@@ -132,8 +142,16 @@ export default {
       else if (v.phase === "pairing") hint = "";
       else hint = `<b>${v.currentTurnName}</b> tire une carte chez <b>${v.victimName}</b>…`;
     }
+    if (!dealing && v.showPair) {
+      const sp = v.showPair;
+      hint = `✨ ${sp.playerId === S.me.id ? "Tu sors" : `<b>${sp.playerName.replace(/[<>&]/g, "")}</b> sort`} une paire ${de(sp.rank)} !`;
+    }
     hud.setHint(hint, myTurn);
     table.setPickable(myTurn && v.phase === "playing");
+    // halo : vert pour la paire qui sort, rouge si je viens de tirer le Pouilleux
+    const drawn = this.myDrawnCard(v, app);
+    const claim = v.showPair ? v.showPair.rank : drawn && drawn.rank === POUILLEUX.rank && drawn.suit === POUILLEUX.suit ? "none" : null;
+    if (table.revealClaim !== claim) table.setRevealClaim(claim);
 
     $("btn-liar").classList.add("hidden");
     $("btn-pass").classList.add("hidden");
@@ -191,7 +209,10 @@ export default {
   },
 
   hideOverlays(app) {
-    if (app && app.table) app.table.setPickable(false);
+    if (app && app.table) {
+      app.table.setPickable(false);
+      if (app.table.revealClaim) app.table.setRevealClaim(null);
+    }
   },
 
   chips(v) {

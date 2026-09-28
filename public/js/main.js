@@ -718,6 +718,7 @@ function hudFrame() {
     hud.positionChip("pile-chip", pile, chips.pile);
     const ta = table.trayAnchor();
     hud.positionChip("tray-chip", ta ? world.toScreen(ta) : null, chips.tray);
+    hud.separateChips();
     // les bandeaux apparaissent parfois apres coup : on reverifie la place du jeton
     const now = performance.now();
     if (S.tokenBase && world.token.visible && now - (S.tokenCheckAt || 0) > 400) {

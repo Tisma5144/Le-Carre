@@ -137,14 +137,14 @@ function scheduleBots(room) {
     const first = botActions(room.gameType, room.game, botId, level)[0];
     if (!first) continue;
     // rythme volontairement pose pour que les humains suivent le jeu
-    let delay = 1700 + Math.random() * 1200;
-    if (first.type === "pickup") delay = 2600;
-    else if (first.type === "accuse") delay = 2100;
-    else if (first.type === "give") delay = 2500;
-    else if (first.type === "next_hand") delay = 6500;
-    else if (first.type === "rebuy") delay = 1500;
-    else if (first.type === "ecart") delay = 3200;
-    else if (first.type === "announce") delay = 1400;
+    let delay = 2300 + Math.random() * 1500;
+    if (first.type === "pickup") delay = 3200;
+    else if (first.type === "accuse") delay = 2600;
+    else if (first.type === "give") delay = 3000;
+    else if (first.type === "next_hand") delay = 7500;
+    else if (first.type === "rebuy") delay = 1800;
+    else if (first.type === "ecart") delay = 3800;
+    else if (first.type === "announce") delay = 1800;
     if (!room.players[botId].isBot) delay = 20000;
     delay *= BOT_SPEED;
     room.botTimer = setTimeout(() => {
@@ -156,7 +156,7 @@ function scheduleBots(room) {
       for (const action of actions) {
         const res = game.applyAction(room.game, botId, action, { isHost: false });
         if (res && res.ok) {
-          if (action.type === "pickup" && Math.random() < 0.6) {
+          if (action.type === "pickup" && Math.random() < 0.25) {
             io.to(room.code).emit("emote", { playerId: botId, emoji: Math.random() < 0.5 ? "😭" : "😡" });
           }
           broadcastRoom(room);

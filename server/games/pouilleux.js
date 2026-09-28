@@ -8,6 +8,8 @@
 // - Chacun son tour (sens des aiguilles d'une montre), on tire une carte au
 //   hasard dans le jeu de son voisin de gauche (le joueur suivant). Si elle
 //   forme une paire, la paire est defaussee. Puis c'est a ce voisin de jouer.
+// - Affichage : la carte tiree reste un instant en grand pour le tireur, puis
+//   la paire eventuelle est montree a tous au centre avant d'aller au plateau.
 // - Un joueur qui n'a plus de cartes est tire d'affaire. Le dernier a garder
 //   des cartes (forcement le valet de pique) est le Pouilleux.
 
@@ -16,7 +18,8 @@ const { buildStandardDeck, shuffle, RANKS, cardPublicView } = require("../deck")
 
 const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 8;
-const PAIR_PAUSE_MS = 1100;
+const DRAW_SHOW_MS = 1500; // la carte tiree, en grand pour le tireur
+const PAIR_SHOW_MS = 2000; // la paire formee, au centre pour tout le monde
 const COLOR = { coeur: "rouge", carreau: "rouge", pique: "noir", trefle: "noir" };
 
 function logEvent(state, entry) {
@@ -37,13 +40,16 @@ function removePairs(state, playerId, reason) {
       if (same.length >= 2) found.push(same.slice(0, 2));
     }
   }
+  const out = [];
   for (const pair of found) {
     const ids = new Set(pair.map((c) => c.id));
     state.hands[playerId] = state.hands[playerId].filter((c) => !ids.has(c.id));
-    state.pairs.push({ playerId, rank: pair[0].rank, cards: pair });
+    const entry = { playerId, rank: pair[0].rank, cards: pair };
+    state.pairs.push(entry);
+    out.push(entry);
     logEvent(state, { type: "pair", playerId, rank: pair[0].rank, color: COLOR[pair[0].suit], reason });
   }
-  return found.length;
+  return out;
 }
 
 function createGame(playerIds) {
@@ -63,7 +69,8 @@ function createGame(playerIds) {
     loserId: null,
     phase: "playing",
     currentTurn: null,
-    lastDraw: null
+    lastDraw: null,
+    showPair: null
   };
   logEvent(state, { type: "deal" });
   for (const id of seatOrder) removePairs(state, id, "deal");
@@ -118,17 +125,34 @@ function doDraw(state, playerId, action) {
   state.lastDraw = { from: victim, to: playerId, card, seq: state.eventSeq + 1 };
   // l'evenement public ne dit pas quelle carte a ete tiree
   logEvent(state, { type: "draw", playerId, from: victim });
-  // on laisse la carte un instant en main avant de sortir la paire
+  // on montre la carte tiree avant de sortir la paire
   state.phase = "pairing";
-  state.pairingFor = { drawer: playerId, victim };
-  return { ok: true, schedule: PAIR_PAUSE_MS };
+  state.pairingFor = { drawer: playerId, victim, step: "drawn" };
+  return { ok: true, schedule: DRAW_SHOW_MS };
 }
 
+// Deux temps apres un tirage : 1) la paire eventuelle sort de la main et
+// reste montree au centre ; 2) elle rejoint le plateau et le tour passe.
 function tick(state) {
   if (state.phase !== "pairing") return { ok: false };
+  const pf = state.pairingFor;
+  if (pf.step === "drawn") {
+    const [pair] = removePairs(state, pf.drawer, "draw");
+    if (pair) {
+      const drawnId = state.lastDraw && state.lastDraw.card.id;
+      pair.cards.sort((a, b) => (b.id === drawnId) - (a.id === drawnId));
+      state.showPair = pair;
+      pf.step = "pair";
+      return { ok: true, schedule: PAIR_SHOW_MS };
+    }
+  }
+  return finishTurn(state);
+}
+
+function finishTurn(state) {
   const { drawer, victim } = state.pairingFor;
   state.pairingFor = null;
-  removePairs(state, drawer, "draw");
+  state.showPair = null;
   checkSafe(state, victim);
   checkSafe(state, drawer);
   state.phase = "playing";
@@ -189,7 +213,10 @@ function getViewForPlayer(state, playerId, players) {
       safe: state.safeOrder.includes(id),
       connected: players[id] ? players[id].connected !== false : false
     })),
-    pairs: state.pairs.map((p) => ({ playerId: p.playerId, rank: p.rank, cards: p.cards.map(cardPublicView) })),
+    pairs: state.pairs.filter((p) => p !== state.showPair).map((p) => ({ playerId: p.playerId, rank: p.rank, cards: p.cards.map(cardPublicView) })),
+    // paire qui vient de se former, montree au centre avant d'aller au plateau
+    showPair: state.showPair ? { playerId: state.showPair.playerId, playerName: name(state.showPair.playerId), rank: state.showPair.rank, cards: state.showPair.cards.map(cardPublicView) } : null,
+    pairingStep: state.pairingFor ? state.pairingFor.step : null,
     // la carte tiree n'est connue que du tireur et de sa victime
     lastDraw: state.lastDraw ? {
       from: state.lastDraw.from,
