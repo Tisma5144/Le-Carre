@@ -61,9 +61,9 @@ function sideCanvas(d) {
 // Decompose un montant en jetons : [{ d, n }], au plus MAX_CHIPS jetons.
 // On evite les trop grosses valeurs (100 = dix jetons de 10, pas un seul
 // jeton noir) pour que les piles aient du volume.
-export function chipsFor(amount) {
+export function chipsFor(amount, div = 4, max = MAX_CHIPS) {
   let rest = Math.max(0, Math.round(amount));
-  const cap = rest / 4;
+  const cap = rest / div;
   const out = [];
   for (const d of DENOMS) {
     if (d.v > cap && d.v > 5) continue;
@@ -75,9 +75,9 @@ export function chipsFor(amount) {
   }
   let total = out.reduce((t, x) => t + x.n, 0);
   // trop de jetons : on tronque les petites valeurs (c'est un decor)
-  while (total > MAX_CHIPS && out.length) {
+  while (total > max && out.length) {
     const last = out[out.length - 1];
-    const cut = Math.min(last.n, total - MAX_CHIPS);
+    const cut = Math.min(last.n, total - max);
     last.n -= cut;
     total -= cut;
     if (!last.n) out.pop();
@@ -109,10 +109,12 @@ export class ChipLayer {
   }
 
   // Pile de jetons : colonnes d'une meme couleur, cote a cote.
-  buildPile(amount) {
+  // opts.compact : tapis d'un joueur (grosses valeurs, pile plus petite).
+  buildPile(amount, opts = {}) {
     const g = new THREE.Group();
     const cols = [];
-    for (const { d, n } of chipsFor(amount)) {
+    const parts = opts.compact ? chipsFor(amount, 8, 24) : chipsFor(amount);
+    for (const { d, n } of parts) {
       for (let k = 0; k < n; k += PER_COLUMN) cols.push({ d, n: Math.min(PER_COLUMN, n - k) });
     }
     // disposition compacte : rangee de 3 colonnes au plus, puis rangee suivante
@@ -131,11 +133,12 @@ export class ChipLayer {
         g.add(m);
       }
     });
+    if (opts.compact) g.scale.setScalar(0.72);
     return g;
   }
 
   // Place (ou remplace) une pile, sans animation.
-  setPile(key, amount, pos) {
+  setPile(key, amount, pos, opts = {}) {
     const cur = this.piles.get(key);
     if (cur && cur.amount === amount && cur.pos.distanceTo(pos) < 0.001) return;
     if (cur) this.group.remove(cur.obj);
@@ -143,10 +146,10 @@ export class ChipLayer {
       this.piles.delete(key);
       return;
     }
-    const obj = this.buildPile(amount);
+    const obj = this.buildPile(amount, opts);
     obj.position.copy(pos);
     this.group.add(obj);
-    this.piles.set(key, { amount, pos: pos.clone(), obj });
+    this.piles.set(key, { amount, pos: pos.clone(), obj, opts });
   }
 
   amount(key) {
@@ -199,18 +202,41 @@ export class ChipLayer {
   }
 
   // Gains : tout ce qui est sur la table part vers le(s) gagnant(s).
+  // (les tapis des joueurs, cles "stack:", ne bougent pas ; w.onLand est
+  // appele quand les jetons arrivent)
   payout(winners, delay = 0.9) {
     let from = null;
-    for (const [key, p] of this.piles) {
+    for (const [key, p] of [...this.piles]) {
+      if (key.startsWith("stack:")) continue;
       if (key === "pot" || !from) from = p.pos;
       this.group.remove(p.obj);
+      this.piles.delete(key);
     }
-    this.piles.clear();
-    if (!from) return;
     winners.forEach((w, i) => {
+      if (!from) return w.onLand && w.onLand();
       const obj = this.buildPile(w.amount);
-      this.fly(obj, from, w.pos, { dur: 0.75, delay: delay + i * 0.15, arc: 0.6, fade: true, onDone: () => this.group.remove(obj) });
+      this.fly(obj, from, w.pos, {
+        dur: 0.75,
+        delay: delay + i * 0.15,
+        arc: 0.6,
+        fade: true,
+        onDone: () => {
+          this.group.remove(obj);
+          if (w.onLand) w.onLand();
+        }
+      });
     });
+  }
+
+  // Tout ce qui est en jeu (mises, pot) disparait ; les tapis restent.
+  clearTable() {
+    for (const f of this.flights) this.group.remove(f.obj);
+    this.flights = [];
+    for (const [key, p] of [...this.piles]) {
+      if (key.startsWith("stack:")) continue;
+      this.group.remove(p.obj);
+      this.piles.delete(key);
+    }
   }
 
   clear() {

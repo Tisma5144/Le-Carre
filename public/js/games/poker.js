@@ -272,12 +272,17 @@ export default {
       const z = side ? (Math.cos(phi) > -0.1 ? 0.95 : -0.8) : Math.cos(phi) * fr.z * 0.55;
       return at(x, z);
     };
-    // d'ou partent les jetons d'un joueur (et ou arrivent ses gains)
-    const seatPos = (id) => {
-      if (id === me || !S.seatPhi.has(id)) return at(0, fr.z * 1.12);
-      const phi = S.seatPhi.get(id);
-      return at(Math.sin(phi) * fr.x * 1.05, Math.cos(phi) * fr.z * 1.05);
-    };
+    // tapis de chaque joueur, pres de sa biere, a une place libre ; les
+    // mises en partent, les gains y arrivent
+    const spots = this.stackSpots(v, app, { at, betPos, potPos });
+    const stackPos = (id) => spots.get(id) || at(0, -fr.z * 1.1);
+    const seatPos = stackPos;
+    if (!this.stackWait) this.stackWait = new Set();
+    // nouvelle main : plus aucun gain en vol a attendre
+    if (this.chipPrev && this.chipPrev.hand !== `${v.uid}-${v.handNumber}`) this.stackWait.clear();
+    for (const st of v.seats) {
+      if (!this.stackWait.has(st.id)) C.setPile("stack:" + st.id, st.stack, stackPos(st.id), { compact: true });
+    }
     const hand = `${v.uid}-${v.handNumber}`;
     const bets = new Map(v.seats.filter((s) => s.bet > 0 && betPos(s.id)).map((s) => [s.id, s.bet]));
     let inBets = 0;
@@ -293,24 +298,34 @@ export default {
       if (prev && prev.hand === hand && !prev.paid) {
         const won = new Map();
         for (const w of v.results.winners) won.set(w.id, (won.get(w.id) || 0) + w.amount);
-        C.payout([...won].map(([id, amount]) => ({ amount, pos: seatPos(id) })));
-      } else if (!prev || prev.hand !== hand || prev.paid) C.clear();
+        // le tapis du gagnant ne grossit qu'a l'arrivee des jetons
+        for (const id of won.keys()) this.stackWait.add(id);
+        C.payout([...won].map(([id, amount]) => ({
+          amount,
+          pos: seatPos(id),
+          onLand: () => {
+            this.stackWait.delete(id);
+            const st = S.game && S.game.seats && S.game.seats.find((x) => x.id === id);
+            if (st) C.setPile("stack:" + id, st.stack, stackPos(id), { compact: true });
+          }
+        })));
+      } else if (!prev || prev.hand !== hand || prev.paid) C.clearTable();
       return;
     }
     if (v.phase === "finished" || v.phase === "waiting") {
-      C.clear();
+      C.clearTable();
       return;
     }
     // premiere vue (arrivee en cours de main) : tout en place, sans animation
     if (!prev) {
-      C.clear();
+      C.clearTable();
       for (const [id, a] of bets) C.setPile("bet:" + id, a, betPos(id));
       C.setPile("pot", center, potPos);
       return;
     }
     // nouvelle main : table vide, les blindes arrivent
     const fresh = prev.hand !== hand;
-    if (fresh) C.clear();
+    if (fresh) C.clearTable();
     const before = fresh ? new Map() : prev.bets;
     // fin de tour : les mises partent au pot
     const gone = [...before.keys()].filter((id) => (bets.get(id) || 0) < before.get(id));
@@ -320,6 +335,98 @@ export default {
       if (a > (gone.includes(id) ? 0 : before.get(id) || 0)) C.bet("bet:" + id, a, betPos(id), seatPos(id));
       else C.setPile("bet:" + id, a, betPos(id));
     }
+  },
+
+  // Place du tapis de chaque joueur : on essaie plusieurs emplacements autour
+  // de sa biere et on garde celui qui ne recouvre rien (etiquettes, textes,
+  // cartes, mises, pot, bieres, autres tapis). Calcule une fois par
+  // disposition de la table.
+  stackSpots(v, app, { at, betPos, potPos }) {
+    const { world, S, hud } = app;
+    const me = S.me.id;
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const ids = v.seats.map((s) => s.id);
+    const key = `${ids.join("|")}|${W}x${H}|${world.dims.ax}`;
+    // les etiquettes se placent pendant les premieres images : on recalcule
+    // encore un peu apres chaque changement de disposition
+    const now = performance.now();
+    if (this.spotsKey !== key) this.spotsSince = now;
+    if (this.spotsKey === key && this.spots && now - this.spotsSince > 3000) return this.spots;
+    const rects = [];
+    const addDom = (el) => {
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      if (r.width && r.height) rects.push({ l: r.left - 4, r: r.right + 4, t: r.top - 4, b: r.bottom + 4 });
+    };
+    for (const el of hud.plates.values()) if (el.style.opacity !== "0") addDom(el);
+    addDom($("announce"));
+    // bas de l'ecran : ma main, l'aide et les boutons
+    const handTop = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hand-top")) || 280;
+    rects.push({ l: 0, r: W, t: H - handTop - 70, b: H });
+    // emprise a l'ecran d'un objet pose sur la table (rayon r, hauteur h)
+    const box = (p, r, h) => {
+      const c = world.toScreen(p);
+      const e = world.toScreen(p.clone().setX(p.x + r));
+      const top = world.toScreen(p.clone().setY(p.y + h));
+      const hw = Math.abs(e.x - c.x);
+      return { l: c.x - hw, r: c.x + hw, t: Math.min(top.y, c.y - hw * 0.5), b: c.y + hw * 0.5, ok: c.visible };
+    };
+    const P = world.anchors.pile;
+    rects.push(box(P.clone().setZ(P.z + 0.05), 1.75, 0.1)); // cartes communes
+    rects.push(box(potPos, 0.5, 0.35));
+    for (const id of ids) {
+      const b = betPos(id);
+      if (b) rects.push(box(b, 0.45, 0.35));
+    }
+    // cartes des adversaires et bieres
+    const beers = new Map();
+    world.opponentPhis.forEach((phi, i) => {
+      rects.push(box(world.seatPoint(phi, 0.8), 0.6, 0.2));
+      if (i % 2 === 1 && world.opponentPhis.length > 4) return;
+      const side = phi < Math.PI ? 1 : -1;
+      const beer = world.seatPoint(phi + side * 0.42, 0.77);
+      beers.set(phi, beer);
+      rects.push(box(beer, 0.3, 0.9));
+    });
+    const overlap = (a, b) => Math.max(0, Math.min(a.r, b.r) - Math.max(a.l, b.l)) * Math.max(0, Math.min(a.b, b.b) - Math.max(a.t, b.t));
+    const offScreen = (a) => (a.l < 4 || a.r > W - 4 || a.t < 4 ? 1e6 : 0);
+    const out = new Map();
+    const choose = (id, cands, near) => {
+      let best = null;
+      for (const c of cands) {
+        c.y = 0.012;
+        const b = box(c, 0.36, 0.3);
+        if (!b.ok) continue;
+        let cost = offScreen(b);
+        for (const r of rects) cost += overlap(b, r);
+        cost += c.distanceTo(near) * 20;
+        if (!best || cost < best.cost) best = { cost, c, b };
+      }
+      if (!best) return;
+      out.set(id, best.c);
+      rects.push(best.b);
+    };
+    for (const st of v.seats) {
+      if (st.id === me) continue;
+      if (!S.seatPhi.has(st.id)) continue;
+      const phi = S.seatPhi.get(st.id);
+      const side = phi < Math.PI ? 1 : -1;
+      const near = beers.get(phi) || world.seatPoint(phi + side * 0.42, 0.77);
+      const cands = [];
+      for (const d of [0.2, 0.3, 0.42, 0.55, -0.2, -0.3, -0.42]) {
+        for (const k of [0.6, 0.68, 0.77, 0.86, 0.95]) cands.push(world.seatPoint(phi + side * d, k));
+      }
+      choose(st.id, cands, near);
+    }
+    // mon tapis : sur le bord du tapis vert, du cote oppose au plateau
+    const fr = world.feltRadius;
+    const mine = [];
+    for (const x of [0.55, 0.7, 0.85, 1.0]) for (const z of [0.55, 0.7, 0.85, 1.0]) mine.push(at(fr.x * x, fr.z * z));
+    choose(me, mine, at(fr.x * 0.85, fr.z * 0.85));
+    this.spotsKey = key;
+    this.spots = out;
+    return out;
   },
 
   // Fin de main : qui a gagne (en clair), montrer ses cartes, voir le
@@ -533,6 +640,9 @@ export default {
   hideOverlays(app) {
     if (app && app.chips) app.chips.clear();
     this.chipPrev = null;
+    if (this.stackWait) this.stackWait.clear();
+    this.spots = null;
+    this.spotsKey = null;
     const bar = $("action-bar");
     bar.classList.add("hidden");
     bar.classList.remove("result");

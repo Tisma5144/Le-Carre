@@ -41,7 +41,9 @@ en commentaire en tête de chaque moteur `server/games/*.js`.
   renderLobbyOptions…).
 - Jetons de poker en 3D : `public/js/scene/chips.js` (`ChipLayer` : piles de
   mise, pot, vols mise → pile, piles → pot, pot → gagnant), piloté par
-  `syncChips` dans `public/js/games/poker.js`.
+  `syncChips` dans `public/js/games/poker.js`. Tapis de chaque joueur en 3D
+  près de sa bière : `stackSpots` essaie plusieurs places et garde celle qui
+  ne recouvre ni étiquette, ni texte, ni cartes (pensé pour le téléphone).
 - Cartes entièrement dessinées en canvas : `public/js/cards/cardArt.js`
   (figures, As, atouts et Excuse du Tarot, dos). Aperçus : `/dev/cards.html`,
   `/dev/tarot.html`.
