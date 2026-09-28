@@ -9,7 +9,7 @@ en commentaire en tête de chaque moteur `server/games/*.js`.
 
 ## Mise en ligne (automatique)
 
-- Dépôt GitHub `Tisma5144/site-carte`, hébergé sur Render (plan gratuit) qui
+- Dépôt GitHub `Tisma5144/Le-Carre`, hébergé sur Render (plan gratuit) qui
   redéploie à chaque push sur `main`.
 - Pour publier : tests verts → bump de `version` dans `package.json` (affichée
   en bas de l'accueil via `/version.json`) → commit clair en français → push
