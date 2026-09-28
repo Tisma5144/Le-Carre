@@ -522,14 +522,23 @@ export class Hud {
 
   // ------------------------------------------------------------ revelation
 
-  showReveal({ top, text, canPickup, pickupLabel, wait }) {
+  // pending : les textes du verdict gardent leur place mais restent caches
+  // jusqu'au tampon (la mise en page ne bouge plus quand ils apparaissent).
+  showReveal({ top, text, canPickup, pickupLabel, wait, pending }) {
+    const nb = (t) => (t || "").replace(/ ([!?:])/g, "\u00a0$1");
     $("reveal").classList.remove("hidden");
-    $("reveal-top").textContent = top;
-    $("reveal-text").textContent = text || "";
+    $("reveal").classList.toggle("pending", !!pending);
+    $("reveal-top").textContent = nb(top);
+    $("reveal-text").textContent = nb(text);
     const btn = $("btn-pickup");
     btn.classList.toggle("hidden", !canPickup);
     btn.textContent = pickupLabel || "Ramasser";
-    $("reveal-wait").textContent = wait || "";
+    $("reveal-wait").textContent = nb(wait);
+  }
+
+  // Tampon centre sur les cartes revelees (y en pixels).
+  placeStamp(y) {
+    $("stamp").style.top = y ? `${Math.round(y)}px` : "";
   }
 
   stamp(lie) {

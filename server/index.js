@@ -156,7 +156,7 @@ function scheduleBots(room) {
       for (const action of actions) {
         const res = game.applyAction(room.game, botId, action, { isHost: false });
         if (res && res.ok) {
-          if (action.type === "pickup" && Math.random() < 0.25) {
+          if (action.type === "pickup" && Math.random() < 0.6) {
             io.to(room.code).emit("emote", { playerId: botId, emoji: Math.random() < 0.5 ? "😭" : "😡" });
           }
           broadcastRoom(room);

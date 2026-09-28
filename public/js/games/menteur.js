@@ -40,12 +40,11 @@ export default {
       app.hud.bubble(who(ev.playerId), `Carré de ${rankPlural(ev.rank)} !`, "gold");
       app.sfx.play("quad");
     } else if (ev.type === "accuse") {
-      // la table ne tremble qu'une fois, quand le tampon tombe
+      // la table ne tremble qu'une fois pendant la revelation : au tampon
       app.hud.bubble(who(ev.accuserId), "MENTEUR !", "liar");
       app.sfx.play("liar");
-    } else if (ev.type === "pickup" && ev.count >= 10) {
-      // la revelation a deja dit qui ramasse : bulle seulement pour les gros tas
-      app.hud.bubble(who(ev.playerId), `Aïe… ${ev.count} cartes`);
+    } else if (ev.type === "pickup") {
+      app.hud.bubble(who(ev.playerId), ev.count >= 10 ? `Aïe… ${ev.count} cartes` : "Je ramasse…");
     }
   },
 
@@ -149,12 +148,15 @@ export default {
         : `${r.accusedId === me ? "Tu disais" : r.accusedName + " disait"} la vérité…`;
       const who = loserIsMe ? "Tu ramasses" : `${r.loserName} ramasse`;
       const pileWords = r.pileCount > 1 ? `les ${r.pileCount} cartes` : "la carte";
+      // les textes du verdict sont en place des le debut (caches jusqu'au
+      // tampon) pour que rien ne bouge quand ils apparaissent
       const show = (withText) => hud.showReveal({
         top,
-        text: withText ? `${verdict} ${who} ${pileWords}.` : "",
-        canPickup: withText && v.you.canPickupNow,
+        text: `${verdict} ${who} ${pileWords}.`,
+        canPickup: v.you.canPickupNow,
         pickupLabel: `🫳 Ramasser ${pileWords}`,
-        wait: withText && !loserIsMe ? `En attente que ${r.loserName} ramasse…` : ""
+        wait: !loserIsMe ? `En attente que ${r.loserName} ramasse…` : "",
+        pending: !withText
       });
       if (S.revealKey !== key) {
         S.revealKey = key;
@@ -185,6 +187,8 @@ export default {
       app.S.revealKey = null;
       app.table.setRevealClaim(null);
     }
+    app.table.setRevealBand(null);
+    app.hud.placeStamp(null);
     document.body.classList.remove("revealing");
     app.hud.hideReveal();
   },
@@ -192,6 +196,7 @@ export default {
   // le tampon tombe quand les cartes sont retournees devant tout le monde
   frame(app) {
     const { S, table } = app;
+    if (S.revealKey) this.placeReveal(app);
     const sp = S.stampPending;
     if (!sp) return;
     if (sp.key !== S.revealKey) {
@@ -205,6 +210,24 @@ export default {
         sp.fire();
       }
     }
+  },
+
+  // Cartes retournees et tampon dans la bande libre entre les etiquettes des
+  // joueurs et les textes du bas : rien ne recouvre les noms ni les textes.
+  placeReveal(app) {
+    const H = window.innerHeight;
+    const texts = document.querySelector("#reveal .reveal-bottom").getBoundingClientRect();
+    const bottom = texts.height ? texts.top - 10 : H * 0.7;
+    let top = $("announce").getBoundingClientRect().bottom + 8;
+    for (const el of app.hud.plates.values()) {
+      if (el.style.opacity === "0") continue;
+      const r = el.getBoundingClientRect();
+      if (r.height && r.bottom < bottom - H * 0.2) top = Math.max(top, r.bottom + 8);
+    }
+    // bande trop etroite (beaucoup de joueurs) : on empiete sur les etiquettes
+    if (bottom - top < H * 0.2) top = bottom - H * 0.2;
+    app.table.setRevealBand({ top, bottom });
+    app.hud.placeStamp((top + bottom) / 2);
   },
 
   updateEnd(v, app) {

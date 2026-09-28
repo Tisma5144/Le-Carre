@@ -414,7 +414,7 @@ export class CardTable {
       const e = this.takeFree(free, "pile", null);
       if (!e) break;
       this.clearIdentity(e);
-      e.jitter = { dx: (Math.random() - 0.5) * 0.4, dz: (Math.random() - 0.5) * 0.3, yaw: (Math.random() - 0.5) * 1.2 };
+      e.jitter = { dx: (Math.random() - 0.5) * 0.7, dz: (Math.random() - 0.5) * 0.55, yaw: (Math.random() - 0.5) * 1.6 };
       setZone(e, "pile", null, this.nextSlot("pile", null));
     }
     for (let k = 0; k < discardDeficit; k += 1) {
@@ -692,13 +692,24 @@ export class CardTable {
     const m = list.length;
     if (!m) return;
     const hm = this.world.handMetrics();
-    const cardH = hm.visH * 0.3;
+    let cardH = hm.visH * 0.3;
+    let cy = hm.visH * 0.07;
+    const band = this.revealBand;
+    if (band) {
+      // dans la bande libre de l'ecran (entre les etiquettes des joueurs et
+      // les textes), cartes cote a cote sans se recouvrir
+      const H = window.innerHeight || 800;
+      cy = (0.5 - (band.top + band.bottom) / 2 / H) * hm.visH;
+      const bandH = ((band.bottom - band.top) / H) * hm.visH;
+      const maxCardW = (hm.visW * 0.94) / (m + (m - 1) * 0.08);
+      cardH = Math.min(cardH, bandH * 0.9, (maxCardW * CARD_WORLD_H) / CARD_WORLD_W);
+    }
     const s = cardH / CARD_WORLD_H;
     const cardW = CARD_WORLD_W * s;
-    const step = Math.min(cardW * 1.1, (hm.visW * 0.9 - cardW) / Math.max(1, m - 1));
+    const step = band ? cardW * 1.08 : Math.min(cardW * 1.1, (hm.visW * 0.9 - cardW) / Math.max(1, m - 1));
     list.forEach((e, j) => {
       e.space = "camera";
-      e.tPos.set((j - (m - 1) / 2) * step, hm.visH * 0.07, -hm.dist + 0.001 * j);
+      e.tPos.set((j - (m - 1) / 2) * step, cy, -hm.dist + 0.001 * j);
       e.tQuat.setFromEuler(new THREE.Euler(0, 0, (j - (m - 1) / 2) * -0.06));
       e.tScale = s;
       e.emissive = 0.7;
@@ -1217,6 +1228,15 @@ export class CardTable {
 
   setTurnGlow(owner) {
     this.turnGlowOwner = owner;
+    this.layoutAll();
+  }
+
+  // Bande de l'ecran (en pixels : { top, bottom }) ou poser les cartes
+  // revelees ; null = placement par defaut.
+  setRevealBand(band) {
+    const q = (b) => (b ? `${Math.round(b.top / 4)}|${Math.round(b.bottom / 4)}` : "");
+    if (q(band) === q(this.revealBand)) return;
+    this.revealBand = band;
     this.layoutAll();
   }
 

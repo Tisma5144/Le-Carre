@@ -735,29 +735,32 @@ body.revealing #vignette {
 .stamp {
   position: absolute;
   top: 40%;
+  z-index: 1;
   left: 50%;
   opacity: 0;
   padding: 4px 18px;
   border: 7px double currentColor;
   border-radius: 14px;
-  font: 900 clamp(40px, 12vw, 76px) "Playfair Display", Georgia, serif;
+  font: 900 clamp(32px, 9.5vw, 70px) "Playfair Display", Georgia, serif;
   letter-spacing: .04em;
   color: #e53935;
   background: rgba(20,4,2,.35);
   text-shadow: 0 0 2px currentColor, 0 4px 12px rgba(0,0,0,.6);
-  transform: translate(-50%, -50%) rotate(-12deg) scale(2.6);
+  transform: translate(-50%, -50%) rotate(-8deg) scale(2);
   white-space: nowrap;
 }
 .stamp.truth { color: #4be08b; }
 .stamp.show { animation: stampIn .42s cubic-bezier(.2,1.5,.4,1) forwards; }
 @keyframes stampIn {
-  from { opacity: 0; transform: translate(-50%, -50%) rotate(-12deg) scale(2.6); }
-  to { opacity: .96; transform: translate(-50%, -50%) rotate(-12deg) scale(1); }
+  from { opacity: 0; transform: translate(-50%, -50%) rotate(-8deg) scale(2); }
+  to { opacity: .96; transform: translate(-50%, -50%) rotate(-8deg) scale(1); }
 }
+/* textes de la revelation en bas, sur la main (assombrie) : le centre reste
+   libre pour les cartes retournees et le tampon */
 .reveal-bottom {
   position: absolute;
   left: 50%;
-  bottom: calc(var(--hand-h) - 20px);
+  bottom: calc(var(--rail-h) + var(--safe-b) + 10px);
   transform: translateX(-50%);
   width: min(92vw, 460px);
   text-align: center;
@@ -774,6 +777,7 @@ body.revealing #vignette {
 .reveal-bottom p:empty { display: none; }
 .reveal-bottom .btn { margin-top: 10px; animation: quadPulse 1.2s ease-in-out infinite; }
 .reveal-wait { margin-top: 8px !important; font-size: 13px !important; color: #ffe39a !important; }
+.reveal.pending #reveal-text, .reveal.pending #reveal-wait, .reveal.pending #btn-pickup { visibility: hidden; animation: none; }
 
 body.shake #scene { animation: screenShake .45s; }
 @keyframes screenShake {
