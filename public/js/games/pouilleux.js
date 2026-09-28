@@ -70,8 +70,13 @@ export default {
   onPick(slot, v, app) {
     if (!v.you.isYourTurn || app.S.dealing) return;
     app.table.setPickable(false);
+    // la carte touchee se souleve de l'eventail, puis vole vers le centre
+    app.table.markPicked(slot);
     app.sfx.play("flick");
-    app.emit("game:draw", { index: slot }, null, () => app.table.setPickable(true));
+    app.emit("game:draw", { index: slot }, null, () => {
+      app.table.markPicked(null);
+      app.table.setPickable(true);
+    });
   },
 
   onEvent(ev, app) {

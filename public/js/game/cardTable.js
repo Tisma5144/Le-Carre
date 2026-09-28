@@ -219,6 +219,8 @@ export class CardTable {
   takeFree(free, destZone, destOwner) {
     const prio = (e) => {
       const z = e.zone;
+      // Pouilleux : la carte touchee dans l'eventail du voisin est celle qui sort
+      if (e === this.pickedEntity && (destZone === "reveal" || destZone === "me")) return -10;
       if (destZone === "me" || destZone === "opp") {
         if (z === "pick" && (destZone === "me" || e.owner === destOwner)) return -1;
         if (z === "center" || z === "chien") return -0.5;
@@ -305,7 +307,9 @@ export class CardTable {
         best = i;
       }
     }
-    return free.splice(best, 1)[0];
+    const e = free.splice(best, 1)[0];
+    if (e === this.pickedEntity) this.pickedEntity = null;
+    return e;
   }
 
   applyState(rawDesired, { deal = false, instant = false } = {}) {
@@ -512,12 +516,16 @@ export class CardTable {
       if (to === "pile" || to === "table" || to === "trick") { step = 0.14; dur = 0.55; arc = 0.9; sound = "flick"; }
       else if (to === "won") { step = 0.035; dur = 0.6; arc = 0.45; sound = "pickup"; }
       else if (to === "discard") { step = 0.025; dur = 0.55; arc = 0.5; sound = "pickup"; }
+      else if (to === "reveal" && from === "pick") { step = 0; dur = 0.75; arc = 0.08; sound = "flip"; }
       else if (to === "reveal") { step = 0.16; dur = 0.7; arc = 0.5; sound = "flip"; }
+      else if (to === "opp" && from === "pick") { step = 0.02; dur = 0.55; arc = 0.3; sound = null; }
       else if (to === "tray") { step = 0.09; dur = 0.75; arc = 1.2; sound = "flick"; }
       else if (to === "me" && (from === "pile" || from === "reveal")) { step = 0.05; dur = 0.62; arc = 0.25; sound = "pickup"; }
       else if (to === "opp" && (from === "pile" || from === "reveal")) { step = 0.04; dur = 0.62; arc = 1.1; sound = "pickup"; }
       else if (to === "deck") { step = 0.006; dur = 0.5; arc = 0.3; sound = null; }
-      list.forEach((m, i) => this.startFlight(m.e, { delay: baseDelay + i * step, dur, arc, sound }));
+      // l'eventail tendu ne se replie qu'une fois la carte tiree sortie
+      const wait = to === "opp" && from === "pick" ? 0.55 : 0;
+      list.forEach((m, i) => this.startFlight(m.e, { delay: baseDelay + wait + i * step, dur, arc, sound }));
       baseDelay += Math.min(0.35, list.length * step * 0.4);
     }
   }
@@ -527,6 +535,7 @@ export class CardTable {
   layoutAll() {
     const world = this.world;
     if (!world.dims) return;
+    if (this.pickedEntity && this.pickedEntity.zone !== "pick") this.pickedEntity = null;
     const zones = { me: [], opp: new Map(), pile: [], reveal: [], tray: [], table: [], discard: [], deck: [], decor: [], trick: [], won: new Map(), talon: [], trump: [], pick: [], board: [], shown: [], chien: [], center: [], spare: [] };
     for (const e of this.entities) {
       if (e.zone === "opp" || e.zone === "won") {
@@ -909,9 +918,10 @@ export class CardTable {
     const baseY = hm.bottom + hm.visH * (portrait ? 0.44 : 0.42);
     list.forEach((e, j) => {
       const u = m > 1 ? j / (m - 1) - 0.5 : 0;
-      const hover = this.pickHover === j;
+      const picked = this.pickedEntity === e;
+      const hover = picked || this.pickHover === j;
       e.space = "camera";
-      e.tPos.set((j - (m - 1) / 2) * step, baseY - u * u * cardH * 0.25 + (hover ? cardH * 0.12 : 0), -hm.dist * 1.1 + j * 0.004);
+      e.tPos.set((j - (m - 1) / 2) * step, baseY - u * u * cardH * 0.25 + (picked ? cardH * 0.35 : hover ? cardH * 0.12 : 0), -hm.dist * 1.1 + j * 0.004 + (picked ? 0.05 : 0));
       e.tQuat.setFromEuler(new THREE.Euler(0, Math.PI, u * 0.25));
       e.tScale = s * 1.1;
       e.emissive = 0.3;
@@ -1228,6 +1238,13 @@ export class CardTable {
 
   setTurnGlow(owner) {
     this.turnGlowOwner = owner;
+    this.layoutAll();
+  }
+
+  // Pouilleux : la carte touchee se souleve de l'eventail du voisin en
+  // attendant la reponse du serveur (slot = son rang), null pour annuler.
+  markPicked(slot) {
+    this.pickedEntity = slot === null ? null : this.entities.find((e) => e.zone === "pick" && e.slot === slot) || null;
     this.layoutAll();
   }
 
