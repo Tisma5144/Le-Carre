@@ -3,7 +3,8 @@
 Projet de Mathis (on se parle en français, interface 100 % en français). App web
 multijoueur pour jouer aux cartes entre amis au bar, sur téléphone : code de
 table à 4 lettres + QR code (esprit Kahoot), table de bar en 3D.
-Jeux : Menteur, Président, Ascenseur, Pouilleux, Poker Texas Hold'em, Tarot.
+Jeux : Menteur, Président, Ascenseur, Pouilleux, Poker Texas Hold'em, Tarot,
+Coinche.
 Les règles validées avec Mathis sont dans `README.md` (une section par jeu) et
 en commentaire en tête de chaque moteur `server/games/*.js`.
 
@@ -67,6 +68,7 @@ Toujours poser des questions à Mathis sur les règles avant de coder un jeu.
 ```
 npm run test:menteur && npm run test:president && npm run test:ascenseur
 npm run test:pouilleux && npm run test:poker && npm run test:tarot
+npm run test:coinche
 npm run test:reconnexion && npm run test:robots
 ```
 
@@ -81,8 +83,8 @@ table, world, hud pour les scripts.
 - Ne jamais écraser `transform` d'un élément centré par `translateX(-50%)` avec
   une animation : utiliser la propriété `translate`.
 - Le jeton de tour se place via `table.freeSpot` (évite cartes, main, bandeaux).
-- `cardTable.setDeckSize(78)` pour le Tarot ; les autres jeux utilisent 52
-  cartes, les autres restent en zone `spare`.
+- `cardTable.setDeckSize(78)` pour le Tarot, 32 pour la Coinche ; les autres
+  jeux utilisent 52 cartes, les autres restent en zone `spare`.
 
 ## À faire / pistes
 

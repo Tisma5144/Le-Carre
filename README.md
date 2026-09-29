@@ -4,9 +4,9 @@ Jeu de cartes en ligne entre amis, façon Kahoot : un code de table à 4 lettres
 (ou un QR code), pas d'inscription, tout se passe dans le navigateur — sur
 téléphone comme sur ordinateur.
 
-Six jeux sont disponibles, choisis par le patron de la table dans le salon :
+Sept jeux sont disponibles, choisis par le patron de la table dans le salon :
 **Le Menteur**, **Le Président**, **L'Ascenseur**, **Le Pouilleux**, le
-**Poker Texas Hold'em** et **Le Tarot**.
+**Poker Texas Hold'em**, **Le Tarot** et **La Coinche**.
 
 Le jeu se joue autour d'une **table de bar en 3D** : plateau en
 lattes de bois, tapis de feutre, lampe suspendue, pintes sur leurs sous-bocks,
@@ -123,6 +123,36 @@ illustrées (figures dessinées, As ornés, dos au masque vénitien).
 - Durée : libre (le patron termine la partie) ou 5 / 10 / 20 donnes. Onglet
   Scores : totaux, graphique et détail donne par donne.
 
+## Règles de la Coinche (belote coinchée, réglables)
+
+- **4 joueurs**, 2 équipes de 2 (partenaires face à face, tirées au sort),
+  **32 cartes** (7 à l'As), 8 cartes chacun.
+- **Enchères** : chacun son tour (à gauche du donneur d'abord) annonce un
+  contrat de **80 à 160** par paliers de 10, puis **capot** (250 : tous les
+  plis) ou **générale** (500 : tous les plis par le preneur seul), avec une
+  couleur d'atout — ou passe. Il faut monter. Trois passes après une enchère
+  la terminent ; quatre passes d'entrée : on redistribue.
+- **Coinche** : à son tour, un adversaire de l'équipe qui tient l'enchère
+  peut coincher (×2) ; les enchères s'arrêtent et le preneur peut
+  **surcoincher** (×4).
+- **Jeu** : fournir la couleur demandée ; à l'atout, monter si on peut ; sans
+  la couleur, couper (surcouper si un adversaire a coupé, sinon couper quand
+  même), **sauf si son partenaire est maître** du pli.
+- **Valeurs** : atout V 20, 9 14, A 11, 10 10, R 4, D 3 ; autres couleurs
+  A 11, 10 10, R 4, D 3, V 2 ; 152 + **10 de der** = 162.
+- **Annonces** (automatiques à sa première carte) : tierce 20, cinquante 50,
+  cent 100, carré 100 (As, R, D, 10), 150 (9), 200 (Valets) ; seule l'équipe
+  qui a la meilleure annonce marque les siennes. **Belote-rebelote** : 20
+  points imprenables.
+- **Marque** : contrat réussi si plis + annonces + belote de l'équipe preneuse
+  ≥ contrat. Réussi : contrat + points faits ; coinché réussi : 160 + contrat
+  × 2 (ou × 4). Chuté : la défense marque 160 + contrat (× 2 ou × 4) et
+  toutes les annonces. Un capot réalisé vaut 250.
+- **Réglages du salon** : partie en 500 / **1000** / 2000 points ; on marque
+  « contrat + points » (défaut) ou « contrat seul » ; atouts : 4 couleurs
+  (défaut) ou + Sans Atout / Tout Atout (SA : As 19 ; TA : V 14, 9 9, A 6,
+  10 5, R 3, D 1) ; annonces oui / non.
+
 ## Ce que fait l'interface
 
 - On joue dans le sens des aiguilles d'une montre : le joueur suivant est
@@ -228,7 +258,8 @@ server/
   games/pouilleux.js  moteur du Pouilleux
   games/poker.js      moteur du poker Texas Hold'em (+ pokerEval.js : mains)
   games/tarot.js      moteur du Tarot (enchères, appel du Roi, chien, comptage FFT)
-  bots.js             robots joueurs (les 5 jeux)
+  games/coinche.js    moteur de la Coinche (enchères, coinche, annonces, belote)
+  bots.js             robots joueurs (tous les jeux, trois niveaux)
 public/
   index.html          structure de la page
   css/main.css        thème bar : bois, laiton, ardoise
@@ -237,6 +268,7 @@ public/
   js/games/president.js interface propre au Président (pli, échange, scores)
   js/games/ascenseur.js interface propre à l'Ascenseur (annonces, pli, réglages)
   js/games/tarot.js     interface propre au Tarot (enchères, écart, annonces, scores)
+  js/games/coinche.js   interface propre à la Coinche (enchères, plis, scores par équipe)
   js/cards/cardArt.js dessin procédural des cartes (canvas)
   js/scene/world.js   scène 3D : table, lampe, pintes, caméra adaptative
   js/scene/textures.js textures procédurales (bois, feutre, sous-bocks…)

@@ -1493,3 +1493,13 @@ body.suspense::after {
 .act.suit.red { color: #b3202a; }
 .mini-row { display: inline-flex; gap: 2px; vertical-align: middle; flex-wrap: wrap; }
 .mini-row img { width: 26px; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,.5); }
+
+/* ---------------------------------------------------------------- Coinche : encheres */
+.bid-step { grid-template-columns: 56px 1fr 56px; grid-auto-flow: row; }
+.bid-step .act:disabled { opacity: .35; }
+#action-bar [data-trump] { font-size: 24px; line-height: 1; }
+.bid-value {
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 12px; background: rgba(20,10,4,.85); border: 2px solid rgba(233,196,106,.5);
+  color: #ffe39a; font: 900 22px "Playfair Display", Georgia, serif;
+}

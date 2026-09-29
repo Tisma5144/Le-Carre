@@ -679,7 +679,143 @@ function tarotActions(state, id, level) {
   return play(nonExcuse[0]);
 }
 
-const BOTS = { tarot: tarotActions, menteur: menteurActions, president: presidentActions, ascenseur: ascenseurActions, pouilleux: pouilleuxActions, poker: pokerActions };
+
+// ------------------------------------------------------------------ Coinche
+
+const coincheEngine = require("./games/coinche");
+
+// Points qu'une main peut esperer faire avec cet atout (partenaire compris).
+function coincheEstimate(hand, trump) {
+  const K = coincheEngine._internals;
+  if (trump === "sa" || trump === "ta") {
+    let s = 0;
+    for (const c of hand) s += trump === "sa" ? { A: 19, 10: 7, R: 3 }[c.rank] || 0 : { V: 14, 9: 9, A: 4 }[c.rank] || 0;
+    return s * 1.3 + 25;
+  }
+  const trumps = hand.filter((c) => c.suit === trump);
+  let s = 0;
+  const has = (r) => trumps.some((c) => c.rank === r);
+  if (has("V")) s += 22;
+  if (has("9")) s += has("V") ? 16 : 10;
+  if (has("A")) s += 10;
+  if (has("10")) s += 7;
+  s += Math.max(0, trumps.length - 2) * 9;
+  if (has("R") && has("D")) s += 20; // belote
+  for (const suit of K.SUITS) {
+    if (suit === trump) continue;
+    const cs = hand.filter((c) => c.suit === suit);
+    if (cs.some((c) => c.rank === "A")) s += 11 + (cs.some((c) => c.rank === "10") ? 8 : 0);
+    if (!cs.length && trumps.length >= 3) s += 6;
+  }
+  return s + 30; // ce qu'apporte en moyenne le partenaire
+}
+
+function coincheActions(state, id, level) {
+  const K = coincheEngine._internals;
+  if (state.currentTurn !== id) return [];
+  const hand = state.hands[id] || [];
+  const team = K.teamOf(state, id);
+
+  if (state.phase === "surcoinche") {
+    const est = coincheEstimate(hand, state.best.trump);
+    const sur = level !== "facile" && est >= state.best.value + 30;
+    return [{ type: "bid", bid: sur ? "surcoinche" : "passe" }, { type: "bid", bid: "passe" }];
+  }
+
+  if (state.phase === "bidding") {
+    const out = [];
+    const min = K.minValue(state);
+    const partnerHolds = state.best && K.teamOf(state, state.best.playerId) === team;
+    let bestT = null;
+    let bestE = -1;
+    for (const t of K.allowedTrumps(state)) {
+      let e = coincheEstimate(hand, t);
+      if (level === "facile") e += (Math.random() - 0.5) * 40;
+      if (level === "fort" && partnerHolds && t === state.best.trump) e += 15; // on soutient le partenaire
+      if (e > bestE) { bestE = e; bestT = t; }
+    }
+    // reglages trouves par simulation (le fort ose un peu plus)
+    let value = Math.floor((bestE + { facile: 0, normal: 10, fort: 20 }[level]) / 10) * 10;
+    value = Math.min(value, 160);
+    if (partnerHolds && value < state.best.value + 20) value = 0;
+    if (min !== null && min <= 160 && value >= min) out.push({ type: "bid", bid: String(value), trump: bestT });
+    // coinche : l'adversaire en demande trop
+    if (K.canCoinche(state, id) && level !== "facile" && K.SUITS.includes(state.best.trump)) {
+      // points que ma main devrait prendre en defense
+      const T = state.best.trump;
+      let def = 0;
+      for (const c of hand) {
+        if (c.suit === T) def += { V: 20, 9: 12, A: 8, 10: 5 }[c.rank] || 2;
+        else if (c.rank === "A") def += 11;
+        else if (c.rank === "10" && hand.some((o) => o.suit === c.suit && o.rank === "A")) def += 8;
+      }
+      const need = 55 - (state.best.value - 100) * 0.6;
+      if (def >= need) out.unshift({ type: "bid", bid: "coinche" });
+    }
+    out.push({ type: "bid", bid: "passe" });
+    return out;
+  }
+
+  if (state.phase !== "playing") return [];
+  const legal = K.legalCards(state, id);
+  if (!legal.length) return [];
+  const play = (c) => [{ type: "play", cardIds: [c.id] }, { type: "play", cardIds: [legal[0].id] }];
+  if (level === "facile" && chance(0.5)) return play(pickOne(legal));
+  const trump = state.contract.trump;
+  const pts = (c) => K.cardPoints(c, trump);
+  const pw = (c) => K.power(c, trump);
+  const isT = (c) => K.isTrumpSuit(trump, c.suit) && trump !== "sa";
+  const low = (list) => list.slice().sort((a, b) => pts(a) - pts(b) || pw(a) - pw(b))[0];
+  const trick = state.trick;
+  const partner = K.partnerOf(state, id);
+  // cartes deja passees (pour savoir si une carte est maitre)
+  const gone = new Set();
+  for (const w of Object.values(state.wonCards)) for (const c of w) gone.add(c.id);
+  for (const p of trick) gone.add(p.card.id);
+  // carte maitresse : plus aucune carte plus forte de sa couleur n'est
+  // encore en jeu hors de ma main (le robot ne voit que ce qui est tombe)
+  const mine = new Set(hand.map((c) => c.rank + c.suit));
+  const out32 = new Set([...gone].map((cid) => cid.split("_").slice(1).join("")));
+  const masterIn = (c) => K.buildDeck().every((o) => o.suit !== c.suit || pw(o) <= pw(c) || mine.has(o.rank + o.suit) || out32.has(o.rank + o.suit));
+
+  if (!trick.length) {
+    const atk = state.contract.team === team;
+    const myTrumps = legal.filter(isT);
+    // le preneur fait tomber les atouts avec ses atouts maitres
+    if (atk && myTrumps.length && level !== "facile") {
+      const oppHaveTrumps = state.seatOrder.some((o) => K.teamOf(state, o) !== team && state.hands[o].some(isT));
+      const top = myTrumps.slice().sort((a, b) => pw(b) - pw(a))[0];
+      if (oppHaveTrumps && (level !== "fort" || masterIn(top))) return play(top);
+    }
+    // sinon un As (ou une carte maitresse) hors atout
+    const masters = legal.filter((c) => !isT(c) && masterIn(c)).sort((a, b) => pts(b) - pts(a));
+    if (masters.length) return play(masters[0]);
+    return play(low(legal.filter((c) => !isT(c))) || low(legal));
+  }
+
+  const winner = K.trickWinnerOf(trick, trump);
+  const winCard = trick.find((p) => p.playerId === winner).card;
+  const lastToPlay = trick.length === 3;
+  const beats = (c) => K.trickWinnerOf(trick.concat([{ playerId: id, card: c }]), trump) === id;
+  if (winner === partner) {
+    // partenaire maitre : on le charge en points (s'il est sur de gagner)
+    const safe = lastToPlay || masterIn(winCard) || (isT(winCard) && !state.seatOrder.some((o) => o !== id && o !== partner && K.teamOf(state, o) !== team && trick.every((p) => p.playerId !== o) && state.hands[o].some(isT)));
+    const nonTrump = legal.filter((c) => !isT(c));
+    const pool = nonTrump.length ? nonTrump : legal;
+    if (safe) return play(pool.slice().sort((a, b) => pts(b) - pts(a))[0]);
+    return play(low(pool));
+  }
+  const winning = legal.filter(beats);
+  if (winning.length) {
+    // on gagne au plus juste (ou avec la plus grosse carte si on est dernier)
+    const sorted = winning.slice().sort((a, b) => pw(a) - pw(b) || pts(a) - pts(b));
+    if (lastToPlay) return play(winning.slice().sort((a, b) => pts(b) - pts(a))[0]);
+    return play(sorted[0]);
+  }
+  return play(low(legal));
+}
+
+const BOTS = { coinche: coincheActions, tarot: tarotActions, menteur: menteurActions, president: presidentActions, ascenseur: ascenseurActions, pouilleux: pouilleuxActions, poker: pokerActions };
 
 function botActions(gameType, state, botId, level = "normal") {
   const f = BOTS[gameType];

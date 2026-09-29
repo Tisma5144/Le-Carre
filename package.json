@@ -1,6 +1,6 @@
 {
   "name": "site-carte",
-  "version": "0.15.1",
+  "version": "0.16.0",
   "description": "Le Carre - bar a cartes en 3D (Menteur, President), salons a code 4 lettres",
   "main": "server/index.js",
   "type": "commonjs",
@@ -14,6 +14,7 @@
     "test:pouilleux": "node test/simulate-pouilleux.js",
     "test:poker": "node test/simulate-poker.js",
     "test:tarot": "node test/simulate-tarot.js",
+    "test:coinche": "node test/simulate-coinche.js",
     "test:robots": "node test/simulate-robots.js && node test/simulate-table-robots.js"
   },
   "engines": {

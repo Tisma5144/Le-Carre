@@ -13,11 +13,12 @@ import ascenseurUi from "./games/ascenseur.js";
 import pouilleuxUi from "./games/pouilleux.js";
 import pokerUi from "./games/poker.js";
 import tarotUi from "./games/tarot.js";
+import coincheUi from "./games/coinche.js";
 import qrcode from "/vendor/qrcode.mjs";
 import * as FS from "./ui/fullscreen.js";
 
 const EMOTES = ["😂", "😱", "🔥", "👏", "😡", "🤡", "🍺", "🤔", "😎", "💀", "😭", "🙏"];
-const ADAPTERS = { menteur: menteurUi, president: presidentUi, ascenseur: ascenseurUi, pouilleux: pouilleuxUi, poker: pokerUi, tarot: tarotUi };
+const ADAPTERS = { menteur: menteurUi, president: presidentUi, ascenseur: ascenseurUi, pouilleux: pouilleuxUi, poker: pokerUi, tarot: tarotUi, coinche: coincheUi };
 const SESSION_KEY = "menteurSession";
 const SUIT_INDEX = { pique: 0, coeur: 1, trefle: 2, carreau: 3 };
 const $ = (id) => document.getElementById(id);
@@ -136,9 +137,17 @@ function buildCatalog() {
     { ...pick(pouilleuxUi), art: createCardFaceCanvas({ rank: "V", suit: "pique" }, 0.22).toDataURL() },
     { ...pick(pokerUi), art: createCardFaceCanvas({ rank: "A", suit: "coeur" }, 0.22).toDataURL() },
     { ...pick(tarotUi), art: createCardFaceCanvas({ rank: "21", suit: "atout" }, 0.22).toDataURL() },
+    { ...pick(coincheUi), art: createCardFaceCanvas({ rank: "V", suit: "trefle" }, 0.22).toDataURL() },
     { id: "custom", name: "Tes propres jeux", emoji: "🛠️", tagline: "Bientôt : invente tes règles", players: "", soon: true }
   ];
 }
+// « du Menteur », « de la Coinche », « de l'Ascenseur », « du Poker… »
+function ofGame(name) {
+  if (name.startsWith("L'")) return "de l'" + name.slice(2);
+  if (name.startsWith("La ")) return "de la " + name.slice(3);
+  return "du " + name.replace(/^Le /, "");
+}
+
 function pick(a) {
   return { id: a.id, name: a.name, emoji: a.emoji, tagline: a.tagline, players: a.players };
 }
@@ -276,7 +285,7 @@ function showLobby() {
   });
   const A = ADAPTERS[room.gameType] || menteurUi;
   $("btn-start").textContent = `Distribuer · ${A.name}`;
-  $("btn-rules-lobby").textContent = `📜 Lire les règles ${A.name.startsWith("L'") ? "de l'" + A.name.slice(2) : "du " + A.name.replace(/^Le /, "")}`;
+  $("btn-rules-lobby").textContent = `📜 Lire les règles ${ofGame(A.name)}`;
   const optEl = $("game-options");
   if (A.renderLobbyOptions) {
     optEl.classList.remove("hidden");
@@ -598,7 +607,7 @@ function bindUi() {
     hud.openModal("Menu", `<div class="menu-list">
       <button class="btn wood" data-act="history">📜 Historique</button>
       <button class="btn wood" data-act="tray">🗃️ ${A ? A.trayTitle : "Cartes sorties"}</button>
-      <button class="btn wood" data-act="rules">📖 Règles ${A ? "du " + A.name.replace(/^Le /, "") : ""}</button>
+      <button class="btn wood" data-act="rules">📖 Règles ${A ? ofGame(A.name) : ""}</button>
       <button class="btn wood" data-act="drink">${(DRINKS.find((d) => d.id === myDrink()) || DRINKS[0]).emoji} Ma boisson</button>
       ${FS.isStandalone() ? "" : `<button class="btn wood" data-act="fs" data-no-fs>${fsLabel()}</button>`}
       ${isHost ? `<button class="btn wood" data-act="lobby">🎲 Changer de jeu</button>` : ""}

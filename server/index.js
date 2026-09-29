@@ -11,8 +11,9 @@ const ascenseur = require("./games/ascenseur");
 const pouilleux = require("./games/pouilleux");
 const poker = require("./games/poker");
 const tarot = require("./games/tarot");
+const coinche = require("./games/coinche");
 
-const GAMES = { [menteur.id]: menteur, [president.id]: president, [ascenseur.id]: ascenseur, [pouilleux.id]: pouilleux, [poker.id]: poker, [tarot.id]: tarot };
+const GAMES = { [menteur.id]: menteur, [president.id]: president, [ascenseur.id]: ascenseur, [pouilleux.id]: pouilleux, [poker.id]: poker, [tarot.id]: tarot, [coinche.id]: coinche };
 
 const PORT = process.env.PORT || 3000;
 // Facteur de vitesse des robots et des pauses (1 = rythme normal ; les tests l'accelerent).
@@ -455,7 +456,7 @@ io.on("connection", (socket) => {
   socket.on("game:pass", handleGameAction("pass", []));
   socket.on("game:give", handleGameAction("give", ["cardIds"]));
   socket.on("game:nextRound", handleGameAction("next_round", []));
-  socket.on("game:bid", handleGameAction("bid", ["bid"]));
+  socket.on("game:bid", handleGameAction("bid", ["bid", "trump"]));
   socket.on("game:draw", handleGameAction("draw", ["index"]));
   socket.on("game:shuffle", handleGameAction("shuffle", []));
   socket.on("game:bet", handleGameAction("bet", ["kind", "amount"]));
