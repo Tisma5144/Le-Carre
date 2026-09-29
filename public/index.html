@@ -32,7 +32,22 @@
 <div id="loader">
   <div class="loader-cards"><span></span><span></span><span></span></div>
   <p>Le bar ouvre ses portes…</p>
+  <p id="loader-tip" class="fs-tip hidden"></p>
 </div>
+<script>
+  // astuce plein ecran pendant le chargement (telephone hors plein ecran)
+  (function () {
+    var standalone = matchMedia("(display-mode: fullscreen)").matches || matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+    if (!matchMedia("(pointer: coarse)").matches || standalone) return;
+    var ua = navigator.userAgent || "";
+    var ios = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    var el = document.getElementById("loader-tip");
+    el.textContent = ios
+      ? "📲 Astuce : pour jouer en plein écran, ajoute Le Carré à ton écran d'accueil (Partager ⬆️ → « Sur l'écran d'accueil »)."
+      : "📲 Astuce : pour jouer en plein écran, ajoute Le Carré à ton écran d'accueil (menu ⋮ → « Ajouter à l'écran d'accueil »).";
+    el.classList.remove("hidden");
+  })();
+</script>
 
 <!-- ============ ACCUEIL ============ -->
 <section id="home" class="screen hidden">
@@ -59,6 +74,7 @@
     <button id="btn-rules-home" class="text-link">📜 Les règles de la maison</button>
     <button id="btn-fullscreen-home" class="text-link fs-link" data-no-fs>⛶ Plein écran</button>
   </div>
+  <button id="home-tip" class="fs-tip hidden" data-no-fs></button>
 </section>
 
 <!-- ============ SALLE D'ATTENTE ============ -->
@@ -97,6 +113,7 @@
       <div id="drink-seg" class="seg"></div>
     </div>
     <p id="lobby-status" class="chalk-small"></p>
+    <button id="lobby-tip" class="fs-tip hidden" data-no-fs></button>
     <button id="btn-start" class="btn brass hidden">Distribuer les cartes</button>
     <button id="btn-leave" class="text-link">Quitter la table</button>
   </div>

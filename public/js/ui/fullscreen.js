@@ -80,6 +80,15 @@ function notify() {
   listeners.forEach((fn) => fn());
 }
 
+// Astuce "ajoute le site a l'ecran d'accueil" : seulement sur telephone,
+// et seulement si le jeu n'est pas deja en plein ecran. "" sinon.
+export function tipText() {
+  if (!isTouch() || isFullscreen()) return "";
+  return isIOS()
+    ? "📲 Astuce : pour jouer en plein écran, ajoute Le Carré à ton écran d'accueil (Partager ⬆️ → « Sur l'écran d'accueil »)."
+    : "📲 Astuce : pour jouer en plein écran, ajoute Le Carré à ton écran d'accueil (menu ⋮ → « Ajouter à l'écran d'accueil »).";
+}
+
 // Texte d'aide quand le plein ecran direct n'est pas possible.
 export function helpHtml() {
   if (isIOS()) {

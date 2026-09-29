@@ -395,6 +395,8 @@ function refreshGameUi() {
   S.wasMyTurn = myTurn;
 
   A.refresh(g, app);
+  // pendant la distribution, la bande d'aide est libre : astuce plein ecran
+  if (dealing && FS.tipText()) hud.setHint(FS.tipText(), false);
   updatePlayButton();
   // le jeton se pose a cote des cartes (et des boutons), jamais dessus ;
   // place calculee apres la mise a jour de l'interface
@@ -638,6 +640,17 @@ function updateFsButton() {
   const b = $("btn-fullscreen-home");
   b.classList.toggle("hidden", FS.isStandalone());
   b.textContent = fsLabel();
+  // astuce "ecran d'accueil" : telephone hors plein ecran seulement
+  const tip = FS.tipText();
+  for (const id of ["home-tip", "lobby-tip"]) {
+    $(id).textContent = tip;
+    $(id).classList.toggle("hidden", !tip);
+  }
+}
+
+function showFsHelp() {
+  sfx.play("select");
+  hud.openModal("Jouer en plein écran", FS.helpHtml());
 }
 
 function fullscreenAction() {
@@ -865,6 +878,8 @@ async function boot() {
   bindUi();
   FS.onChange(updateFsButton);
   updateFsButton();
+  $("home-tip").addEventListener("click", showFsHelp);
+  $("lobby-tip").addEventListener("click", showFsHelp);
 
   socket = io({ reconnectionDelay: 500, reconnectionDelayMax: 3000, timeout: 8000 });
   socket.on("state", onState);
