@@ -140,14 +140,15 @@ function scheduleBots(room) {
     const first = botActions(room.gameType, room.game, botId, level)[0];
     if (!first) continue;
     // rythme volontairement pose pour que les humains suivent le jeu
-    let delay = 2300 + Math.random() * 1500;
-    if (first.type === "pickup") delay = 3200;
-    else if (first.type === "accuse") delay = 2600;
-    else if (first.type === "give") delay = 3000;
-    else if (first.type === "next_hand") delay = 7500;
-    else if (first.type === "rebuy") delay = 1800;
-    else if (first.type === "ecart") delay = 3800;
-    else if (first.type === "announce") delay = 1800;
+    let delay = 1300 + Math.random() * 900;
+    // le ramassage attend la fin de la revelation du Menteur (retournement + tampon)
+    if (first.type === "pickup") delay = 2500;
+    else if (first.type === "accuse") delay = 1600;
+    else if (first.type === "give") delay = 1800;
+    else if (first.type === "next_hand") delay = 5000;
+    else if (first.type === "rebuy") delay = 1200;
+    else if (first.type === "ecart") delay = 2400;
+    else if (first.type === "announce") delay = 1100;
     if (!room.players[botId].isBot) delay = 20000;
     delay *= BOT_SPEED;
     room.botTimer = setTimeout(() => {
