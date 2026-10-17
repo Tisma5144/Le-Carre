@@ -197,6 +197,82 @@ for (let game = 0; game < 60; game += 1) {
 }
 
 {
+  // personne ne joue sur le President : le pli est ferme, le joueur a sa gauche ouvre
+  const card = (rank, suit) => ({ id: `${rank}-${suit}-${Math.random()}`, rank, suit });
+  const mk = (opts) => {
+    const s = president.createGame(["a", "b", "c", "d"], opts);
+    s.hands = { a: [card("8", "coeur")], b: [card("9", "pique"), card("3", "pique")], c: [card("V", "trefle"), card("4", "pique")], d: [card("R", "trefle"), card("5", "pique")] };
+    s.seatOrder = ["a", "b", "c", "d"];
+    s.currentTurn = "a";
+    s.trick = [];
+    s.discardCount = 52 - 7;
+    return s;
+  };
+  const s = mk();
+  assert.ok(president.applyAction(s, "a", { type: "play", cardIds: [s.hands.a[0].id] }).ok);
+  assert.deepStrictEqual(s.finishOrder, ["a"]);
+  assert.strictEqual(s.trick.length, 0, "le pli est ferme quand le President finit");
+  assert.strictEqual(s.currentTurn, "b", "le joueur a sa gauche ouvre");
+  // reglage desactive : on peut jouer par-dessus
+  const s2 = mk({ presidentFerme: false });
+  assert.ok(president.applyAction(s2, "a", { type: "play", cardIds: [s2.hands.a[0].id] }).ok);
+  assert.strictEqual(s2.trick.length, 1, "sans la regle, le pli continue");
+  assert.strictEqual(s2.currentTurn, "b");
+  // le 2e joueur qui finit ne ferme pas le pli
+  const s3 = mk();
+  s3.finishOrder = ["x"];
+  s3.seatOrder = ["a", "b", "c", "d"];
+  assert.ok(president.applyAction(s3, "a", { type: "play", cardIds: [s3.hands.a[0].id] }).ok);
+  assert.strictEqual(s3.trick.length, 1, "seul le President ferme le pli");
+}
+{
+  // reglages : ou rien, 2 qui ferme, fin sur un 2 desactives
+  const card = (rank, suit) => ({ id: `${rank}-${suit}-${Math.random()}`, rank, suit });
+  const s = president.createGame(["a", "b", "c"], { ouRien: false, deuxFerme: false, finDeux: false, presidentFerme: false });
+  s.hands = { a: [card("8", "coeur"), card("3", "coeur")], b: [card("8", "pique"), card("4", "coeur")], c: [card("A", "trefle"), card("2", "pique"), card("5", "coeur")] };
+  s.seatOrder = ["a", "b", "c"];
+  s.currentTurn = "a";
+  s.trick = [];
+  assert.ok(president.applyAction(s, "a", { type: "play", cardIds: [s.hands.a[0].id] }).ok);
+  assert.ok(president.applyAction(s, "b", { type: "play", cardIds: [s.hands.b[0].id] }).ok);
+  assert.strictEqual(s.ouRien, null, "sans ou rien");
+  assert.ok(president.applyAction(s, "c", { type: "play", cardIds: [s.hands.c.find((x) => x.rank === "2").id] }).ok);
+  assert.strictEqual(s.trick.length, 3, "le 2 ne ferme plus le pli");
+  const s2 = president.createGame(["a", "b", "c"], { finDeux: false });
+  s2.hands = { a: [card("2", "coeur")], b: [card("5", "pique")], c: [card("7", "trefle")] };
+  s2.seatOrder = ["a", "b", "c"];
+  s2.currentTurn = "a";
+  s2.trick = [];
+  assert.ok(president.applyAction(s2, "a", { type: "play", cardIds: [s2.hands.a[0].id] }).ok);
+  assert.deepStrictEqual(s2.finishOrder, ["a"], "finir sur un 2 autorise par reglage");
+}
+{
+  // echange : le Trou du cul voit les cartes qu'il donne, et le President celles qu'il recoit
+  const ids = ["a", "b", "c", "d"];
+  const s = president.createGame(ids);
+  s.roles = { a: "president", b: "vice", c: "vicetrou", d: "trou" };
+  s.round = 1;
+  president.applyAction(s, "a", { type: "noop" });
+  s.phase = "round_end";
+  assert.ok(president.applyAction(s, "a", { type: "next_round" }, { isHost: true }).ok);
+  assert.strictEqual(s.phase, "exchange");
+  const names = Object.fromEntries(ids.map((id) => [id, { name: id }]));
+  const vt = president.getViewForPlayer(s, "d", names);
+  assert.strictEqual(vt.gifts.length, 1);
+  assert.strictEqual(vt.gifts[0].cards.length, 2, "le Trou voit ses 2 cartes donnees");
+  const vvt = president.getViewForPlayer(s, "c", names);
+  assert.strictEqual(vvt.gifts[0].cards.length, 1, "le Vice-trou voit sa carte donnee");
+  assert.strictEqual(president.getViewForPlayer(s, "b", names).gifts[0].toId, "b");
+  assert.strictEqual(president.getViewForPlayer(s, "a", names).gifts[0].fromId, "d");
+  // sans echange
+  const s2 = president.createGame(ids, { echange: false });
+  s2.roles = { a: "president", b: "vice", c: "vicetrou", d: "trou" };
+  s2.phase = "round_end";
+  assert.ok(president.applyAction(s2, "a", { type: "next_round" }, { isHost: true }).ok);
+  assert.strictEqual(s2.phase, "playing", "sans echange, on joue tout de suite");
+  assert.strictEqual(s2.currentTurn, "d", "le Trou du cul ouvre");
+}
+{
   // regles du carre : 1, 2 ou 3 cartes pour fermer, sauf la 4e seule en triple
   const card = (rank, suit) => ({ id: `${rank}-${suit}-${Math.random()}`, rank, suit });
   const setup = (hands) => {

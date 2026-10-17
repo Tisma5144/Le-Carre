@@ -14,6 +14,13 @@
 //   cartes manquantes ; il rejoue ensuite.
 // - Interdit de finir sur un 2 : celui qui termine sa main avec un 2 finit
 //   dernier (trou du cul).
+// - Le President ferme le pli : quand le premier joueur pose ses dernieres
+//   cartes, personne ne peut jouer par-dessus ; le joueur a sa gauche ouvre
+//   le pli suivant.
+// - Echange : le Trou du cul et le Vice-trou voient les cartes qu'ils donnent.
+// - Regles reglables dans le salon (toutes actives par defaut) : ou rien,
+//   le 2 ferme, carre ferme, carre magique, interdit de finir sur un 2, le
+//   President ferme le pli, echange de cartes.
 // - Le pli est ramasse quand tous les autres joueurs ont passe : le dernier a
 //   avoir pose rejoue.
 // - Premiere manche : celui qui a la Dame de coeur commence. Ensuite, le Trou
@@ -53,9 +60,25 @@ function logEvent(state, entry) {
   if (state.history.length > 200) state.history.splice(0, state.history.length - 200);
 }
 
-function createGame(playerIds) {
+// Toutes les regles sont actives par defaut (regles de Mathis).
+function normalizeOptions(raw) {
+  const o = raw || {};
+  const on = (k) => !(o[k] === false || o[k] === "false");
+  return {
+    ouRien: on("ouRien"),
+    deuxFerme: on("deuxFerme"),
+    carre: on("carre"),
+    magique: on("magique"),
+    finDeux: on("finDeux"),
+    presidentFerme: on("presidentFerme"),
+    echange: on("echange")
+  };
+}
+
+function createGame(playerIds, rawOptions) {
   const state = {
     id: "president",
+    options: normalizeOptions(rawOptions),
     uid: crypto.randomBytes(5).toString("hex"),
     eventSeq: 0,
     history: [],
@@ -105,9 +128,17 @@ function startRound(state) {
   state.lastPlayerId = null;
   state.discardCount = 0;
   state.exchange = null;
+  state.gifts = [];
 
   const pres = holderOf(state, "president");
   const trou = holderOf(state, "trou");
+  if (state.round > 1 && trou && !state.options.echange) {
+    // sans echange : le Trou du cul ouvre directement
+    state.phase = "playing";
+    state.currentTurn = trou;
+    logEvent(state, { type: "round_start", round: state.round, starterId: trou, reason: "trou" });
+    return;
+  }
   if (state.round === 1 || !pres || !trou) {
     const starter = state.seatOrder.find((id) => state.hands[id].some((c) => c.rank === "D" && c.suit === "coeur"));
     state.phase = "playing";
@@ -121,6 +152,7 @@ function startRound(state) {
   const give = (from, to, n) => {
     const cards = bestCards(state.hands[from], n);
     moveCards(state, from, to, cards);
+    state.gifts.push({ from, to, cards });
     logEvent(state, { type: "exchange_auto", from, to, count: n });
     pending.push({ from: to, to: from, count: n, done: false });
   };
@@ -259,6 +291,7 @@ function singleCloseForbidden(state, cards) {
 // Verifie si la pose serait un "carre magique" : on complete le carre au
 // sommet du pli avec 1, 2 ou 3 cartes (sauf la 4e seule sur un triple).
 function isMagic(state, cards) {
+  if (state.options && !state.options.magique) return false;
   const run = topRun(state);
   if (!run.rank || run.rank === "2" || singleCloseForbidden(state, cards)) return false;
   return cards.every((c) => c.rank === run.rank) && run.count + cards.length === 4;
@@ -296,21 +329,26 @@ function doPlay(state, playerId, action) {
   state.lastPlayerId = playerId;
   logEvent(state, { type: "play", playerId, count: cards.length, rank, equal, magic, outOfTurn: magic && state.currentTurn !== playerId });
 
+  let presidentDone = false;
   if (state.hands[playerId].length === 0) {
-    const onTwo = rank === "2";
+    const onTwo = rank === "2" && state.options.finDeux;
     if (onTwo) state.disqualified.push(playerId);
     else state.finishOrder.push(playerId);
+    presidentDone = !onTwo && state.finishOrder.length === 1 && state.options.presidentFerme;
     logEvent(state, { type: "finish", playerId, onTwo, place: onTwo ? null : state.finishOrder.length });
   }
   if (checkRoundEnd(state)) return { ok: true };
 
   const run = topRun(state);
-  if (rank === "2") {
+  if (presidentDone) {
+    // personne ne joue par-dessus le President : le joueur a sa gauche rouvre
+    closeTrick(state, playerId, "president", nextActiveAfter(state, playerId));
+  } else if (rank === "2" && state.options.deuxFerme) {
     closeTrick(state, playerId, "deux", playerId);
-  } else if (run.count >= 4) {
+  } else if (magic || (run.count >= 4 && state.options.carre)) {
     closeTrick(state, playerId, magic ? "carre_magique" : "carre", playerId);
   } else {
-    state.ouRien = equal ? rank : null;
+    state.ouRien = equal && state.options.ouRien ? rank : null;
     advanceTurn(state, playerId);
   }
   return { ok: true };
@@ -336,6 +374,7 @@ function doGive(state, playerId, action) {
   const cards = findCards(state.hands[playerId], ids);
   if (!cards) return { ok: false, error: "Carte introuvable dans ta main." };
   moveCards(state, playerId, task.to, cards);
+  state.gifts.push({ from: playerId, to: task.to, cards });
   task.done = true;
   logEvent(state, { type: "exchange_give", from: playerId, to: task.to, count: task.count });
   if (state.exchange.pending.every((p) => p.done)) {
@@ -382,6 +421,7 @@ function getViewForPlayer(state, playerId, players) {
   return {
     gameId: "president",
     uid: state.uid,
+    options: state.options,
     lastEventId: state.eventSeq,
     phase: state.phase,
     round: state.round,
@@ -412,6 +452,14 @@ function getViewForPlayer(state, playerId, players) {
     ranking: state.lastRanking ? state.lastRanking.map((r) => ({ ...r, name: name(r.id), label: ROLE_LABELS[r.role] })) : null,
     finishedOrder: state.finishOrder.concat(state.disqualified).map((id) => ({ id, name: name(id) })),
     exchange,
+    // cartes donnees / recues a l'echange de cette manche (seulement les miennes)
+    gifts: (state.gifts || []).filter((g) => g.from === playerId || g.to === playerId).map((g) => ({
+      fromId: g.from,
+      fromName: name(g.from),
+      toId: g.to,
+      toName: name(g.to),
+      cards: g.cards.map(cardPublicView)
+    })),
     history: state.history.slice(-40).map((e) => ({
       ...e,
       playerName: e.playerId ? name(e.playerId) : undefined,
@@ -439,5 +487,6 @@ module.exports = {
   createGame,
   applyAction,
   getViewForPlayer,
-  _internals: { STRENGTH, topRun, isMagic, singleCloseForbidden }
+  normalizeOptions,
+  _internals: { STRENGTH, topRun, isMagic, singleCloseForbidden, normalizeOptions }
 };

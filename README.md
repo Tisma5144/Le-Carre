@@ -44,12 +44,19 @@ illustrées (figures dessinées, As ornés, dos au masque vénitien).
 - Sauf en triple : quand on joue des brelans, personne ne peut fermer le carré
   avec la 4e carte seule.
 - Interdit de finir sur un 2 : on finit Trou du cul.
+- On ne joue pas sur le Président : quand le premier joueur pose ses dernières
+  cartes, le pli est fermé et le joueur à sa gauche ouvre le suivant.
 - Première manche : la Dame de cœur ouvre. Ensuite, le Trou du cul ouvre.
 - Échange : le Trou du cul donne ses 2 meilleures cartes au Président qui en
   rend 2 au choix ; 1 carte entre Vice-trou et Vice-président (dès 4 joueurs).
+  Le Trou et le Vice-trou voient les cartes qu'ils ont données (et le
+  Président / Vice celles qu'ils ont reçues).
 - Points : Président +2, Vice +1, Neutre 0, Vice-trou −1, Trou du cul −2.
 - Fin de manche : les cartes restées dans la main du dernier joueur (le Trou
   du cul) sont retournées sur la table et affichées dans le récapitulatif.
+- Réglages du salon (tout est actif par défaut) : « ou rien », le 2 ferme,
+  le carré ferme, carré magique, interdit de finir sur un 2, le Président
+  ferme le pli, échange de cartes.
 
 ## Règles de l'Ascenseur (règles maison)
 

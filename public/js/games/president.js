@@ -1,6 +1,7 @@
 // Adaptateur client du President : pli face visible au centre, defausse dans
 // le plateau en bois, echange de cartes, roles et scores entre les manches.
 import { RANK_NAMES } from "../cards/cardArt.js";
+import { miniCardUrl } from "../ui/hud.js";
 
 const $ = (id) => document.getElementById(id);
 const ORDER = ["3", "4", "5", "6", "7", "8", "9", "10", "V", "D", "R", "A", "2"];
@@ -25,6 +26,14 @@ export function comboText(count, rank) {
   const word = ["", "", "Paire", "Brelan", "Carré"][count] || `${count} ×`;
   return `${word} ${de(rank)}`;
 }
+
+const SYM = { pique: "♠", coeur: "♥", carreau: "♦", trefle: "♣" };
+const esc = (t) => String(t == null ? "" : t).replace(/[<>&"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]));
+const cardName = (c) => `${single(c.rank)} ${SYM[c.suit]}`;
+const miniRow = (cards) => `<span class="mini-row">${cards.map((c) => `<img src="${miniCardUrl(c)}" alt="${esc(cardName(c))}" />`).join("")}</span>`;
+// reglages par defaut (regles de Mathis) : tout est actif
+const DEFAULT_OPTS = { ouRien: true, deuxFerme: true, carre: true, magique: true, finDeux: true, presidentFerme: true, echange: true };
+const opts = (v) => Object.assign({}, DEFAULT_OPTS, (v && v.options) || {});
 
 function countWord(n) {
   return ["", "une carte", "une paire", "un brelan", "un carré"][n] || `${n} cartes`;
@@ -72,6 +81,7 @@ export default {
 
   // Cartes de ma main qui completent un carre au sommet du pli.
   magicCards(v) {
+    if (!opts(v).magique) return null;
     if (v.phase !== "playing" || v.you.isFinished || !v.run || !v.run.rank || v.run.rank === "2") return null;
     const need = 4 - v.run.count;
     if (need < 1) return null;
@@ -89,7 +99,7 @@ export default {
     const rank = cards[0].rank;
     if (!cards.every((c) => c.rank === rank)) return { ok: false, why: "Les cartes doivent avoir la même valeur." };
     if (cards.length === 1 && v.top && v.top.count === 3 && v.top.rank === rank) return { ok: false, why: "On joue en triple : impossible de fermer le carré avec la 4e carte seule." };
-    if (v.run && v.run.rank === rank && rank !== "2" && v.run.count + cards.length === 4) return { ok: true, magic: true };
+    if (opts(v).magique && v.run && v.run.rank === rank && rank !== "2" && v.run.count + cards.length === 4) return { ok: true, magic: true };
     if (!v.you.isYourTurn) return { ok: false, why: `Pas si vite ! C'est au tour de ${v.currentTurnName}.` };
     if (v.you.passed) return { ok: false, why: "Tu as passé : attends le prochain pli." };
     if (v.top) {
@@ -166,6 +176,8 @@ export default {
         } else if (ev.reason === "carre") {
           sfx.play("quad");
           hud.bubble(who(ev.by), "Carré ! Pli fermé", "gold");
+        } else if (ev.reason === "president") {
+          hud.toast(`👑 Personne ne joue sur le Président : ${ev.by === me ? "tu ouvres" : `${ev.byName} ouvre`} le pli suivant.`, 3000);
         }
         break;
       case "finish":
@@ -182,13 +194,19 @@ export default {
         else hud.toast(`Manche ${ev.round} : ${ev.starterId === me ? "tu ouvres" : ev.starterName + " ouvre"} (Trou du cul).`, 3200);
         break;
       case "exchange_auto":
-        if (ev.to === me) hud.toast(`🎁 ${ev.fromName} te donne ses ${ev.count > 1 ? `${ev.count} meilleures cartes` : "meilleure carte"}.`, 3200);
-        else if (ev.from === me) hud.toast(`😬 Tu donnes ${ev.count > 1 ? `tes ${ev.count} meilleures cartes` : "ta meilleure carte"} à ${ev.toName}.`, 3200);
+      case "exchange_give": {
+        // on dit quelles cartes sont parties / arrivees (seulement a l'interesse)
+        const g = app.S.game && (app.S.game.gifts || []).find((x) => x.fromId === ev.from && x.toId === ev.to);
+        const names = g ? ` : ${g.cards.map(cardName).join(", ")}` : "";
+        if (ev.type === "exchange_auto") {
+          if (ev.to === me) hud.toast(`🎁 ${ev.fromName} te donne ${ev.count > 1 ? `ses ${ev.count} meilleures cartes` : "sa meilleure carte"}${names}.`, 3600);
+          else if (ev.from === me) hud.toast(`😬 Tu donnes ${ev.count > 1 ? `tes ${ev.count} meilleures cartes` : "ta meilleure carte"} à ${ev.toName}${names}.`, 3600);
+        } else {
+          if (ev.to === me) hud.toast(`↩️ ${ev.fromName} te rend ${ev.count} carte${ev.count > 1 ? "s" : ""}${names}.`, 3600);
+          sfx.play("pickup", 2);
+        }
         break;
-      case "exchange_give":
-        if (ev.to === me) hud.toast(`${ev.fromName} te rend ${ev.count} carte${ev.count > 1 ? "s" : ""}.`);
-        sfx.play("pickup", 2);
-        break;
+      }
       default:
         break;
     }
@@ -248,9 +266,14 @@ export default {
       ex.classList.remove("hidden");
       const my = v.exchange.myGive;
       $("exchange-title").textContent = my ? `${ROLE_EMOJI[you.role] || ""} Tu es ${ROLE_SHORT[you.role] || ""}` : "Échange des cartes";
-      $("exchange-text").textContent = my
-        ? `Touche ${my.count} carte${my.count > 1 ? "s" : ""} de ta main, puis « Donner à ${my.toName} ».`
-        : v.exchange.waiting.map((w) => `${w.fromName} choisit ${w.count} carte${w.count > 1 ? "s" : ""} pour ${w.toName}…`).join(" ");
+      // cartes que j'ai donnees / recues (le Trou et le Vice-trou voient ce
+      // qui est parti de leur main)
+      const giftLines = (v.gifts || []).map((g) => g.fromId === S.me.id
+        ? `<div class="ex-gift">Tu as donné à ${esc(g.toName)} : ${miniRow(g.cards)}</div>`
+        : `<div class="ex-gift">${esc(g.fromName)} t'a donné : ${miniRow(g.cards)}</div>`).join("");
+      $("exchange-text").innerHTML = (my
+        ? `Touche ${my.count} carte${my.count > 1 ? "s" : ""} de ta main, puis « Donner à ${esc(my.toName)} ».`
+        : esc(v.exchange.waiting.map((w) => `${w.fromName} choisit ${w.count} carte${w.count > 1 ? "s" : ""} pour ${w.toName}…`).join(" "))) + giftLines;
     } else {
       ex.classList.add("hidden");
     }
@@ -367,6 +390,24 @@ export default {
     return `<ul>${items.join("")}</ul>`;
   },
 
+  // Reglages du salon : toutes les regles actives par defaut
+  renderLobbyOptions(el, room, isHost, app) {
+    const o = Object.assign({}, DEFAULT_OPTS, (room.options && room.options.president) || {});
+    const key = JSON.stringify([o, isHost]);
+    if (el.dataset.key === key) return;
+    el.dataset.key = key;
+    const dis = isHost ? "" : "disabled";
+    const tog = (name, text) => `<button data-t="${name}" class="${o[name] ? "on" : ""}" ${dis}>${o[name] ? "✔ " : ""}${text}</button>`;
+    el.innerHTML = `<div class="opt-row wide"><span>Fermer le pli</span><div class="opt-seg">${tog("deuxFerme", "Le 2 ferme")}${tog("carre", "Carré")}${tog("presidentFerme", "Le Président")}</div></div>`
+      + `<div class="opt-row wide"><span>Règles</span><div class="opt-seg">${tog("ouRien", "Ou rien")}${tog("magique", "Carré magique")}${tog("finDeux", "Interdit de finir sur un 2")}${tog("echange", "Échange de cartes")}</div></div>`
+      + `<div class="opt-seq">Toutes les règles de la maison sont actives par défaut. « Le Président » : quand le premier joueur finit, personne ne joue par-dessus.</div>`;
+    if (!isHost) return;
+    el.querySelectorAll("[data-t]").forEach((b) => b.addEventListener("click", () => {
+      app.sfx.play("select");
+      app.emit("room:setOptions", { options: { ...o, [b.dataset.t]: !o[b.dataset.t] } });
+    }));
+  },
+
   rulesHtml() {
     return `
       <p class="rule"><i>🃏</i><span>Tout le paquet est distribué. Ordre des valeurs, de la plus faible à la plus forte : <b>3, 4, 5… Roi, As, 2</b>.</span></p>
@@ -377,9 +418,11 @@ export default {
       <p class="rule"><i>🧱</i><span>Quatre cartes de même valeur posées à la suite forment un <b>carré</b>, qui ferme le pli.</span></p>
       <p class="rule"><i>✨</i><span><b>Carré magique</b> : si tu as la ou les cartes (une, deux ou trois) qui complètent le carré au sommet du pli, tu peux les poser même si ce n'est pas ton tour. Le pli est fermé et tu rejoues.</span></p>
       <p class="rule"><i>✋</i><span><b>Exception</b> : quand on joue des brelans, personne ne peut fermer le carré avec la quatrième carte seule.</span></p>
+      <p class="rule"><i>👑</i><span><b>On ne joue pas sur le Président</b> : quand le premier joueur pose ses dernières cartes, le pli est fermé et le joueur à sa gauche ouvre le suivant.</span></p>
       <p class="rule"><i>🧹</i><span>Quand tous les autres joueurs ont passé, le pli est ramassé et le dernier à avoir posé recommence.</span></p>
       <p class="rule"><i>🔄</i><span>Au début de chaque nouvelle manche, le Trou du cul donne ses <b>deux meilleures cartes</b> au Président, qui lui en rend deux de son choix. À partir de 4 joueurs, le Vice-trou du cul et le Vice-président échangent une carte de la même façon.</span></p>
       <p class="rule"><i>📊</i><span>Points : Président +2, Vice-président +1, Neutre 0, Vice-trou du cul −1, Trou du cul −2.</span></p>
+      <p class="rule"><i>⚙️</i><span>Le patron peut désactiver certaines règles dans le salon (ou rien, le 2 ou le carré qui ferment, carré magique, interdit de finir sur un 2, le Président qui ferme, échange de cartes). Par défaut, tout est actif.</span></p>
 `;
   }
 };

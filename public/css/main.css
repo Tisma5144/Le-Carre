@@ -1503,3 +1503,7 @@ body.suspense::after {
   border-radius: 12px; background: rgba(20,10,4,.85); border: 2px solid rgba(233,196,106,.5);
   color: #ffe39a; font: 900 22px "Playfair Display", Georgia, serif;
 }
+
+/* President : cartes donnees / recues a l'echange */
+.ex-gift { margin-top: 6px; display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
+.ex-gift .mini-row img { width: 30px; }
