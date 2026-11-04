@@ -208,6 +208,20 @@ illustrées (figures dessinées, As ornés, dos au masque vénitien).
 - Fichiers : `public/manifest.webmanifest`, `public/sw.js`, `public/icons/`,
   `public/js/ui/fullscreen.js`.
 
+## Langues
+
+- Français, anglais, italien et russe : bouton drapeau en haut à droite de
+  l'accueil et du salon, ou « 🌐 Langue » dans le menu ☰ en partie. Chacun
+  choisit la sienne (retenue dans le navigateur) ; la page se recharge et
+  revient à la table.
+- Les lettres des figures suivent la langue (V/D/R → J/Q/K, en russe В/Д/К/Т).
+- Fonctionnement : le jeu est écrit en français et `public/js/i18n.js` traduit
+  tout texte affiché depuis `public/i18n/<langue>.json` (clés = phrases
+  françaises, trous `{0}` / `{#0}` pour les noms et les nombres).
+- Ajouter ou corriger une traduction : `i18n/extras.js` (`[fr, en, it, ru]`)
+  ou `i18n/tr-*.js`, puis `node i18n/build.js` qui régénère les dictionnaires
+  et signale les phrases manquantes ou les trous incohérents.
+
 ## Connexion instable (téléphones, Wi-Fi du bar)
 
 - Reconnexion automatique, et un bandeau « Connexion perdue… reconnexion »
@@ -267,10 +281,14 @@ server/
   games/tarot.js      moteur du Tarot (enchères, appel du Roi, chien, comptage FFT)
   games/coinche.js    moteur de la Coinche (enchères, coinche, annonces, belote)
   bots.js             robots joueurs (tous les jeux, trois niveaux)
+i18n/
+  build.js            génère public/i18n/<langue>.json (source-keys, tr-*, extras)
 public/
   index.html          structure de la page
   css/main.css        thème bar : bois, laiton, ardoise
   js/main.js          chef d'orchestre : réseau, écrans, salon, tours
+  js/i18n.js          langues : traduction à la volée de la page
+  i18n/*.json         dictionnaires en, it, ru (générés)
   js/games/menteur.js   interface propre au Menteur (annonce, révélation…)
   js/games/president.js interface propre au Président (pli, échange, scores)
   js/games/ascenseur.js interface propre à l'Ascenseur (annonces, pli, réglages)

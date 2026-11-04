@@ -1,6 +1,7 @@
 // Point d'entree : relie le reseau (Socket.io), la scene 3D, les cartes et le
 // HUD. Tout ce qui est propre a un jeu vit dans js/games/<jeu>.js.
 import { World } from "./scene/world.js";
+import { LANGS, lang, setLang, loadDictionary, startPageTranslation, tr } from "./i18n.js";
 import { DRINKS } from "./scene/drinks.js";
 import { woodCanvas } from "./scene/textures.js";
 import { CardTable } from "./game/cardTable.js";
@@ -347,6 +348,11 @@ function showGame() {
       S.dealing = true;
       table.gatherToDeck(true);
       setTimeout(() => {
+        // la partie a pu etre fermee entre-temps (retour au salon)
+        if (!S.game || S.adapter !== A) {
+          S.dealing = false;
+          return;
+        }
         table.applyState(A.desired(S.game, handOrder(S.game.hand), app), { deal: true });
         setTimeout(() => {
           S.dealing = false;
@@ -546,7 +552,7 @@ function bindUi() {
     const A = ADAPTERS[S.room.gameType] || menteurUi;
     const text = `Viens jouer au ${A.name.replace(/^Le /, "")} au Carré ! Table ${S.room.code}`;
     try {
-      if (navigator.share) await navigator.share({ title: "Le Carré", text, url });
+      if (navigator.share) await navigator.share({ title: "Le Carré", text: tr(text), url });
       else {
         await navigator.clipboard.writeText(url);
         hud.toast("Lien copié ! Colle-le dans ta conv 📋");
@@ -608,6 +614,7 @@ function bindUi() {
       <button class="btn wood" data-act="history">📜 Historique</button>
       <button class="btn wood" data-act="tray">🗃️ ${A ? A.trayTitle : "Cartes sorties"}</button>
       <button class="btn wood" data-act="rules">📖 Règles ${A ? ofGame(A.name) : ""}</button>
+      <button class="btn wood" data-act="lang">🌐 Langue · ${(LANGS.find((l) => l.id === lang) || LANGS[0]).flag}</button>
       <button class="btn wood" data-act="drink">${(DRINKS.find((d) => d.id === myDrink()) || DRINKS[0]).emoji} Ma boisson</button>
       ${FS.isStandalone() ? "" : `<button class="btn wood" data-act="fs" data-no-fs>${fsLabel()}</button>`}
       ${isHost ? `<button class="btn wood" data-act="lobby">🎲 Changer de jeu</button>` : ""}
@@ -619,6 +626,7 @@ function bindUi() {
       else if (act === "tray") openTray();
       else if (act === "fs") fullscreenAction();
       else if (act === "rules") hud.openModal(`Règles · ${A ? A.name : ""}`, A ? A.rulesHtml() : "");
+      else if (act === "lang") openLanguagePicker();
       else if (act === "drink") {
         hud.openModal("Ma boisson", `<p class="drink-help">Ton verre est posé devant toi, sur l'écran des autres joueurs.</p><div class="drink-grid"></div>`);
         const grid = document.querySelector("#modal-body .drink-grid");
@@ -655,6 +663,16 @@ function updateFsButton() {
     $(id).textContent = tip;
     $(id).classList.toggle("hidden", !tip);
   }
+}
+
+// Choix de la langue : la page se recharge (on se rassoit tout seul a sa table).
+function openLanguagePicker() {
+  hud.openModal("Langue", `<div class="lang-grid" data-no-tr>${LANGS.map((l) => `<button class="btn wood${l.id === lang ? " on" : ""}" data-lang="${l.id}">${l.flag} ${l.label}</button>`).join("")}</div>`);
+  document.querySelectorAll("#modal-body [data-lang]").forEach((b) => b.addEventListener("click", () => {
+    if (b.dataset.lang === lang) return hud.closeModal();
+    sfx.play("select");
+    setLang(b.dataset.lang);
+  }));
 }
 
 function showFsHelp() {
@@ -811,6 +829,9 @@ function hudFrame() {
 // ------------------------------------------------------------------ demarrage
 
 async function boot() {
+  // langue : dictionnaire charge avant de dessiner cartes et textures
+  await loadDictionary();
+  startPageTranslation();
   await ensureCardFonts();
   try {
     await Promise.all([
@@ -888,6 +909,9 @@ async function boot() {
   FS.onChange(updateFsButton);
   updateFsButton();
   $("home-tip").addEventListener("click", showFsHelp);
+  const cur = LANGS.find((l) => l.id === lang) || LANGS[0];
+  $("lang-btn").innerHTML = `${cur.flag}<span>${cur.id.toUpperCase()}</span>`;
+  $("lang-btn").addEventListener("click", openLanguagePicker);
   $("lobby-tip").addEventListener("click", showFsHelp);
 
   socket = io({ reconnectionDelay: 500, reconnectionDelayMax: 3000, timeout: 8000 });
@@ -906,6 +930,7 @@ async function boot() {
 
   // point d'acces pour le debogage (console du navigateur, tests automatises)
   window.__menteur = {
+    tr,
     S,
     world,
     table,

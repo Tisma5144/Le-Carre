@@ -1,6 +1,8 @@
 // Generateur procedural des cartes (canvas 2D) : faces illustrees et dos.
 // Toutes les illustrations sont dessinees ici, aucune image externe.
 
+import { rankLabel } from "../i18n.js";
+
 export const CARD_W = 360;
 export const CARD_H = 504;
 export const CARD_RADIUS = 26;
@@ -231,12 +233,14 @@ function drawIndex(ctx, card, W, H) {
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
     // index agrandi : lisible meme sur les cartes posees au loin (telephone)
-    const wide = card.rank.length > 1;
+    // lettre des figures dans la langue choisie (V D R -> J Q K, В Д К…)
+    const label = rankLabel(card.rank);
+    const wide = label.length > 1;
     const fs = wide ? 92 : 106;
     ctx.font = `900 ${fs}px ${INDEX_FONT}`;
     ctx.translate(46, 102);
     if (wide) ctx.scale(0.64, 1);
-    ctx.fillText(card.rank, 0, 0);
+    ctx.fillText(label, 0, 0);
     ctx.restore();
     if (tarotTrump) drawStar(ctx, 46, 150, 26, card.rank === "1" || card.rank === "21" ? RED : GOLD, 4);
     else drawSuit(ctx, card.suit, 46, 160, 66, 0, null, { shine: false });
@@ -1771,7 +1775,7 @@ export function createRankBadgeCanvas(rank, width = 120) {
   ctx.save();
   ctx.translate(CARD_W / 2, CARD_H * 0.44);
   if (isTen) ctx.scale(0.8, 1);
-  ctx.fillText(rank, 0, 10);
+  ctx.fillText(rankLabel(rank), 0, 10);
   ctx.restore();
   const suits = ["pique", "coeur", "trefle", "carreau"];
   suits.forEach((s, i) => drawSuit(ctx, s, CARD_W * (0.2 + i * 0.2), CARD_H * 0.83, 56, 0, null, { shine: false }));

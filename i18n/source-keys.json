@@ -1,0 +1,3646 @@
+[
+ {
+  "k": "Le bar ouvre ses portes…",
+  "f": "index.html"
+ },
+ {
+  "k": "Bar à cartes · depuis 2026",
+  "f": "index.html"
+ },
+ {
+  "k": "Le Carré",
+  "f": "index.html"
+ },
+ {
+  "k": "Pas de paquet ? Pas de problème. Sortez vos téléphones.",
+  "f": "index.html"
+ },
+ {
+  "k": "Ton blaze",
+  "f": "index.html"
+ },
+ {
+  "k": "Ouvrir une table",
+  "f": "index.html"
+ },
+ {
+  "k": "<span>ou rejoins tes potes</span>",
+  "f": "index.html"
+ },
+ {
+  "k": "Rejoindre",
+  "f": "index.html"
+ },
+ {
+  "k": "📜 Les règles de la maison",
+  "f": "index.html"
+ },
+ {
+  "k": "⛶ Plein écran",
+  "f": "index.html"
+ },
+ {
+  "k": "Table n°",
+  "f": "index.html"
+ },
+ {
+  "k": "Scanne pour t'asseoir",
+  "f": "index.html"
+ },
+ {
+  "k": "📲 Envoyer le lien aux potes",
+  "f": "index.html"
+ },
+ {
+  "k": "Choisis le jeu de la soirée :",
+  "f": "index.html"
+ },
+ {
+  "k": "📜 Lire les règles",
+  "f": "index.html"
+ },
+ {
+  "k": "Autour de la table",
+  "f": "index.html"
+ },
+ {
+  "k": "🤖 Ajouter un robot",
+  "f": "index.html"
+ },
+ {
+  "k": "Niveau des robots",
+  "f": "index.html"
+ },
+ {
+  "k": "😴 Facile",
+  "f": "index.html"
+ },
+ {
+  "k": "🙂 Normal",
+  "f": "index.html"
+ },
+ {
+  "k": "😈 Fort",
+  "f": "index.html"
+ },
+ {
+  "k": "Ta boisson",
+  "f": "index.html"
+ },
+ {
+  "k": "Distribuer les cartes",
+  "f": "index.html"
+ },
+ {
+  "k": "Quitter la table",
+  "f": "index.html"
+ },
+ {
+  "k": "Menu",
+  "f": "index.html"
+ },
+ {
+  "k": "<span id=\"announce-label\" class=\"announce-label\">Annonce</span>\n        <span id=\"announce-value\" class=\"announce-value\">—</span>\n        <span id=\"announce-sub\" class=\"announce-sub\"></span>",
+  "f": "index.html"
+ },
+ {
+  "k": "Son",
+  "f": "index.html"
+ },
+ {
+  "k": "Réagir",
+  "f": "index.html"
+ },
+ {
+  "k": "<span id=\"turn-banner-text\">À toi de jouer !</span>",
+  "f": "index.html"
+ },
+ {
+  "k": "🔀 Trier",
+  "f": "index.html"
+ },
+ {
+  "k": "Poser",
+  "f": "index.html"
+ },
+ {
+  "k": "Crier menteur",
+  "f": "index.html"
+ },
+ {
+  "k": "MENTEUR&nbsp;!",
+  "f": "index.html"
+ },
+ {
+  "k": "Je passe",
+  "f": "index.html"
+ },
+ {
+  "k": "Échange des cartes",
+  "f": "index.html"
+ },
+ {
+  "k": "Combien de plis ?",
+  "f": "index.html"
+ },
+ {
+  "k": "Tu annonces…",
+  "f": "index.html"
+ },
+ {
+  "k": "Quelle valeur prétends-tu poser ? <em>(personne ne vérifie… sauf s'ils crient MENTEUR)</em>",
+  "f": "index.html"
+ },
+ {
+  "k": "Annuler",
+  "f": "index.html"
+ },
+ {
+  "k": "MENTEUR !",
+  "f": "index.html"
+ },
+ {
+  "k": "Ramasser la pile",
+  "f": "index.html"
+ },
+ {
+  "k": "Fin de la partie",
+  "f": "index.html"
+ },
+ {
+  "k": "🔁 Revanche !",
+  "f": "index.html"
+ },
+ {
+  "k": "🎲 Changer de jeu",
+  "f": "index.html"
+ },
+ {
+  "k": "📊 Voir les scores",
+  "f": "index.html"
+ },
+ {
+  "k": "Fermer",
+  "f": "index.html"
+ },
+ {
+  "k": "<span class=\"net-dot\"></span>Connexion perdue… reconnexion",
+  "f": "index.html"
+ },
+ {
+  "k": "{0} {1} servi{2} ! Ton verre est posé devant toi.",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "Tes propres jeux",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "Bientôt : invente tes règles",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "de l'",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "La",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "{0} a quitté la table : un robot joue à sa place 🤖",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "Distribuer · {0}",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "📜 Lire les règles {0}",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "s'installe",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "✅<span class=\"pill-txt\"> Triées</span>",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "🔀<span class=\"pill-txt\"> Trier</span>",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "Donne-toi un blaze d'abord 😉",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "Impossible de rejoindre cette table.",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "Le code de la table fait 4 lettres.",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "Les règles de la maison",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "Règles · {0}",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "Viens jouer au {0} au Carré ! Table {1}",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "Lien copié ! Colle-le dans ta conv 📋",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "Cartes sorties",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "Le Carré · version {0}",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "📜 Historique",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "📖 Règles {1}",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "{2} Ma boisson",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "🚪 Quitter la table",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "Ma boisson",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "Ton verre est posé devant toi, sur l'écran des autres joueurs.",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "⛶ Quitter le plein écran",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "📲 Installer l'appli",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "📲 Plein écran",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "Jouer en plein écran",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "Cette table n'existe plus.",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "Ce qui s'est passé",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "{0} cartes maximum à la fois.",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "Oups, ça n'a pas marché.",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "Le Carré · v{0}",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "Oups, ton navigateur n'arrive pas à afficher la 3D. Essaie avec Chrome ou Safari à jour.",
+  "f": "public/js/main.js"
+ },
+ {
+  "k": "Une",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "Un",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "Deux",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "Trois",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "Quatre",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "Le patron choisit le jeu :",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "<span class=\"tag\">(toi)</span>",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "👑 patron",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "· parti fumer",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "Renvoyer ce robot",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "Il faut au moins {0} joueurs ({1}/{2}) : invite tes potes ou ajoute des robots !",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "Ce jeu se joue à {0} joueurs maximum ({1} à table) : renvoie un robot ou choisis un autre jeu.",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "{0} joueurs autour de la table. On y va ?",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "Le patron va bientôt distribuer les cartes…",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "Parti, remplacé par un robot",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "🤖 robot",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "réfléchit",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "{0} carte{1} en main",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "Toi",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "Interdit : le total tomberait juste",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "Ramasser",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "SINCÈRE !",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "(toi)",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "Rien ne s'est encore passé… le silence avant la tempête.",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "<b>{0}</b> pose {1} carte{2} : « {3} »",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "✨ <b>{0}</b> sort le carré de {1}",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "{0} bluffait !",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "c'était vrai !",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "🚨 <b>{0}</b> crie MENTEUR sur <b>{1}</b> → {2}",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "🫳 <b>{0}</b> ramasse {1} carte{2}",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "Aucun carré n'est sorti pour l'instant. Garde l'œil ouvert !",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "<b>{1}</b> a sorti les {2}",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "<i>🃏</i><span>Tout le paquet est distribué. Le but : <b>vider ta main</b> le premier.</span>",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "<i>🗣️</i><span>Celui qui ouvre la manche pose 1 à 3 cartes face cachée et <b>annonce une valeur</b> (« Deux Rois ! »).</span>",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "<i>🔁</i><span>Chacun à son tour pose 1 à 3 cartes en prétendant <b>la même valeur</b>. Tu peux mentir…</span>",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "<i>🚨</i><span>Juste avant de jouer, tu peux crier <b>MENTEUR !</b> sur la pose précédente. Les cartes sont retournées : si c'était un bluff, le menteur ramasse tout le tapis. Sinon, c'est toi.</span>",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "<i>➡️</i><span>Le joueur après celui qui a ramassé ouvre la manche suivante.</span>",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "<i>✨</i><span>Tu as les 4 cartes d'une même valeur ? Sors le <b>carré</b> quand tu veux, ça ne compte pas comme ton tour.</span>",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "<i>🍺</i><span>Le dernier avec des cartes en main… paie sa tournée.</span>",
+  "f": "public/js/ui/hud.js"
+ },
+ {
+  "k": "📲 Astuce : pour jouer en plein écran, ajoute Le Carré à ton écran d'accueil (Partager ⬆️ → « Sur l'écran d'accueil »).",
+  "f": "public/js/ui/fullscreen.js"
+ },
+ {
+  "k": "📲 Astuce : pour jouer en plein écran, ajoute Le Carré à ton écran d'accueil (menu ⋮ → « Ajouter à l'écran d'accueil »).",
+  "f": "public/js/ui/fullscreen.js"
+ },
+ {
+  "k": "Sur iPhone, Safari ne permet pas à un site de passer en plein écran… mais il y a une astuce :",
+  "f": "public/js/ui/fullscreen.js"
+ },
+ {
+  "k": "<i>1️⃣</i><span>Touche le bouton <b>Partager</b> <span style=\"font-size:1.2em\">⬆️</span> en bas de Safari.</span>",
+  "f": "public/js/ui/fullscreen.js"
+ },
+ {
+  "k": "<i>2️⃣</i><span>Choisis <b>« Sur l'écran d'accueil »</b>, puis <b>Ajouter</b>.</span>",
+  "f": "public/js/ui/fullscreen.js"
+ },
+ {
+  "k": "<i>3️⃣</i><span>Ouvre <b>Le Carré</b> depuis l'icône : le jeu s'affiche en plein écran, sans barre d'adresse.</span>",
+  "f": "public/js/ui/fullscreen.js"
+ },
+ {
+  "k": "Astuce : tourne le téléphone à l'horizontale pour une table encore plus grande.",
+  "f": "public/js/ui/fullscreen.js"
+ },
+ {
+  "k": "Ton navigateur ne permet pas le plein écran direct.",
+  "f": "public/js/ui/fullscreen.js"
+ },
+ {
+  "k": "<i>📲</i><span>Ouvre le menu du navigateur <b>⋮</b> et choisis <b>« Ajouter à l'écran d'accueil »</b> (ou « Installer l'application »). Le Carré s'ouvrira ensuite en plein écran depuis son icône.</span>",
+  "f": "public/js/ui/fullscreen.js"
+ },
+ {
+  "k": "Pique",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Cœur",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Carreau",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Trèfle",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Monte puis descend",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Descend puis monte",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Monte seulement",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Descend seulement",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Le graphique apparaîtra à la fin de la première {0}.",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Évolution des scores cumulés, manche par manche",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Après la manche {0} · {1}",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Aucune manche terminée pour l'instant.",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "{0} <small>{1} c. {2}</small>{3}",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Manche",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Total",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Dans chaque case : points de la manche, puis plis faits / plis annoncés.",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "L'Ascenseur",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Annonce tes plis… et tiens parole !",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "3 à 8 joueurs",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "À toi d'annoncer !",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "À toi d'entamer !",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "À toi de jouer !",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Annonce d'abord ton nombre de plis.",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Attends la fin des annonces.",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Le pli est en train d'être ramassé…",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Pas si vite ! C'est au tour de {0}.",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Une seule carte à la fois.",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Tu dois fournir : joue du {0} {1}.",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Poser : {0}",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "🛗 Manche {0} : {1} · {2} · {3}",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Aucun pli pour moi !",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "J'en fais {0} !",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "— ça va se battre ! ⚔️",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "— il y aura des cadeaux 🎁",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Annonces : {0} pour {1} {2}",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Je coupe ! ✂️",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Pour moi ! ✋",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Pli ! ✋",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Sans atout",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "{0} · annonces en cours",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "{0} · annonces {1} pour {2}",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Manche {0}/{1}",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Distribution…",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Terminée !",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Atout · manche {0}/{1}",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Déjà annoncé : <b>{0}</b> pour {1}.",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Tu annonces en premier.",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Tu es le dernier : <b>{0}</b> est interdit.",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Combien de plis vas-tu faire ?",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "<b>{0}</b> annonce…",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "À toi d'entamer : <b>glisse une carte</b> sur le tapis.",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Fournis du <b>{0} {1}</b>.",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Pas de {0} : <b>coupe ou défausse</b> ce que tu veux.",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Au tour de <b>{0}</b>…",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "✋ <b>Tu remportes le pli !</b>",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "✋ Pli pour <b>{0}</b>",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "🃏 Tu distribues",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Pas encore annoncé",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Objectif {0} · {1} fait{2}",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "🃏 donneur",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "🃏 distribue",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "hors ligne",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Pari {0} · fait {1} · total {2}",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Roi de l'ascenseur",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Resté coincé au sous-sol",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Le patron peut lancer la revanche…",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "📊 Voir les scores et le graphique",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Fin de la manche {0}/{1}",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "▶ Manche suivante ({0})",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Prochaine manche : {0}. Le patron la lance…",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Pli <b>{0}</b> / {1}",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "📊 Scores",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Tableau des scores",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Classement final",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Manche {0} terminée",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Manche en cours",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Joueur",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Objectif",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Plis",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Évolution des scores",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Points manche par manche",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Manches : {4}",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Pari réussi : 40 points par pli (20 pour zéro). Pari raté : −40 par pli d'écart.",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Rien ne s'est encore passé.",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Manche {0} · {1} · {2} · {3} distribue",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Manche {0}",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "🎯 Annonces : {0}",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "pour <b>{0}</b>",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "(en cours)",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "✋ <b>Pli {0}</b>{1} : {2}",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "🏁 Fin de la manche {0}",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "👀 Manche en cours : seul le dernier pli est visible.",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "de {3} en {4}",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "<i>(max possible à {0} joueurs)</i>",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Cartes max",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Sens",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Pas",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "{5} manches : {6}{7}",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "<i>🛗</i><span>À chaque manche, on distribue <b>une carte de plus</b>, jusqu'au maximum (52 divisé par le nombre de joueurs), puis on redescend jusqu'à une seule carte. Dans le salon, le patron peut modifier le maximum, le sens et le pas.</span>",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "<i>🃏</i><span>Après la distribution, on retourne la première carte du talon : sa couleur devient l'<b>atout</b>. S'il ne reste aucune carte, la manche se joue <b>sans atout</b>.</span>",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "<i>🎯</i><span>Chacun son tour, en commençant par le joueur à gauche du donneur, <b>annonce le nombre de plis</b> qu'il pense remporter. Le donneur parle en dernier : il n'a pas le droit de choisir un nombre qui rendrait le total des annonces égal au nombre de plis. Au moins un joueur devra donc se tromper !</span>",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "<i>👉</i><span>Le joueur à gauche du donneur entame le premier pli. Tu dois <b>fournir la couleur demandée</b> si tu en as ; sinon, tu joues la carte de ton choix (couper n'est pas obligatoire).</span>",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "<i>✋</i><span>Le pli revient au <b>plus gros atout</b> ou, à défaut, à la plus forte carte de la couleur demandée (du 2 au Roi, puis l'As). Le gagnant entame le pli suivant.</span>",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "<i>👀</i><span>Pendant une manche, seul le <b>dernier pli</b> peut être consulté : à toi de retenir les cartes déjà tombées !</span>",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "<i>📊</i><span>Pari réussi : <b>40 points par pli annoncé</b>, ou 20 points pour une annonce de zéro réussie. Pari raté : <b>−40 points par pli d'écart</b>.</span>",
+  "f": "public/js/games/ascenseur.js"
+ },
+ {
+  "k": "Sans Atout",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Tout Atout",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Valet",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Dame",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Roi",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "As",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Capot",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Générale",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "· surcoinché ×4",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "· coinché ×2",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Après la donne {0}",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "{0} : {1} points de plis",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "pour {0} demandés",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "La Coinche",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Annonce, coinche… et belote-rebelote !",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "4 joueurs (2 équipes)",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "À toi de parler !",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Surcoinche ?",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Choisis d'abord ton enchère.",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Attends la fin des enchères.",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Joue la carte de ton choix.",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Fournis du {0} et monte si tu peux.",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Pas de cette couleur : joue ce que tu veux.",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Ton partenaire est maître : joue ce que tu veux.",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Pas d'atout : défausse ce que tu veux.",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Coupe plus haut si tu peux (sinon coupe quand même).",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Tu dois couper à l'atout {0}.",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Tout le monde passe : on redistribue 🔄",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Coinche ! 🔥",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Coinche !",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Surcoinche ! 💥",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Surcoinche !",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Passe",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Tu prends",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "{0} annonce : {1}",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Belote !",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Rebelote ! 👑",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Nous {0} · Eux {1} · en {2}",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Donne {0}",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Donne {0} · enchères",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Personne n'a parlé",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Coinché par {0} !",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Donne {0} · atout {1}",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "{0}Nous {1} · Eux {2}",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "<b>{0}</b> réfléchit à son enchère…",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "<b>{0}</b> va-t-il surcoincher ?",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Enchères en cours",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Équipe : {0} pts",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "· annonces : <b>{0}</b>",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "À battre : <b>{0}</b> ({1})",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Ouvre les enchères (80 minimum)",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Coinche ! ×2",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "<b>{0}</b> coinche ton {1} ! Tu maintiens ?",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Non, on joue ×2",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Surcoinche ! ×4",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Champions de la coinche",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Paient la tournée",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Vous gagnez la partie !",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Partie perdue…",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "réussi",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "chuté",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "{0}{1} de {2} {3} !",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "▶ Donne suivante",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "🏁 Terminer la partie",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "— le patron lance la donne suivante…",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Pli <b>{0}</b> / 8",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Donne",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Aucune donne terminée pour l'instant.",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "<b>Dernière donne :</b> {0}",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Scores (partie en {0})",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Équipe",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Donne par donne",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "🗣️ Enchères : {0}",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "👑 <b>{0}</b> : belote-rebelote",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Contrat réussi",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Contrat chuté",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "🏁 {0} : {1} points pour {2}",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "👀 Donne en cours : seul le dernier pli est visible.",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Partie en",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Contrat + points",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Contrat seul",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "On marque",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "+ SA / TA",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Atouts",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Oui",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Non",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Annonces",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "4 joueurs, équipes de 2 tirées au sort (partenaires face à face).",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "<i>🃏</i><span><b>4 joueurs</b> en 2 équipes (partenaires face à face), <b>32 cartes</b> (du 7 à l'As), 8 cartes chacun.</span>",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "<i>🗣️</i><span><b>Enchères</b> : chacun son tour annonce un contrat de <b>80 à 160</b> (par 10), puis <b>capot</b> (250, tous les plis) ou <b>générale</b> (500, tous les plis à lui seul), avec une couleur d'atout — ou passe. Il faut monter. Trois passes après une enchère la terminent ; si tout le monde passe d'entrée, on redistribue. En option : Sans Atout et Tout Atout.</span>",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "<i>🔥</i><span><b>Coinche</b> : à son tour, un adversaire peut coincher le contrat (points ×2). Le preneur peut alors <b>surcoincher</b> (×4).</span>",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "<i>👉</i><span>Il faut <b>fournir</b> la couleur demandée ; à l'atout, il faut <b>monter</b> si on peut. Sans la couleur, il faut <b>couper</b> (plus haut qu'un adversaire qui a déjà coupé, sinon couper quand même), sauf si ton <b>partenaire est maître</b> du pli : tu joues alors ce que tu veux.</span>",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "<i>🧮</i><span><b>Atout</b> : Valet 20, 9 14, As 11, 10 10, Roi 4, Dame 3. <b>Autres couleurs</b> : As 11, 10 10, Roi 4, Dame 3, Valet 2. 152 points + <b>10 de der</b> = 162. Sans Atout : As 19 ; Tout Atout : Valet 14, 9 9, As 6, 10 5, Roi 3, Dame 1.</span>",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "<i>📣</i><span><b>Annonces</b> (faites automatiquement à ta première carte) : tierce 20, cinquante 50, cent 100 (cartes qui se suivent : 7 8 9 10 V D R A), carré 100 (As, Rois, Dames, 10), 150 (9), 200 (Valets). Seule l'équipe qui a la meilleure annonce marque les siennes. <b>Belote-rebelote</b> (Roi et Dame d'atout) : 20 points imprenables.</span>",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "<i>🏁</i><span>Le contrat est <b>réussi</b> si les plis + annonces + belote de l'équipe preneuse atteignent le contrat. Réussi : contrat + points faits (réglable : contrat seul) ; coinché et réussi : 160 + contrat × 2 (ou × 4). <b>Chuté</b> : la défense marque 160 + contrat (× 2 ou × 4). Première équipe à 1000 points (réglable : 500 ou 2000).</span>",
+  "f": "public/js/games/coinche.js"
+ },
+ {
+  "k": "Le Menteur",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Pose face cachée, annonce… et bluffe.",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "À toi d'ouvrir !",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Carré de {0} !",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Aïe… {0} cartes",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Je ramasse…",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Le patron distribue",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Les cartes…",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "C'est fini",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Partie terminée",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Révélation",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Des {0} ?",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "{0} cartes en jeu",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "On annonce des",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "{0} carte{1} sur le tapis",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Nouvelle manche",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "{0} choisit…",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Tapis vide",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Tu as vidé ta main 🎉 Admire le spectacle, une bière à la main.",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Nouvelle manche : <b>glisse 1 à 3 cartes</b> sur le tapis, puis annonce leur valeur.",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Pose 1 à 3 <b>{0}</b>… ou crie <b>MENTEUR</b> si tu doutes de {1} !",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Glisse 1 à 3 <b>{0}</b> sur le tapis (vrais ou pas…).",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Terminé · {0}ᵉ",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Poser {0} carte{1}",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "3 cartes maximum par pose.",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Tu cries",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "{0} MENTEUR sur {1} !",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Tu bluffais",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Tu disais",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "{0} la vérité…",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Tu ramasses",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "les {0} cartes",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "la carte",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "🫳 Ramasser {0}",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "En attente que {0} ramasse…",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Maître du bluff",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Paie sa tournée !",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "S'en sort bien",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "<b>{0}</b> carte{1} sur le tapis",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "✨ {0} carré{1} sorti{2}",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "<i>🃏</i><span>Tout le paquet est distribué entre les joueurs. Objectif : être le premier à <b>vider sa main</b>.</span>",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "<i>🗣️</i><span>Le joueur qui ouvre la manche pose 1 à 3 cartes face cachée et <b>annonce leur valeur</b>, par exemple « Deux Rois ! ».</span>",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "<i>🔁</i><span>Chacun son tour, dans le sens des aiguilles d'une montre, pose ensuite 1 à 3 cartes en annonçant <b>la même valeur</b>. Rien n'oblige à dire la vérité…</span>",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "<i>🚨</i><span>Avant de jouer, tu peux crier <b>« Menteur ! »</b> sur la pose du joueur précédent. Ses cartes sont retournées : s'il a bluffé, il ramasse tout le tapis ; s'il a dit vrai, c'est toi qui ramasses.</span>",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "<i>➡️</i><span>Le joueur assis après celui qui a ramassé ouvre la manche suivante, avec la valeur de son choix.</span>",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "<i>✨</i><span>Dès qu'un joueur a les quatre cartes d'une même valeur, ce <b>carré</b> sort automatiquement du jeu, à la distribution comme après un ramassage. Cela ne compte pas comme un tour.</span>",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "<i>🏁</i><span>Tu as vidé ta main ? La victoire n'est acquise que si ta dernière pose n'est pas contestée, ou si elle était sincère.</span>",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "<i>🍺</i><span>Le dernier joueur à avoir encore des cartes paie sa tournée.</span>",
+  "f": "public/js/games/menteur.js"
+ },
+ {
+  "k": "Pré-flop",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Flop",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Turn",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "River",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "👀 Tu montres tes cartes à la table",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Poker Texas Hold'em",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Deux cartes, cinq au milieu… et du bluff.",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "2 à 8 joueurs",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Utilise les boutons en bas pour parler.",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "📈 Les blindes montent : {0} / {1}",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Je me couche",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "⚡ TAPIS ! ⚡",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "🏆 Tu gagnes !",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "🏆 {0} gagne",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Regardez ! 👀",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Tu es éliminé",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "est éliminé",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Plus de jetons… tu peux te recaver 💰",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Je me recave ! 💰",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "· ×2 dans {0} main{1}",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Poker",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "En attente d'une recave",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Il faut au moins deux joueurs avec des jetons",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Main {0} · tapis !",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Et le gagnant est…",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Cartes sur table",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Pot : {0}",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Partage : {0}",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Tu gagnes !",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Main {0}",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Tout le monde s'est couché",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Main {0} · blindes {1}/{2}",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Pot : {0}{1}",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Tu as : <b>{0}</b>",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "(tu avais : <b>{0}</b>)",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Tu t'es couché{0} : attends la main suivante.",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "<b>{0}</b> à suivre",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "{0}{1}<b>{2}</b> réfléchit…",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "<b>{0}</b> réfléchit…",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "💰 Me recaver ({0})",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "🏁 Arrêter la partie",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "💀 éliminé",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "💸 plus de jetons",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "{0}attend",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "{0}couché",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "· mise {0}",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "· 🔘 donneur",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "· 👀 cartes montrées",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Tu remportes",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "<b>{0}</b> remporte",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "avec <b>{0}</b>",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Pot partagé !",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Plusieurs pots",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "👁 Montrer mes cartes",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "🔮 Voir la suite",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "▶ Main suivante",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Fin de la partie…",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Tu es le prochain donneur : lance la main quand tout le monde a vu le résultat.",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Lancer à sa place",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "<b>{0}</b> (prochain donneur) lance la main suivante…{1}",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "⚡ Tapis ! Qui va l'emporter ?",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Miser",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Relancer",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "<span>{0} à</span><b id=\"raise-val\">{1}</b>",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Min",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "½ pot",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Pot",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Tapis",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "✔ {10} à <span id=\"raise-ok-val\">{11}</span>",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Check",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Suivre {0}",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Se coucher",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Tapis {4}",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "· {0} recave{1}",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Bilan {0}{1}{2}",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Rafle tous les jetons !",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "🔮 <b>{0}</b> carte{1} qui seraient tombée{2}",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Pot : <b>{0}</b>",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "🪙 Jetons",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Les jetons",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "BilanRecaves",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": ", doublées toutes les {0} mains",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "(fixes)",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Jetons",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Blindes : {2} / {3}{4}. Tapis de départ : {5}.",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "🃏 <b>Main {0}</b> — {1} donne, blindes {2}/{3}",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "(tapis)",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "⚡ <b>Tapis !</b> Les mains sont retournées",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "👀 <b>{0}</b> montre ses cartes",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "🔮 <b>{0}</b> dévoile les cartes qui seraient tombées",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "🏆 <b>{0}</b> remporte {1} (tout le monde s'est couché)",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "🏆 Abattage : {0}",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "💀 <b>{0}</b> est éliminé",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "💰 <b>{0}</b> se recave",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Tapis de départ",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Blindes doublées",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Éliminé",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Recave possible",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Plus de jetons",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Le patron arrête la partie quand il veut.",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Dernier joueur avec des jetons = vainqueur.",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Blindes de départ : {0} / {1}. {2}",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "<i>🪙</i><span>Chacun commence avec le même <b>tapis de jetons</b>. À chaque main, les deux joueurs à gauche du donneur posent la <b>petite</b> et la <b>grosse blinde</b>, qui doublent régulièrement (réglable dans le salon).</span>",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "<i>🃏</i><span>Chacun reçoit <b>deux cartes cachées</b>. Puis on retourne au centre trois cartes (<b>le flop</b>), une quatrième (<b>le turn</b>) et une cinquième (<b>la river</b>).</span>",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "<i>🗣️</i><span>Avant chaque étape, un tour de paroles : <b>se coucher</b>, <b>check</b> (passer sans miser, si personne n'a misé), <b>suivre</b>, <b>relancer</b> (au moins autant que la dernière relance) ou faire <b>tapis</b>.</span>",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "<i>🏆</i><span>À l'abattage, chacun forme la <b>meilleure main de cinq cartes</b> avec ses deux cartes et les cinq du centre. Du plus faible au plus fort : hauteur, paire, double paire, brelan, quinte, couleur, full, carré, quinte flush.</span>",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "<i>⚖️</i><span>Un joueur à tapis ne peut gagner que ce qu'il a misé face à chacun : le reste forme un <b>pot annexe</b>. En cas d'égalité, le pot est partagé.</span>",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "<i>⚡</i><span>Quand plusieurs joueurs sont <b>à tapis</b>, leurs mains sont retournées et les cartes tombent une à une, avec les <b>chances de gagner</b> de chacun.</span>",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "<i>▶</i><span>À la fin d'une main, le <b>prochain donneur</b> lance la suivante. En attendant, chacun peut <b>montrer ses cartes</b> ou <b>voir les cartes qui seraient tombées</b>.</span>",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "<i>💸</i><span>Plus de jetons ? Selon le réglage du salon, tu es <b>éliminé</b> (le dernier joueur avec des jetons gagne) ou tu peux <b>te recaver</b> (le patron arrête alors la partie quand il veut).</span>",
+  "f": "public/js/games/poker.js"
+ },
+ {
+  "k": "Le Pouilleux",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "Faites des paires… et refilez le valet de pique !",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "À toi de tirer !",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "Touche une carte de ton voisin pour la tirer.",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "Touche une des cartes de {0} pour la tirer.",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "Tes paires sortent toutes seules : attends ton tour.",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "Je pioche chez toi !",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "Je pioche chez {0}",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "😅 {0} t'a pris le Pouilleux !",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "{0} t'a pris ton {1}.",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "🐀 Aïe… tu as tiré le Pouilleux !",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "Tu tires le {0}.",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "Paire {0} !",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "Tiré d'affaire ! 🎉",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "Je mélange… 🔀",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "Tu es",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "{0} le Pouilleux !",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "Évite le valet de pique",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "{0} tire…",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "{0} paire{1} sortie{2} · {3} cartes en jeu",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "Tu n'as plus de cartes : tu es tiré d'affaire 🎉",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "Touche une des cartes de <b>{0}</b> pour la tirer.",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "<b>{0}</b> tire une carte chez <b>{1}</b>…",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "Tu sors",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "<b>{0}</b> sort",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "✨ {0} une paire {1} !",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "🔀 Mélanger ma main",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "🔀 Main mélangée : ton voisin ne sait plus où est quoi !",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "Tiré d'affaire 🎉",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "{0} cartes · 🐀 tu as le Pouilleux !",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "🎉 sauvé",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "🎉 tiré d'affaire",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "tend ses cartes",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "Le Pouilleux !",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "Premier sorti",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "Tiré d'affaire",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "🗃️ {0} paire{1}",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "Les paires sorties",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "Aucune paire sortie pour l'instant.",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "Le valet de trèfle a été retiré du paquet : le valet de pique ne peut jamais faire de paire.",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "<b>{0}</b> tire une carte chez <b>{1}</b>",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "✨ <b>{0}</b> sort une paire {1} ({2})",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "🎉 <b>{0}</b> est tiré d'affaire",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "🔀 <b>{0}</b> mélange sa main",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "🐀 <b>{0}</b> est le Pouilleux",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "🃏 Distribution (les paires sortent toutes seules)",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "<i>🃏</i><span>On retire le <b>valet de trèfle</b> du paquet : le <b>valet de pique</b> reste seul, c'est le Pouilleux. Toutes les cartes sont distribuées.</span>",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "<i>✨</i><span>Une <b>paire</b> est formée de deux cartes de même valeur <b>et de même couleur</b> (deux 7 rouges, deux Rois noirs…). Les paires sortent automatiquement du jeu.</span>",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "<i>👉</i><span>À ton tour, tu <b>tires une carte au hasard</b> dans le jeu de ton voisin de gauche. Si elle forme une paire avec une de tes cartes, la paire sort. C'est ensuite à ce voisin de tirer.</span>",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "<i>🔀</i><span>Tu peux <b>mélanger ta main</b> à tout moment, pour que personne ne devine où se cache le valet de pique.</span>",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "<i>🎉</i><span>Dès que tu n'as plus de cartes, tu es <b>tiré d'affaire</b>.</span>",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "<i>🐀</i><span>Le dernier joueur à garder une carte, le valet de pique, est <b>le Pouilleux</b> !</span>",
+  "f": "public/js/games/pouilleux.js"
+ },
+ {
+  "k": "Président",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Vice-président",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Neutre",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Vice-trou",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Trou du cul",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Paire",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Brelan",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Carré",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "une carte",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "un carré",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Le Président",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Deviens Président… ou finis Trou du cul.",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Attends la fin de l'échange.",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Tu as déjà fini cette manche.",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Pose 1 à 4 cartes.",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Les cartes doivent avoir la même valeur.",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "On joue en triple : impossible de fermer le carré avec la 4e carte seule.",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Tu as passé : attends le prochain pli.",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Il faut poser {0}.",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "« {0} ou rien » : pose {1} {2} ou passe.",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Il faut au moins {0}.",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Choisis exactement {0} carte{1} à donner.",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Donner à {0}",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "✨ Carré magique !",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "{0}… {1} ou rien !",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Le 2 ferme ! 💥",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Carré ! Pli fermé",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "👑 Personne ne joue sur le Président : {0} le pli suivant.",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Fini sur un 2… 💀 Trou du cul !",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Président ! 👑",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Fini !",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Tu as",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "à toi",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "à lui",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "{0} la Dame de cœur : {1} d'ouvrir !",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Manche {0} : {1} (Trou du cul).",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "ses {0} meilleures cartes",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "sa meilleure carte",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "🎁 {0} te donne {1}{2}.",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "tes {0} meilleures cartes",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "ta meilleure carte",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "😬 Tu donnes {0} à {1}{2}.",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "↩️ {0} te rend {1} carte{2}{3}.",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Président ↔ Trou du cul",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Le jeu de {0} est dévoilé 🕳️",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "À battre",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "{0} ou rien !",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "posé par {0}",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Pli libre",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "{0} ouvre…",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "<b>Choisis {0} carte{1}</b> à donner à {2}.",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Échange des cartes en cours…",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Tu as fini la manche 🎉 Regarde les autres se battre.",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Ouvre le pli : <b>glisse 1 à 4 cartes de même valeur</b> sur le tapis.",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "« <b>{0} ou rien</b> » : pose {1} {2}… ou passe.",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Pose <b>{0}</b> de valeur ≥ {1}… ou passe.",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "{0} Tu es {1}",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Tu as donné à {0} : {1}",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "{0} t'a donné : {1}",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Touche {0} carte{1} de ta main, puis « Donner à {2} ».",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "{0} choisit {1} carte{2} pour {3}…",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "✨ Carré magique ! ({0} × {1})",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "A fini la manche 🏁",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "{0} {1} · {2} cartes",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "🏁 fini",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "🏁 a fini",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Fini sur un 2 !",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "{0}{1} pt · total {2}",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Fin de la manche {0}",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "{0}Les cartes qu'il te restait",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "🕳️ Le jeu du Trou du cul",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Les cartes qui restaient",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "▶ Manche suivante",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "En tête : {0} ({1} pts)",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "En tête : {0} ({1} pts). Le patron lance la manche suivante…",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Pli : <b>{0}</b> carte{1}",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "🗑️ Défausse · {0}",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "La défausse",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "{0} carte{1} déjà jouée{2} cette manche.",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Les plis ramassés finissent ici, face cachée.",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "✨ carré magique",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "({0} ou rien)",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "<b>{0}</b> pose {1}{2}",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "<b>{0}</b> passe",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "(le 2 ferme)",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "(carré)",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "🧹 Pli ramassé{0} — {1} rejoue",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "finit sur un 2… trou du cul !",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "a fini",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "🃏 Manche {0} : <b>{1}</b> ouvre",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "🎁 <b>{0}</b> donne ses {1} meilleure{2} carte{3} à <b>{4}</b>",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "↩️ <b>{0}</b> rend {1} carte{2} à <b>{3}</b>",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "🏆 Fin de la manche {0}",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Le 2 ferme",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Fermer le pli",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Ou rien",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Carré magique",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Interdit de finir sur un 2",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Échange de cartes",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Règles",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Toutes les règles de la maison sont actives par défaut. « Le Président » : quand le premier joueur finit, personne ne joue par-dessus.",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "<i>🃏</i><span>Tout le paquet est distribué. Ordre des valeurs, de la plus faible à la plus forte : <b>3, 4, 5… Roi, As, 2</b>.</span>",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "<i>👸</i><span>À la première manche, le joueur qui a la <b>Dame de cœur</b> commence. Aux manches suivantes, c'est le Trou du cul.</span>",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "<i>⬆️</i><span>Le premier joueur du pli pose 1 à 4 cartes de même valeur. Les suivants doivent poser <b>le même nombre de cartes</b>, d'une valeur égale ou supérieure. Sinon, ils passent et ne rejouent plus avant le pli suivant.</span>",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "<i>🎯</i><span><b>« Ou rien »</b> : si tu poses la même valeur que le joueur précédent, le joueur suivant doit poser cette valeur à son tour, ou passer.</span>",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "<i>💥</i><span>Un <b>2</b> ferme le pli : celui qui l'a posé recommence avec ce qu'il veut. Attention : il est <b>interdit de finir sur un 2</b>, sinon on termine Trou du cul.</span>",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "<i>🧱</i><span>Quatre cartes de même valeur posées à la suite forment un <b>carré</b>, qui ferme le pli.</span>",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "<i>✨</i><span><b>Carré magique</b> : si tu as la ou les cartes (une, deux ou trois) qui complètent le carré au sommet du pli, tu peux les poser même si ce n'est pas ton tour. Le pli est fermé et tu rejoues.</span>",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "<i>✋</i><span><b>Exception</b> : quand on joue des brelans, personne ne peut fermer le carré avec la quatrième carte seule.</span>",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "<i>👑</i><span><b>On ne joue pas sur le Président</b> : quand le premier joueur pose ses dernières cartes, le pli est fermé et le joueur à sa gauche ouvre le suivant.</span>",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "<i>🧹</i><span>Quand tous les autres joueurs ont passé, le pli est ramassé et le dernier à avoir posé recommence.</span>",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "<i>🔄</i><span>Au début de chaque nouvelle manche, le Trou du cul donne ses <b>deux meilleures cartes</b> au Président, qui lui en rend deux de son choix. À partir de 4 joueurs, le Vice-trou du cul et le Vice-président échangent une carte de la même façon.</span>",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "<i>📊</i><span>Points : Président +2, Vice-président +1, Neutre 0, Vice-trou du cul −1, Trou du cul −2.</span>",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "<i>⚙️</i><span>Le patron peut désactiver certaines règles dans le salon (ou rien, le 2 ou le carré qui ferment, carré magique, interdit de finir sur un 2, le Président qui ferme, échange de cartes). Par défaut, tout est actif.</span>",
+  "f": "public/js/games/president.js"
+ },
+ {
+  "k": "Atout",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Cavalier",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Misère d'atout",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Misère de tête",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "l'Excuse",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "le Petit",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "{0} d'atout",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Excuse",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "{0} points pour {1} demandés ({2} bout{3})",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "poignée {0}",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Le Tarot",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Prends, garde… et mène le Petit au bout !",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "3 à 5 joueurs",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Appelle un Roi !",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Fais ton écart !",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Un chelem ?",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "{0} fait son écart…",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Interdit d'écarter un bout.",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Interdit d'écarter un Roi.",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Pas d'atout à l'écart (sauf si tu n'as pas le choix).",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Choisis {0} cartes à écarter ({1}/{2}).",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Patience, la partie va commencer.",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "À l'atout, il faut monter si tu peux.",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Tu dois couper (et monter si tu peux).",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Écarter ces {0} cartes",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Petit sec chez {0} : la donne est annulée, on redistribue.",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "J'appelle le {0} {1} !",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Garde sans : le chien va au preneur, sans être vu.",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Garde contre : le chien va à la défense.",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Atouts mis à l'écart : {0}",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Chelem annoncé !",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "{0} annonce une {1} ({2} atouts)",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "(son Roi appelé était chez lui)",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "{0} joue seul{1} !",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Tu es le partenaire !",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "{0} est le partenaire",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "C'était moi ! 🤝",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Le Petit ! 😬",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Donne {0}{1}",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "{0} distribue",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "{0} · enchères",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Personne n'a pris",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "· partenaire : {0}",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "{0} {1} appelé{2}",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "· chelem annoncé",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "<b>{0}</b> appelle un Roi…",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Le chien : <b>{0}</b> va le prendre.",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": ", {0} atout{1} obligé{2}",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": ", pas d'atout",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Touche <b>{0} cartes</b> à mettre à l'écart (ni Roi ni bout{1}), puis valide.",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "<b>{0}</b> fait son écart…",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Atout demandé : <b>monte</b> si tu peux.",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Pas de {0} : <b>coupe</b> (et monte si tu peux).",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Pas de {0} ni d'atout : <b>défausse</b> ce que tu veux.",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Poignée",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Double poignée",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Triple poignée",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "✋ {0} ({1} atouts)",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "🤝 partenaire",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "🛡️ défense",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Enchère : {0}",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Camp secret 🤫",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "{2}<small>×{3}</small>",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "· à battre : <b>{0}</b>",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Ta main : <b>{0}</b> atout{1} · <b>{2}</b> bout{3} · <b>{4}</b> Roi{5}{6}",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Appelle un {0} : son propriétaire sera ton partenaire secret",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Annoncer un chelem ? (tous les plis : +400, raté : −200)",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Non, on joue",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Chelem !",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Grand maître du Tarot",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "réussie de {0}",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "chutée de {0}",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "{0} de {1}{2} {3} !",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Le chien",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Scores",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Contrat : 56 / 51 / 41 / 36 points avec 0 / 1 / 2 / 3 bouts. Marque = (25 + écart) × multiplicateur, payée par chaque défenseur.",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "👑 <b>{0}</b> appelle le {1} {2}",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "🐶 Chien : {0}",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "🎯 <b>{0}</b> annonce un chelem",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "🤝 <b>{0}</b> est le partenaire",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Prise",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Petite",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Première enchère",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Garde sans",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Garde contre",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Enchères fortes",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Petit au bout",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Chelem",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Misère",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Primes",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Libre",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Durée",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "3 à 5 joueurs (à 5, le preneur appelle un Roi). Comptage officiel FFT.{0}",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "<i>🃏</i><span>78 cartes : quatre couleurs de 14 cartes (du 1 au 10, Valet, <b>Cavalier</b>, Dame, Roi), <b>21 atouts</b> et l'<b>Excuse</b>. Les trois <b>bouts</b> sont le Petit (atout 1), le 21 et l'Excuse. De 3 à 5 joueurs ; le reste forme le <b>chien</b> (6 cartes, 3 à cinq joueurs).</span>",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "<i>🗣️</i><span><b>Enchères</b>, un seul tour de parole : Prise (ou Petite) ×1, Garde ×2, Garde sans le chien ×4, Garde contre le chien ×6 (les deux dernières peuvent être désactivées dans le salon). Il faut monter ou passer. Si tout le monde passe, on redistribue.</span>",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "<i>👑</i><span>À cinq joueurs, le preneur <b>appelle un Roi</b> : celui qui l'a devient son partenaire secret, révélé quand le Roi tombe. Si le Roi est dans le chien ou dans sa main, le preneur joue seul.</span>",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "<i>🐶</i><span>Prise et Garde : le chien est montré à tous, le preneur le prend et fait son <b>écart</b> (ni Roi ni bout ; pas d'atout, sauf s'il n'a pas le choix : ils sont alors montrés). Garde sans : le chien va au preneur sans être vu. Garde contre : il va à la défense.</span>",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "<i>👉</i><span>Il faut <b>fournir</b> la couleur demandée ; sinon <b>couper</b> avec un atout ; à l'atout, il faut toujours <b>monter</b> si on peut. Sans la couleur ni atout, on joue ce qu'on veut. L'<b>Excuse</b> se joue à tout moment, ne gagne jamais le pli et reste à son camp (qui donne une demi-carte en échange) ; jouée au dernier pli, elle change de camp.</span>",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "<i>✋</i><span><b>Annonces</b> juste avant de jouer ta première carte : <b>poignée</b> (10 / 13 / 15 atouts à quatre joueurs ; 13 / 15 / 18 à trois ; 8 / 10 / 13 à cinq), primes de 20 / 30 / 40 pour le camp gagnant ; <b>misère</b> (règle maison) : main sans atout ni Excuse, ou sans tête (ni Valet, Cavalier, Dame ou Roi), 10 points par adversaire. Le preneur peut annoncer un <b>chelem</b> avant de jouer.</span>",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "<i>🧮</i><span><b>Comptage</b> : bouts et Rois 4,5 ; Dames 3,5 ; Cavaliers 2,5 ; Valets 1,5 ; autres cartes 0,5 (91 points en tout). Il faut <b>56 / 51 / 41 / 36</b> points avec 0 / 1 / 2 / 3 bouts. Marque = (25 + écart + petit au bout 10) × multiplicateur, + poignée, + chelem (+400 annoncé, +200 non annoncé, −200 raté). Chaque défenseur paie cette marque au preneur (à cinq : le preneur en reçoit deux, le partenaire une).</span>",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "<i>🎯</i><span>Le <b>Petit au bout</b> : si le Petit est joué au dernier pli, le camp qui remporte ce pli gagne 10 points × le multiplicateur. Une donne où un joueur a le Petit sec (seul atout, sans l'Excuse) est annulée.</span>",
+  "f": "public/js/games/tarot.js"
+ },
+ {
+  "k": "Bière",
+  "f": "public/js/scene/drinks.js"
+ },
+ {
+  "k": "Whisky",
+  "f": "public/js/scene/drinks.js"
+ },
+ {
+  "k": "Vin rouge",
+  "f": "public/js/scene/drinks.js"
+ },
+ {
+  "k": "Cocktail",
+  "f": "public/js/scene/drinks.js"
+ },
+ {
+  "k": "Soda",
+  "f": "public/js/scene/drinks.js"
+ },
+ {
+  "k": "Café",
+  "f": "public/js/scene/drinks.js"
+ },
+ {
+  "k": "900 {0}px \"Playfair Display\", Georgia, serif",
+  "f": "public/js/scene/textures.js"
+ },
+ {
+  "k": "À TOI",
+  "f": "public/js/scene/textures.js"
+ },
+ {
+  "k": "@fontsource",
+  "f": "server/index.js"
+ },
+ {
+  "k": "Robot bloque :",
+  "f": "server/index.js"
+ },
+ {
+  "k": "Salon introuvable.",
+  "f": "server/index.js"
+ },
+ {
+  "k": "Seul le patron peut inviter des robots.",
+  "f": "server/index.js"
+ },
+ {
+  "k": "Seul le patron peut renvoyer un robot.",
+  "f": "server/index.js"
+ },
+ {
+  "k": "Ce joueur n'est pas un robot.",
+  "f": "server/index.js"
+ },
+ {
+  "k": "Seul le patron choisit le jeu.",
+  "f": "server/index.js"
+ },
+ {
+  "k": "Une partie est en cours.",
+  "f": "server/index.js"
+ },
+ {
+  "k": "Jeu inconnu.",
+  "f": "server/index.js"
+ },
+ {
+  "k": "Boisson inconnue.",
+  "f": "server/index.js"
+ },
+ {
+  "k": "Seul le patron règle les robots.",
+  "f": "server/index.js"
+ },
+ {
+  "k": "Niveau inconnu.",
+  "f": "server/index.js"
+ },
+ {
+  "k": "Seul le patron règle la partie.",
+  "f": "server/index.js"
+ },
+ {
+  "k": "Réglages invalides.",
+  "f": "server/index.js"
+ },
+ {
+  "k": "Doucement 😅",
+  "f": "server/index.js"
+ },
+ {
+  "k": "Seul l'hote peut lancer la partie.",
+  "f": "server/index.js"
+ },
+ {
+  "k": "La partie a deja commence.",
+  "f": "server/index.js"
+ },
+ {
+  "k": "Il faut au moins {0} joueurs.",
+  "f": "server/index.js"
+ },
+ {
+  "k": "{0} se joue à {1} joueurs maximum.",
+  "f": "server/index.js"
+ },
+ {
+  "k": "Seul l'hote peut relancer une partie.",
+  "f": "server/index.js"
+ },
+ {
+  "k": "Il faut au moins {0} joueurs connectes.",
+  "f": "server/index.js"
+ },
+ {
+  "k": "La partie n'a pas commence.",
+  "f": "server/index.js"
+ },
+ {
+  "k": "Le Carre en ecoute sur le port {0}",
+  "f": "server/index.js"
+ },
+ {
+  "k": "Ce salon n'existe pas.",
+  "f": "server/rooms.js"
+ },
+ {
+  "k": "Le salon est complet (8 joueurs max).",
+  "f": "server/rooms.js"
+ },
+ {
+  "k": "La partie a déjà commencé.",
+  "f": "server/rooms.js"
+ },
+ {
+  "k": "La table est complète (8 joueurs maximum).",
+  "f": "server/rooms.js"
+ },
+ {
+  "k": "Robot {0}",
+  "f": "server/rooms.js"
+ },
+ {
+  "k": "Cette table n'existe plus (le serveur a peut-être redémarré).",
+  "f": "server/rooms.js"
+ },
+ {
+  "k": "Tu ne fais plus partie de cette table.",
+  "f": "server/rooms.js"
+ },
+ {
+  "k": "Ce n'est pas le moment d'annoncer.",
+  "f": "server/games/ascenseur.js"
+ },
+ {
+  "k": "Ce n'est pas ton tour d'annoncer.",
+  "f": "server/games/ascenseur.js"
+ },
+ {
+  "k": "Annonce entre 0 et {0}.",
+  "f": "server/games/ascenseur.js"
+ },
+ {
+  "k": "Interdit d'annoncer {0} : le total tomberait juste.",
+  "f": "server/games/ascenseur.js"
+ },
+ {
+  "k": "Ce n'est pas le moment de jouer.",
+  "f": "server/games/ascenseur.js"
+ },
+ {
+  "k": "Ce n'est pas ton tour.",
+  "f": "server/games/ascenseur.js"
+ },
+ {
+  "k": "Pose une seule carte.",
+  "f": "server/games/ascenseur.js"
+ },
+ {
+  "k": "Carte introuvable dans ta main.",
+  "f": "server/games/ascenseur.js"
+ },
+ {
+  "k": "La manche n'est pas terminée.",
+  "f": "server/games/ascenseur.js"
+ },
+ {
+  "k": "Seul le patron lance la manche suivante.",
+  "f": "server/games/ascenseur.js"
+ },
+ {
+  "k": "Joueur inconnu dans cette partie.",
+  "f": "server/games/ascenseur.js"
+ },
+ {
+  "k": "Action inconnue: {0}",
+  "f": "server/games/ascenseur.js"
+ },
+ {
+  "k": "C'est au preneur de décider.",
+  "f": "server/games/coinche.js"
+ },
+ {
+  "k": "Surcoinche ou passe.",
+  "f": "server/games/coinche.js"
+ },
+ {
+  "k": "Pas de surcoinche",
+  "f": "server/games/coinche.js"
+ },
+ {
+  "k": "Ce n'est pas le moment d'enchérir.",
+  "f": "server/games/coinche.js"
+ },
+ {
+  "k": "Ce n'est pas ton tour de parler.",
+  "f": "server/games/coinche.js"
+ },
+ {
+  "k": "On ne coinche que le contrat des adversaires.",
+  "f": "server/games/coinche.js"
+ },
+ {
+  "k": "Enchère inconnue.",
+  "f": "server/games/coinche.js"
+ },
+ {
+  "k": "Choisis une couleur d'atout.",
+  "f": "server/games/coinche.js"
+ },
+ {
+  "k": "Il faut monter au-dessus de {0}.",
+  "f": "server/games/coinche.js"
+ },
+ {
+  "k": "Cent",
+  "f": "server/games/coinche.js"
+ },
+ {
+  "k": "Cinquante",
+  "f": "server/games/coinche.js"
+ },
+ {
+  "k": "Tierce",
+  "f": "server/games/coinche.js"
+ },
+ {
+  "k": "Carré de {0}",
+  "f": "server/games/coinche.js"
+ },
+ {
+  "k": "Tu dois fournir {0} et monter si tu peux.",
+  "f": "server/games/coinche.js"
+ },
+ {
+  "k": "Tu dois couper plus haut si tu peux (sinon couper quand même).",
+  "f": "server/games/coinche.js"
+ },
+ {
+  "k": "La donne n'est pas terminée.",
+  "f": "server/games/coinche.js"
+ },
+ {
+  "k": "Seul le patron lance la donne suivante.",
+  "f": "server/games/coinche.js"
+ },
+ {
+  "k": "Seul le patron peut arrêter la partie.",
+  "f": "server/games/coinche.js"
+ },
+ {
+  "k": "La partie est déjà terminée.",
+  "f": "server/games/coinche.js"
+ },
+ {
+  "k": "Il faut poser 1, 2 ou 3 cartes.",
+  "f": "server/games/menteur.js"
+ },
+ {
+  "k": "Il faut annoncer une valeur valide pour lancer le round.",
+  "f": "server/games/menteur.js"
+ },
+ {
+  "k": "Impossible de sortir un carre pour le moment.",
+  "f": "server/games/menteur.js"
+ },
+ {
+  "k": "Tu as deja termine la partie.",
+  "f": "server/games/menteur.js"
+ },
+ {
+  "k": "Valeur invalide.",
+  "f": "server/games/menteur.js"
+ },
+ {
+  "k": "Joueur inconnu.",
+  "f": "server/games/menteur.js"
+ },
+ {
+  "k": "Il faut avoir les 4 cartes de cette valeur en main.",
+  "f": "server/games/menteur.js"
+ },
+ {
+  "k": "Aucune pose a contester en ce moment.",
+  "f": "server/games/menteur.js"
+ },
+ {
+  "k": "Seul le joueur suivant peut crier Menteur.",
+  "f": "server/games/menteur.js"
+ },
+ {
+  "k": "Il n'y a rien a contester.",
+  "f": "server/games/menteur.js"
+ },
+ {
+  "k": "Rien a ramasser pour le moment.",
+  "f": "server/games/menteur.js"
+ },
+ {
+  "k": "Ce n'est pas a toi de ramasser.",
+  "f": "server/games/menteur.js"
+ },
+ {
+  "k": "Gagnant",
+  "f": "server/games/menteur.js"
+ },
+ {
+  "k": "Dernier",
+  "f": "server/games/menteur.js"
+ },
+ {
+  "k": "Menteur",
+  "f": "server/games/menteur.js"
+ },
+ {
+  "k": "Petite blinde {0}",
+  "f": "server/games/poker.js"
+ },
+ {
+  "k": "Grosse blinde {0}",
+  "f": "server/games/poker.js"
+ },
+ {
+  "k": "Ce n'est pas le moment de miser.",
+  "f": "server/games/poker.js"
+ },
+ {
+  "k": "Se couche",
+  "f": "server/games/poker.js"
+ },
+ {
+  "k": "Il faut suivre {0} ou se coucher.",
+  "f": "server/games/poker.js"
+ },
+ {
+  "k": "Rien à suivre : fais check.",
+  "f": "server/games/poker.js"
+ },
+ {
+  "k": "Tapis ({0})",
+  "f": "server/games/poker.js"
+ },
+ {
+  "k": "Suit {0}",
+  "f": "server/games/poker.js"
+ },
+ {
+  "k": "Montant invalide.",
+  "f": "server/games/poker.js"
+ },
+ {
+  "k": "Relance trop petite.",
+  "f": "server/games/poker.js"
+ },
+ {
+  "k": "Tu ne peux plus relancer.",
+  "f": "server/games/poker.js"
+ },
+ {
+  "k": "Relance minimum : {0}.",
+  "f": "server/games/poker.js"
+ },
+ {
+  "k": "Mise {0}",
+  "f": "server/games/poker.js"
+ },
+ {
+  "k": "Relance à {0}",
+  "f": "server/games/poker.js"
+ },
+ {
+  "k": "Action inconnue.",
+  "f": "server/games/poker.js"
+ },
+ {
+  "k": "La main n'est pas terminée.",
+  "f": "server/games/poker.js"
+ },
+ {
+  "k": "C'est au prochain donneur de lancer la main.",
+  "f": "server/games/poker.js"
+ },
+ {
+  "k": "Attends la fin de la main.",
+  "f": "server/games/poker.js"
+ },
+ {
+  "k": "Tout le tableau est déjà retourné.",
+  "f": "server/games/poker.js"
+ },
+ {
+  "k": "Tu n'étais pas dans cette main.",
+  "f": "server/games/poker.js"
+ },
+ {
+  "k": "Pas de recave dans cette partie.",
+  "f": "server/games/poker.js"
+ },
+ {
+  "k": "La partie est terminée.",
+  "f": "server/games/poker.js"
+ },
+ {
+  "k": "Tu as encore des jetons.",
+  "f": "server/games/poker.js"
+ },
+ {
+  "k": "Valets",
+  "f": "server/games/pokerEval.js"
+ },
+ {
+  "k": "Dames",
+  "f": "server/games/pokerEval.js"
+ },
+ {
+  "k": "Rois",
+  "f": "server/games/pokerEval.js"
+ },
+ {
+  "k": "d'As",
+  "f": "server/games/pokerEval.js"
+ },
+ {
+  "k": "Quinte flush royale",
+  "f": "server/games/pokerEval.js"
+ },
+ {
+  "k": "Quinte flush hauteur {0}",
+  "f": "server/games/pokerEval.js"
+ },
+ {
+  "k": "Carré {0}",
+  "f": "server/games/pokerEval.js"
+ },
+ {
+  "k": "Full aux {0} par les {1}",
+  "f": "server/games/pokerEval.js"
+ },
+ {
+  "k": "Couleur hauteur {0}",
+  "f": "server/games/pokerEval.js"
+ },
+ {
+  "k": "Quinte hauteur {0}",
+  "f": "server/games/pokerEval.js"
+ },
+ {
+  "k": "Brelan {0}",
+  "f": "server/games/pokerEval.js"
+ },
+ {
+  "k": "Double paire, {0} et {1}",
+  "f": "server/games/pokerEval.js"
+ },
+ {
+  "k": "Paire {0}",
+  "f": "server/games/pokerEval.js"
+ },
+ {
+  "k": "Hauteur {0}",
+  "f": "server/games/pokerEval.js"
+ },
+ {
+  "k": "Un instant…",
+  "f": "server/games/pouilleux.js"
+ },
+ {
+  "k": "Ce n'est pas le moment.",
+  "f": "server/games/pouilleux.js"
+ },
+ {
+  "k": "Personne chez qui tirer.",
+  "f": "server/games/pouilleux.js"
+ },
+ {
+  "k": "Choisis une carte.",
+  "f": "server/games/pouilleux.js"
+ },
+ {
+  "k": "Tu n'as plus de cartes.",
+  "f": "server/games/pouilleux.js"
+ },
+ {
+  "k": "Vice-trou du cul",
+  "f": "server/games/president.js"
+ },
+ {
+  "k": "Les cartes posées doivent avoir la même valeur.",
+  "f": "server/games/president.js"
+ },
+ {
+  "k": "Il faut poser {0} carte{1}.",
+  "f": "server/games/president.js"
+ },
+ {
+  "k": "« Ou rien » : pose la même valeur ou passe.",
+  "f": "server/games/president.js"
+ },
+ {
+  "k": "Il faut une valeur égale ou supérieure.",
+  "f": "server/games/president.js"
+ },
+ {
+  "k": "Tu ouvres le pli : tu dois poser quelque chose.",
+  "f": "server/games/president.js"
+ },
+ {
+  "k": "Pas d'échange en cours.",
+  "f": "server/games/president.js"
+ },
+ {
+  "k": "Tu n'as rien à donner.",
+  "f": "server/games/president.js"
+ },
+ {
+  "k": "Choisis {0} carte{1} à donner.",
+  "f": "server/games/president.js"
+ },
+ {
+  "k": "Poignée simple",
+  "f": "server/games/tarot.js"
+ },
+ {
+  "k": "le {0} d'atout",
+  "f": "server/games/tarot.js"
+ },
+ {
+  "k": "Garde",
+  "f": "server/games/tarot.js"
+ },
+ {
+  "k": "Ce n'est pas le moment d'appeler.",
+  "f": "server/games/tarot.js"
+ },
+ {
+  "k": "C'est au preneur d'appeler un Roi.",
+  "f": "server/games/tarot.js"
+ },
+ {
+  "k": "Couleur inconnue.",
+  "f": "server/games/tarot.js"
+ },
+ {
+  "k": "Écarte exactement {0} cartes.",
+  "f": "server/games/tarot.js"
+ },
+ {
+  "k": "Interdit d'écarter un bout (le Petit, le 21 ou l'Excuse).",
+  "f": "server/games/tarot.js"
+ },
+ {
+  "k": "Pas d'atout à l'écart, sauf si tu n'as pas le choix.",
+  "f": "server/games/tarot.js"
+ },
+ {
+  "k": "Ce n'est pas le moment de faire l'écart.",
+  "f": "server/games/tarot.js"
+ },
+ {
+  "k": "C'est au preneur de faire l'écart.",
+  "f": "server/games/tarot.js"
+ },
+ {
+  "k": "Cartes introuvables.",
+  "f": "server/games/tarot.js"
+ },
+ {
+  "k": "Ce n'est pas le moment d'annoncer un chelem.",
+  "f": "server/games/tarot.js"
+ },
+ {
+  "k": "Seul le preneur peut annoncer un chelem.",
+  "f": "server/games/tarot.js"
+ },
+ {
+  "k": "Les annonces se font juste avant de jouer ta première carte.",
+  "f": "server/games/tarot.js"
+ },
+ {
+  "k": "Pas assez d'atouts pour cette poignée.",
+  "f": "server/games/tarot.js"
+ },
+ {
+  "k": "Poignée déjà annoncée.",
+  "f": "server/games/tarot.js"
+ },
+ {
+  "k": "Ta main ne permet pas cette misère.",
+  "f": "server/games/tarot.js"
+ },
+ {
+  "k": "Misère déjà annoncée.",
+  "f": "server/games/tarot.js"
+ },
+ {
+  "k": "Annonce inconnue.",
+  "f": "server/games/tarot.js"
+ }
+]

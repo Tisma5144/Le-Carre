@@ -1507,3 +1507,26 @@ body.suspense::after {
 /* President : cartes donnees / recues a l'echange */
 .ex-gift { margin-top: 6px; display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
 .ex-gift .mini-row img { width: 30px; }
+
+/* choix de la langue : en haut a droite de l'accueil et du salon */
+.lang-btn {
+  position: fixed;
+  top: calc(10px + var(--safe-t));
+  right: calc(10px + var(--safe-r, 0px));
+  z-index: 7;
+  display: none;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 2px solid rgba(233,196,106,.6);
+  background: rgba(20,10,4,.75);
+  color: #f6e7c8;
+  font: 800 13px "Nunito", sans-serif;
+  cursor: pointer;
+}
+.lang-btn span { letter-spacing: .05em; }
+body:has(#home:not(.hidden)) .lang-btn, body:has(#lobby:not(.hidden)) .lang-btn { display: inline-flex; }
+.lang-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.lang-grid .btn { margin: 0; }
+.lang-grid .btn.on { outline: 3px solid #f3d27a; }

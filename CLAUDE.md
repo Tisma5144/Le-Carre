@@ -54,6 +54,18 @@ en commentaire en tête de chaque moteur `server/games/*.js`.
   (`makeDrink`), posés par `world.setDrinks` ; les robots en tirent une au
   hasard.
 - PWA plein écran (`manifest.webmanifest`, `sw.js` network-first).
+- Langues (fr, en, it, ru) : bouton drapeau en haut à droite (accueil, salon)
+  et « 🌐 Langue » dans le menu ☰ ; choix retenu dans le navigateur
+  (`carreLang`), changement = rechargement de la page. Le code reste écrit en
+  français : `public/js/i18n.js` traduit à la volée tout texte affiché (un
+  MutationObserver) depuis `public/i18n/<langue>.json`, dont les clés sont les
+  phrases françaises. Trous `{0}` (libre, le morceau capturé est lui-même
+  traduit) et `{#0}` (nombre seulement). `tr()` pour les textes dessinés en
+  canvas, `rankLabel()` pour les lettres des figures (J/Q/K, В/Д/К/Т).
+  Les dictionnaires sont générés : ajouter une phrase dans `i18n/extras.js`
+  (`[fr, en, it, ru]`) ou corriger `i18n/tr-*.js`, puis `node i18n/build.js`.
+  En français, rien n'est traduit (zéro risque). Tout nouveau texte d'interface
+  doit recevoir sa traduction.
 
 ## Ajouter un jeu
 

@@ -1,3 +1,4 @@
+import { tr } from "../i18n.js";
 // Textures procedurales : bois, feutre, parquet, sous-bock, jeton, halo.
 import * as THREE from "three";
 import { roundRectPath, drawMask } from "../cards/cardArt.js";
@@ -145,11 +146,11 @@ export function coasterCanvas(size = 256, seed = 1, lines = ["LE", "MENTEUR"]) {
   ctx.font = `900 34px "Playfair Display", Georgia, serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(lines[0], cx, cx - 22);
+  ctx.fillText(tr(lines[0]), cx, cx - 22);
   ctx.font = `900 ${lines[1].length > 6 ? 28 : 34}px "Playfair Display", Georgia, serif`;
   ctx.fillText(lines[1], cx, cx + 18);
   ctx.font = `700 16px "Playfair Display", Georgia, serif`;
-  ctx.fillText("depuis 2026", cx, cx + 50);
+  ctx.fillText(tr("depuis 2026"), cx, cx + 50);
   // traces de verre
   ctx.strokeStyle = "rgba(90,60,20,0.18)";
   ctx.lineWidth = 3;
@@ -192,7 +193,7 @@ export function tokenCanvas(size = 256) {
   ctx.fillStyle = "#4a2e06";
   ctx.font = `900 30px "Playfair Display", Georgia, serif`;
   ctx.textAlign = "center";
-  ctx.fillText("À TOI", cx, cx + 66);
+  ctx.fillText(tr("À TOI"), cx, cx + 66);
   return c;
 }
 
