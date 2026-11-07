@@ -330,8 +330,20 @@ export class World {
     this.rebuildProps();
   }
 
+  // Un joueur touille sa boisson : son verre s'anime chez tout le monde.
+  stirDrink(phi) {
+    if (!this.drinkByPhi) return;
+    let best = null;
+    for (const [p, g] of this.drinkByPhi) if (Math.abs(p - phi) < 0.01) best = g;
+    if (!best || !best.userData.stir) return;
+    this.stirs = (this.stirs || []).filter((x) => x.g !== best);
+    this.stirs.push({ g: best, t: 0 });
+  }
+
   rebuildProps() {
     this.propsGroup.clear();
+    this.drinkByPhi = new Map();
+    this.stirs = [];
     const labels = [["CHEZ", "MATHIS"], ["CHEZ", "MATTEO"], ["LE", "CARRÉ"], ["BAR", "DU COIN"]];
     this.opponentPhis.forEach((phi, i) => {
       if (i % 2 === 1 && this.opponentPhis.length > 4) return;
@@ -350,6 +362,7 @@ export class World {
       coaster.rotation.y = Math.random() * 6;
       coaster.receiveShadow = true;
       pint.position.set(p.x, 0.02, p.z);
+      this.drinkByPhi.set(phi, pint);
       this.propsGroup.add(coaster, pint);
     });
   }
@@ -625,6 +638,15 @@ export class World {
     // ambiance : la flamme de la lampe vacille tres legerement
     this.spot.intensity = 420 + Math.sin(time * 1.7) * 6 + Math.sin(time * 5.3) * 3;
     this.bokeh.rotation.y = time * 0.01;
+
+    // boissons qu'on touille
+    if (this.stirs && this.stirs.length) {
+      for (const st of this.stirs) {
+        st.t = Math.min(1, st.t + dt / 1.8);
+        st.g.userData.stir(st.t);
+      }
+      this.stirs = this.stirs.filter((st) => st.t < 1);
+    }
 
     for (const cb of this.frameCallbacks) (cb.update || cb)(dt, time);
     this.renderer.render(this.scene, this.camera);

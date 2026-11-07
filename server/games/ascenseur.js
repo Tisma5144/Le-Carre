@@ -18,6 +18,10 @@
 // - Points : pari reussi = 40 points par pli annonce (20 points pour une
 //   annonce de 0 reussie). Pari rate = -40 points par pli d'ecart.
 // - Le donneur tourne a chaque manche. Le patron lance la manche suivante.
+// - Sommet : par defaut on joue 4 manches au nombre de cartes maximum (13 a
+//   4 joueurs), sans atout. Reglable : 1 a 4 manches, au maximum ou seulement
+//   a 13 cartes, et l'atout du sommet (sans atout, carte retournee, ou une
+//   couleur par manche ♠ ♥ ♦ ♣).
 
 const crypto = require("crypto");
 const { buildStandardDeck, shuffle, cardPublicView, SUIT_SYMBOLS } = require("../deck");
@@ -27,6 +31,8 @@ const MAX_PLAYERS = 8;
 const POWER = Object.fromEntries(["2", "3", "4", "5", "6", "7", "8", "9", "10", "V", "D", "R", "A"].map((r, i) => [r, i]));
 const SUIT_NAMES = { pique: "Pique", coeur: "Cœur", carreau: "Carreau", trefle: "Trèfle" };
 const MODES = ["up-down", "down-up", "up", "down"];
+const PEAK_TRUMPS = ["none", "card", "suits"];
+const PEAK_SUITS = ["pique", "coeur", "carreau", "trefle"];
 const TRICK_PAUSE_MS = 1700;
 
 // Chaque evenement est rattache a sa manche (et chaque carte jouee a son
@@ -80,19 +86,49 @@ function normalizeOptions(raw, nPlayers) {
   max = Math.max(1, Math.min(hardMax, max));
   const mode = MODES.includes(o.mode) ? o.mode : "up-down";
   const step = o.step === 2 || o.step === "2" ? 2 : 1;
-  return { maxCards: max, mode, step, auto: !(parseInt(o.maxCards, 10) > 0) };
+  let peakRounds = parseInt(o.peakRounds, 10);
+  if (!Number.isFinite(peakRounds)) peakRounds = 4;
+  peakRounds = Math.max(1, Math.min(4, peakRounds));
+  const peakWhen = o.peakWhen === "13" ? "13" : "max";
+  const peakTrump = PEAK_TRUMPS.includes(o.peakTrump) ? o.peakTrump : "none";
+  return { maxCards: max, mode, step, peakRounds, peakWhen, peakTrump, auto: !(parseInt(o.maxCards, 10) > 0) };
 }
 
-// Suite des nombres de cartes par manche, ex : 1 2 3 … max … 3 2 1.
-function buildSequence({ maxCards, mode, step }) {
+// Le sommet existe-t-il (au maximum, ou seulement si le maximum vaut 13) ?
+function hasPeak({ maxCards, peakWhen }) {
+  return peakWhen !== "13" || maxCards === 13;
+}
+
+// Suite des nombres de cartes par manche, ex : 1 2 3 … max … 3 2 1 ; le
+// maximum est repete peakRounds fois (sommet).
+function buildSequence({ maxCards, mode, step, peakRounds = 1, peakWhen = "max" }) {
   const up = [];
   for (let c = 1; c < maxCards; c += step) up.push(c);
   up.push(maxCards);
   const down = up.slice().reverse();
-  if (mode === "up") return up;
-  if (mode === "down") return down;
-  if (mode === "down-up") return down.concat(up.slice(1));
-  return up.concat(down.slice(1));
+  let seq;
+  if (mode === "up") seq = up;
+  else if (mode === "down") seq = down;
+  else if (mode === "down-up") seq = down.concat(up.slice(1));
+  else seq = up.concat(down.slice(1));
+  if (peakRounds > 1 && hasPeak({ maxCards, peakWhen })) {
+    seq = seq.flatMap((c) => (c === maxCards ? Array(peakRounds).fill(c) : [c]));
+  }
+  return seq;
+}
+
+// Rang de la manche dans le sommet (0, 1, 2…) ou -1 hors sommet.
+function peakIndex(state, roundIndex) {
+  const o = state.options;
+  if (!hasPeak(o) || state.sequence[roundIndex] !== o.maxCards) return -1;
+  let k = 0;
+  for (let i = roundIndex - 1; i >= 0 && state.sequence[i] === o.maxCards; i -= 1) k += 1;
+  return k;
+}
+
+function trumpSuitOf(state) {
+  if (state.trumpSuit !== undefined) return state.trumpSuit;
+  return state.trump ? state.trump.suit : null;
 }
 
 function createGame(playerIds, rawOptions) {
@@ -111,6 +147,7 @@ function createGame(playerIds, rawOptions) {
     phase: "bidding",
     hands: {},
     trump: null,
+    trumpSuit: null,
     talon: [],
     bids: {},
     won: {},
@@ -152,7 +189,12 @@ function startRound(state) {
       k += 1;
     }
   }
-  state.trump = k < deck.length ? deck[k] : null;
+  // atout : carte retournee, sauf au sommet (sans atout ou couleur imposee)
+  const peak = peakIndex(state, state.roundIndex);
+  const rule = peak >= 0 ? state.options.peakTrump : "card";
+  state.trump = rule === "card" && k < deck.length ? deck[k] : null;
+  state.trumpSuit = rule === "suits" ? PEAK_SUITS[peak % 4] : state.trump ? state.trump.suit : null;
+  state.peak = peak;
   state.talon = deck.slice(state.trump ? k + 1 : k);
   state.bids = {};
   state.won = Object.fromEntries(state.seatOrder.map((id) => [id, 0]));
@@ -168,7 +210,8 @@ function startRound(state) {
     round: state.roundIndex + 1,
     cards: n,
     dealerId: dealer,
-    trump: state.trump ? state.trump.suit : null
+    trump: state.trumpSuit,
+    peak: peak >= 0 ? peak + 1 : 0
   });
 }
 
@@ -213,7 +256,7 @@ function legalCards(state, playerId) {
 }
 
 function trickWinnerOf(state) {
-  const trumpSuit = state.trump ? state.trump.suit : null;
+  const trumpSuit = trumpSuitOf(state);
   let best = state.trick[0];
   for (const p of state.trick.slice(1)) {
     const c = p.card;
@@ -240,7 +283,8 @@ function doPlay(state, playerId, action) {
   state.hands[playerId] = state.hands[playerId].filter((c) => c !== card);
   if (!state.trick.length) state.leadSuit = card.suit;
   state.trick.push({ playerId, card });
-  const cut = !!state.trump && card.suit === state.trump.suit && state.leadSuit !== state.trump.suit;
+  const ts = trumpSuitOf(state);
+  const cut = !!ts && card.suit === ts && state.leadSuit !== ts;
   logEvent(state, { type: "play", playerId, rank: card.rank, suit: card.suit, lead: state.trick.length === 1, cut, trick: state.trickNumber + 1 });
 
   if (state.trick.length < state.seatOrder.length) {
@@ -291,7 +335,7 @@ function endRound(state) {
   state.roundResults.push({
     round: state.roundIndex + 1,
     cards: state.sequence[state.roundIndex],
-    trump: state.trump ? state.trump.suit : null,
+    trump: state.trumpSuit,
     results: state.lastResult
   });
   const last = state.roundIndex >= state.sequence.length - 1;
@@ -343,8 +387,9 @@ function getViewForPlayer(state, playerId, players) {
     currentTurnName: state.currentTurn ? name(state.currentTurn) : "",
     hand: (state.hands[playerId] || []).map(cardPublicView),
     trump: state.trump ? cardPublicView(state.trump) : null,
-    trumpSuit: state.trump ? state.trump.suit : null,
-    trumpName: state.trump ? SUIT_NAMES[state.trump.suit] : null,
+    trumpSuit: state.trumpSuit,
+    trumpName: state.trumpSuit ? SUIT_NAMES[state.trumpSuit] : null,
+    peak: state.peak >= 0 ? state.peak + 1 : 0,
     talonCount: state.talon.length,
     trick: state.trick.map((p) => ({ playerId: p.playerId, playerName: name(p.playerId), card: cardPublicView(p.card) })),
     leadSuit: state.leadSuit,
@@ -403,5 +448,5 @@ module.exports = {
   getViewForPlayer,
   fullHistory,
   normalizeOptions,
-  _internals: { visibleHistory, buildSequence, pointsFor, forbiddenBid, legalCards, trickWinnerOf, maxCardsFor }
+  _internals: { visibleHistory, buildSequence, peakIndex, trumpSuitOf, pointsFor, forbiddenBid, legalCards, trickWinnerOf, maxCardsFor }
 };

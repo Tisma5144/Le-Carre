@@ -23,16 +23,24 @@ const cartes = (n) => `${n} carte${n > 1 ? "s" : ""}`;
 const signed = (n) => (n > 0 ? `+${n}` : String(n));
 
 // Meme calcul que le serveur, pour afficher la suite des manches dans le salon.
-export function buildSequence({ maxCards, mode, step }) {
+export function buildSequence({ maxCards, mode, step, peakRounds = 1, peakWhen = "max" }) {
   const up = [];
   for (let c = 1; c < maxCards; c += step) up.push(c);
   up.push(maxCards);
   const down = up.slice().reverse();
-  if (mode === "up") return up;
-  if (mode === "down") return down;
-  if (mode === "down-up") return down.concat(up.slice(1));
-  return up.concat(down.slice(1));
+  let seq;
+  if (mode === "up") seq = up;
+  else if (mode === "down") seq = down;
+  else if (mode === "down-up") seq = down.concat(up.slice(1));
+  else seq = up.concat(down.slice(1));
+  if (peakRounds > 1 && (peakWhen !== "13" || maxCards === 13)) {
+    seq = seq.flatMap((c) => (c === maxCards ? Array(peakRounds).fill(c) : [c]));
+  }
+  return seq;
 }
+
+const peakOf = (S) => (S.game && S.game.options && S.game.options.peakRounds) || 1;
+const PEAK_TRUMP_LABELS = { none: "Sans atout", card: "Carte retournée", suits: "♠ ♥ ♦ ♣" };
 
 function lobbyOptions(room) {
   const n = Math.max(3, room.players.length);
@@ -45,7 +53,10 @@ function lobbyOptions(room) {
     hardMax,
     auto: !(asked > 0) || asked >= hardMax,
     mode: MODE_LABELS[o.mode] ? o.mode : "up-down",
-    step: o.step === 2 ? 2 : 1
+    step: o.step === 2 ? 2 : 1,
+    peakRounds: Math.max(1, Math.min(4, parseInt(o.peakRounds, 10) || 4)),
+    peakWhen: o.peakWhen === "13" ? "13" : "max",
+    peakTrump: PEAK_TRUMP_LABELS[o.peakTrump] ? o.peakTrump : "none"
   };
 }
 
@@ -292,7 +303,7 @@ export default {
     const me = S.me.id;
     switch (ev.type) {
       case "round_start":
-        hud.toast(`🛗 Manche ${ev.round} : ${cartes(ev.cards)} · ${ev.trump ? `atout ${SYM[ev.trump]} ${SUIT_NAME[ev.trump]}` : "sans atout"} · ${ev.dealerId === me ? "tu distribues" : ev.dealerName + " distribue"}`, 3600);
+        hud.toast(`🛗 Manche ${ev.round} : ${cartes(ev.cards)}${ev.peak && peakOf(S) > 1 ? ` (sommet ${ev.peak}/${peakOf(S)})` : ""} · ${ev.trump ? `atout ${SYM[ev.trump]} ${SUIT_NAME[ev.trump]}` : "sans atout"} · ${ev.dealerId === me ? "tu distribues" : ev.dealerName + " distribue"}`, 3600);
         break;
       case "bid":
         hud.bubble(who(ev.playerId), ev.bid === 0 ? "Aucun pli pour moi !" : `J'en fais ${ev.bid} !`);
@@ -330,7 +341,7 @@ export default {
     const myTurn = !dealing && v.phase === "playing" && you.isYourTurn;
 
     // plaque : l'atout
-    const trumpLabel = v.trump ? `${SYM[v.trumpSuit]} ${v.trumpName}` : "Sans atout";
+    const trumpLabel = v.trumpSuit ? `${SYM[v.trumpSuit]} ${v.trumpName}` : "Sans atout";
     let sub = `${cartes(v.cards)} · annonces en cours`;
     if (v.allBid) sub = `${cartes(v.cards)} · annonces ${v.totalBids} pour ${v.cards}`;
     if (dealing) {
@@ -571,7 +582,7 @@ export default {
     const dis = isHost ? "" : "disabled";
     const send = (patch) => {
       const cur = (room.options && room.options.ascenseur) || {};
-      const next = { maxCards: cur.maxCards || 0, mode: o.mode, step: o.step, ...patch };
+      const next = { maxCards: cur.maxCards || 0, mode: o.mode, step: o.step, peakRounds: o.peakRounds, peakWhen: o.peakWhen, peakTrump: o.peakTrump, ...patch };
       app.sfx.play("select");
       app.emit("room:setOptions", { options: next });
     };
@@ -582,17 +593,27 @@ export default {
         <div class="opt-seg">${Object.entries(MODE_LABELS).map(([k, l]) => `<button data-mode="${k}" class="${k === o.mode ? "on" : ""}" ${dis}>${l}</button>`).join("")}</div></div>
       <div class="opt-row wide"><span>Pas</span>
         <div class="opt-seg">${[1, 2].map((s) => `<button data-step="${s}" class="${s === o.step ? "on" : ""}" ${dis}>de ${s} en ${s}</button>`).join("")}</div></div>
+      <div class="opt-row"><span>Manches au sommet</span>
+        <div class="opt-seg">${[1, 2, 3, 4].map((n) => `<button data-peak="${n}" class="${n === o.peakRounds ? "on" : ""}" ${dis}>${n}</button>`).join("")}</div></div>
+      <div class="opt-row wide"><span>Sommet</span>
+        <div class="opt-seg">${[["max", "Au maximum"], ["13", "Seulement à 13 cartes"]].map(([k, l]) => `<button data-peakwhen="${k}" class="${k === o.peakWhen ? "on" : ""}" ${dis}>${l}</button>`).join("")}</div></div>
+      <div class="opt-row wide"><span>Atout au sommet</span>
+        <div class="opt-seg three">${Object.entries(PEAK_TRUMP_LABELS).map(([k, l]) => `<button data-peaktrump="${k}" class="${k === o.peakTrump ? "on" : ""}" ${dis}>${l}</button>`).join("")}</div></div>
       <div class="opt-seq">${seq.length} manches : ${seqText(seq)}${o.auto ? ` <i>(max possible à ${room.players.length < 3 ? 3 : room.players.length} joueurs)</i>` : ""}</div>`;
     if (!isHost) return;
     el.querySelector('[data-o="minus"]').addEventListener("click", () => send({ maxCards: Math.max(1, o.maxCards - 1) }));
     el.querySelector('[data-o="plus"]').addEventListener("click", () => send({ maxCards: Math.min(o.hardMax, o.maxCards + 1) >= o.hardMax ? 0 : o.maxCards + 1 }));
     el.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => send({ mode: b.dataset.mode })));
     el.querySelectorAll("[data-step]").forEach((b) => b.addEventListener("click", () => send({ step: Number(b.dataset.step) })));
+    el.querySelectorAll("[data-peak]").forEach((b) => b.addEventListener("click", () => send({ peakRounds: Number(b.dataset.peak) })));
+    el.querySelectorAll("[data-peakwhen]").forEach((b) => b.addEventListener("click", () => send({ peakWhen: b.dataset.peakwhen })));
+    el.querySelectorAll("[data-peaktrump]").forEach((b) => b.addEventListener("click", () => send({ peakTrump: b.dataset.peaktrump })));
   },
 
   rulesHtml() {
     return `
       <p class="rule"><i>🛗</i><span>À chaque manche, on distribue <b>une carte de plus</b>, jusqu'au maximum (52 divisé par le nombre de joueurs), puis on redescend jusqu'à une seule carte. Dans le salon, le patron peut modifier le maximum, le sens et le pas.</span></p>
+      <p class="rule"><i>🔝</i><span>Au <b>sommet</b>, on joue <b>4 manches</b> au nombre de cartes maximum (13 à 4 joueurs), <b>sans atout</b>. Réglable dans le salon : 1 à 4 manches, au maximum ou seulement à 13 cartes, et l'atout du sommet (sans atout, carte retournée, ou une couleur par manche ♠ ♥ ♦ ♣).</span></p>
       <p class="rule"><i>🃏</i><span>Après la distribution, on retourne la première carte du talon : sa couleur devient l'<b>atout</b>. S'il ne reste aucune carte, la manche se joue <b>sans atout</b>.</span></p>
       <p class="rule"><i>🎯</i><span>Chacun son tour, en commençant par le joueur à gauche du donneur, <b>annonce le nombre de plis</b> qu'il pense remporter. Le donneur parle en dernier : il n'a pas le droit de choisir un nombre qui rendrait le total des annonces égal au nombre de plis. Au moins un joueur devra donc se tromper !</span></p>
       <p class="rule"><i>👉</i><span>Le joueur à gauche du donneur entame le premier pli. Tu dois <b>fournir la couleur demandée</b> si tu en as ; sinon, tu joues la carte de ton choix (couper n'est pas obligatoire).</span></p>

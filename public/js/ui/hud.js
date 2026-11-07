@@ -62,6 +62,8 @@ export class Hud {
     $("home").classList.toggle("hidden", name !== "home");
     $("lobby").classList.toggle("hidden", name !== "lobby");
     $("hud").classList.toggle("hidden", name !== "game");
+    const sc = $(name);
+    if ($("lang-btn")) $("lang-btn").classList.toggle("faded", !!sc && sc.scrollTop > 24);
     if (name !== "game") {
       this.hideReveal();
       $("end").classList.add("hidden");
@@ -389,19 +391,20 @@ export class Hud {
     h.classList.toggle("my-turn", !!myTurn);
   }
 
-  showTurnBanner(text, variant = "") {
+  // avoid : rectangles a l'ecran a ne pas recouvrir (cartes sur le tapis)
+  showTurnBanner(text, variant = "", avoid = []) {
     const b = $("turn-banner");
     $("turn-banner-text").textContent = text;
     b.classList.remove("show", "gold", "allin");
     if (variant) b.classList.add(variant);
-    this.placeTurnBanner();
+    this.placeTurnBanner(avoid);
     void b.offsetWidth;
     b.classList.add("show");
   }
 
   // Le bandeau "A toi de jouer" se cale entre les etiquettes des joueurs
   // (au plus pres de sa place habituelle) pour ne pas cacher leurs noms.
-  placeTurnBanner() {
+  placeTurnBanner(avoid = []) {
     const b = $("turn-banner");
     b.style.top = "";
     const ribbon = b.querySelector(".ribbon");
@@ -416,20 +419,27 @@ export class Hud {
       const r = el.querySelector(".plate-inner").getBoundingClientRect();
       if (r.width && r.right > bl && r.left < bl + rw) obstacles.push(r);
     }
-    for (const id of ["announce", "hint"]) {
-      const r = $(id).getBoundingClientRect();
-      if (r.height > 0) obstacles.push(r);
+    for (const id of ["announce", "hint", "action-bar", "quad-bar"]) {
+      const el = $(id);
+      const r = el && el.getBoundingClientRect();
+      if (r && r.height > 0) obstacles.push(r);
     }
-    const free = (y) => obstacles.every((r) => y + bh + 4 <= r.top || y - 4 >= r.bottom);
-    for (let d = 0; d < H * 0.3; d += 6) {
+    // cartes posees sur le tapis : on ne les cache jamais
+    for (const r of avoid) if (r.right > bl && r.left < bl + rw) obstacles.push(r);
+    // et jamais la main
+    const handTop = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hand-top")) || H * 0.3;
+    const low = Math.min(H * 0.75, H - handTop - 6);
+    // place qui recouvre le moins (idealement rien), au plus pres de la base
+    const overlap = (y) => obstacles.reduce((t, r) => t + Math.max(0, Math.min(y + bh + 4, r.bottom) - Math.max(y - 4, r.top)), 0);
+    let best = null;
+    for (let d = 0; d < H * 0.6; d += 6) {
       for (const y of [base + d, base - d]) {
-        if (y < H * 0.15 || y + bh > H * 0.7) continue;
-        if (free(y)) {
-          b.style.top = `${Math.round(y)}px`;
-          return;
-        }
+        if (y < H * 0.1 || y + bh > low) continue;
+        const c = overlap(y) * 10 + d * 0.05;
+        if (!best || c < best.c) best = { y, c };
       }
     }
+    if (best) b.style.top = `${Math.round(best.y)}px`;
   }
 
   // text : ligne detaillee (grands ecrans) ; short : version courte pour

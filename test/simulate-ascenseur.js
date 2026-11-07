@@ -22,6 +22,19 @@ assert.deepStrictEqual(buildSequence({ maxCards: 6, mode: "down", step: 2 }), [6
 assert.strictEqual(maxCardsFor(4), 13);
 assert.strictEqual(asc.normalizeOptions({ maxCards: 40 }, 5).maxCards, 10, "max borne a 52/n");
 assert.strictEqual(asc.normalizeOptions({}, 6).maxCards, 8, "max par defaut = 52/n");
+// sommet : 4 manches au maximum, sans atout, par defaut
+{
+  const o = asc.normalizeOptions({}, 4);
+  assert.deepStrictEqual([o.peakRounds, o.peakWhen, o.peakTrump], [4, "max", "none"], "sommet par defaut");
+  const seq = buildSequence(o);
+  assert.strictEqual(seq.filter((c) => c === 13).length, 4, "4 manches a 13 cartes");
+  assert.strictEqual(seq.length, 28);
+  assert.strictEqual(buildSequence(asc.normalizeOptions({ peakWhen: "13" }, 5)).filter((c) => c === 10).length, 1, "pas de sommet a 10 si seulement a 13");
+  assert.strictEqual(buildSequence(asc.normalizeOptions({ peakRounds: 2 }, 5)).filter((c) => c === 10).length, 2);
+  assert.deepStrictEqual(buildSequence({ maxCards: 3, mode: "up", step: 1, peakRounds: 3 }), [1, 2, 3, 3, 3]);
+  const s = asc.createGame(["a", "b", "c", "d"], { peakTrump: "suits", maxCards: 2 });
+  assert.strictEqual(s.sequence.join(), "1,2,2,2,2,1");
+}
 
 // --- points
 assert.strictEqual(pointsFor(3, 3), 120);
@@ -51,7 +64,10 @@ for (let g = 0; g < 40; g += 1) {
   const n = 3 + (g % 6);
   const players = Array.from({ length: n }, (_, i) => "p" + i);
   const modes = ["up-down", "down-up", "up", "down"];
-  const options = g % 5 === 0 ? {} : { maxCards: 1 + rnd(maxCardsFor(n)), mode: modes[g % 4], step: g % 3 === 0 ? 2 : 1 };
+  const options = g % 5 === 0 ? {} : {
+    maxCards: 1 + rnd(maxCardsFor(n)), mode: modes[g % 4], step: g % 3 === 0 ? 2 : 1,
+    peakRounds: 1 + (g % 4), peakWhen: g % 7 === 0 ? "13" : "max", peakTrump: ["none", "card", "suits"][g % 3]
+  };
   const s = asc.createGame(players, options);
   stats.games += 1;
   const seq = s.sequence;
@@ -78,9 +94,15 @@ for (let g = 0; g < 40; g += 1) {
       if (Object.keys(s.bids).length === 0) {
         stats.rounds += 1;
         for (const id of players) assert.strictEqual(s.hands[id].length, cards, "bon nombre de cartes");
-        if (!s.trump) {
+        const peak = asc._internals.peakIndex(s, s.roundIndex);
+        if (peak >= 0) stats.peak = (stats.peak || 0) + 1;
+        if (!s.trumpSuit) {
           stats.noTrump += 1;
-          assert.strictEqual(cards * n, 52, "sans atout seulement si tout est distribue");
+          assert.ok(cards * n === 52 || (peak >= 0 && s.options.peakTrump === "none"), "sans atout seulement si tout est distribue ou au sommet");
+        }
+        if (peak >= 0 && s.options.peakTrump === "suits") {
+          assert.strictEqual(s.trumpSuit, ["pique", "coeur", "carreau", "trefle"][peak % 4], "couleur imposee au sommet");
+          assert.strictEqual(s.trump, null);
         }
       }
       const other = players.find((id) => id !== cur);

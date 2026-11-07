@@ -52,6 +52,10 @@ export class CardTable {
     // 78 cartes (Tarot) ; les autres jeux n'en utilisent que 52, les autres
     // restent cachees (zone "spare")
     this.deckSize = 52;
+    // taille des cartes choisie par le joueur (menu ☰) : la main grossit
+    // franchement, les cartes posees sur le tapis un peu moins
+    this.handZoom = 1;
+    this.tableZoom = 1;
     for (let i = 0; i < 78; i += 1) {
       const g = this.factory.createCard();
       world.scene.add(g);
@@ -572,10 +576,19 @@ export class CardTable {
     this.zones = zones;
   }
 
+  setCardZoom(z) {
+    this.handZoom = z;
+    this.tableZoom = 1 + (z - 1) * 0.5;
+    this.layoutAll();
+  }
+
   handGeometry(n) {
     const hm = this.world.handMetrics();
     const portrait = this.world.camera.aspect < 0.9;
-    const cardH = hm.visH * (portrait ? 0.175 : 0.235);
+    // grosses mains (Tarot) : on grossit un peu moins, sinon la main mange
+    // toute la table
+    const zoom = 1 + (this.handZoom - 1) * Math.min(1, 13 / Math.max(1, n));
+    const cardH = hm.visH * (portrait ? 0.175 : 0.235) * zoom;
     const s = cardH / CARD_WORLD_H;
     const cardW = CARD_WORLD_W * s;
     const availW = hm.visW * 0.95;
@@ -631,6 +644,7 @@ export class CardTable {
     // Hauteur occupee par la main (carte soulevee comprise), en fraction
     // de l'ecran : l'interface HTML se place au-dessus pour ne rien masquer.
     const topY = hm.bottom + cardH * 0.4 + (rows - 1) * cardH * 0.36 + cardH * 0.24 + cardH * 0.5;
+    this.handTopY = topY;
     const frac = (topY + hm.visH / 2) / hm.visH;
     if (Math.abs(frac - (this.handTopFrac || 0)) > 0.002) {
       this.handTopFrac = frac;
@@ -758,13 +772,14 @@ export class CardTable {
       const m = e.qsize || 1;
       const side = e.quad % 2 === 0 ? 1 : -1;
       const off = Math.min(age, 4);
-      const x = p.x + (e.qj - (m - 1) / 2) * 0.24 + side * off * 0.09 + e.jitter.dx;
+      const tz = this.tableZoom;
+      const x = p.x + (e.qj - (m - 1) / 2) * 0.24 * tz + side * off * 0.09 + e.jitter.dx;
       const z = p.z - off * 0.2 + 0.1 + e.jitter.dz;
       const yaw = (e.qj - (m - 1) / 2) * -0.1 + side * off * 0.07 + e.jitter.yaw;
       e.space = "world";
       e.tPos.set(x, 0.016 + e.quad * 0.01 + e.qj * 0.002, z);
       e.tQuat.copy(yawQuat(yaw)).multiply(Q_FACE_UP);
-      e.tScale = 1;
+      e.tScale = tz;
       e.emissive = age === 0 ? 0.3 : 0.14;
       e.glowTarget = age === 0 ? 0.35 : 0;
       e.glowColor.set(0xffd35a);
@@ -838,7 +853,7 @@ export class CardTable {
       e.space = "world";
       e.tPos.set(p.x + Math.sin(phi) * fr.x * r * 0.92 + e.jitter.dx * 0.5, 0.016 + k * 0.006, p.z + Math.cos(phi) * fr.z * r + e.jitter.dz * 0.5);
       e.tQuat.copy(yawQuat(phi * 0.25 + e.jitter.yaw * 0.6)).multiply(Q_FACE_UP);
-      e.tScale = 0.82;
+      e.tScale = 0.82 * this.tableZoom;
       e.emissive = e.win ? 0.42 : 0.26;
       e.glowTarget = e.win ? 0.95 : 0;
       e.glowColor.set(e.win ? 0x7dffa8 : 0xffd35a);
@@ -915,7 +930,12 @@ export class CardTable {
     const cardW = CARD_WORLD_W * s;
     const avail = hm.visW * 0.92;
     const step = m > 1 ? Math.min(cardW * 1.08, (avail - cardW) / (m - 1)) : 0;
-    const baseY = hm.bottom + hm.visH * (portrait ? 0.44 : 0.42);
+    let baseY = hm.bottom + hm.visH * (portrait ? 0.44 : 0.42);
+    // grandes cartes : on garde de la place pour la main et la consigne
+    if (this.handZoom > 1 && this.handTopY !== undefined) {
+      // (cartes tendues un peu plus loin que la main : x 1,1 pour la perspective)
+      baseY = Math.min(hm.visH * 0.12, Math.max(baseY, (this.handTopY + hm.visH * 0.07) * 1.1 + cardH * 0.6));
+    }
     list.forEach((e, j) => {
       const u = m > 1 ? j / (m - 1) - 0.5 : 0;
       const picked = this.pickedEntity === e;
@@ -938,9 +958,10 @@ export class CardTable {
       e.space = "world";
       // carte "fantome" (ce qui serait tombe) : un peu decalee, assombrie,
       // halo bleute
-      e.tPos.set(p.x + (i - 2) * 0.68, 0.016 + i * 0.002, p.z + 0.05 + (e.ghost ? 0.2 : 0));
+      const tz = this.tableZoom;
+      e.tPos.set(p.x + (i - 2) * 0.68 * tz, 0.016 + i * 0.002, p.z + 0.05 + (e.ghost ? 0.2 : 0));
       e.tQuat.copy(Q_FACE_UP);
-      e.tScale = e.ghost ? 0.9 : 0.98;
+      e.tScale = (e.ghost ? 0.9 : 0.98) * tz;
       e.emissive = e.ghost ? 0.1 : e.win ? 0.45 : 0.28;
       e.glowTarget = e.ghost ? 0.55 : e.win ? 0.95 : 0;
       e.glowColor.set(e.ghost ? 0x8fb4ff : 0x7dffa8);
@@ -1060,6 +1081,24 @@ export class CardTable {
 
   // Place libre pour le jeton de tour, pres de base : ni sur une carte posee
   // sur la table, ni sous la main du joueur, et toujours sur le tapis.
+  // Rectangles a l'ecran des cartes posees sur le tapis (pli, tableau,
+  // cartes montrees…) : le bandeau "A toi" se place a cote.
+  tableCardRects() {
+    const out = [];
+    const skip = new Set(["decor", "deck", "won", "discard", "talon", "opp", "spare"]);
+    for (const e of this.entities) {
+      if (e.space !== "world" || skip.has(e.zone) || !(e.tScale > 0.05)) continue;
+      const b = CardTable.cardBox(e.tPos, e.tQuat, e.tScale);
+      let l = Infinity; let r = -Infinity; let t = Infinity; let bo = -Infinity;
+      for (const [x, z] of [[b.minX, b.minZ], [b.maxX, b.minZ], [b.minX, b.maxZ], [b.maxX, b.maxZ]]) {
+        const sc = this.world.toScreen(V(x, e.tPos.y, z));
+        l = Math.min(l, sc.x); r = Math.max(r, sc.x); t = Math.min(t, sc.y); bo = Math.max(bo, sc.y);
+      }
+      out.push({ left: l, right: r, top: t, bottom: bo });
+    }
+    return out;
+  }
+
   freeSpot(base, keep = null, r = 0.4, screenRects = []) {
     const world = this.world;
     const boxes = [];

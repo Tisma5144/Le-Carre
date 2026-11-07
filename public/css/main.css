@@ -540,18 +540,18 @@ body.revealing #vignette {
 }
 .turn-banner .ribbon {
   position: relative;
-  padding: 14px 46px;
+  padding: 10px 36px;
   background: linear-gradient(180deg, #9a2232, #5e0f1a);
   border-top: 3px solid var(--gold);
   border-bottom: 3px solid var(--gold);
-  font: 900 italic clamp(28px, 8vw, 50px) "Playfair Display", Georgia, serif;
+  font: 900 italic clamp(22px, 6.5vw, 40px) "Playfair Display", Georgia, serif;
   color: #ffe9a8;
   text-shadow: 0 3px 0 rgba(0,0,0,.5), 0 0 26px rgba(255,200,90,.65);
   box-shadow: 0 16px 44px rgba(0,0,0,.65);
   clip-path: polygon(0 0, 100% 0, 95% 50%, 100% 100%, 0 100%, 5% 50%);
   white-space: nowrap;
 }
-.turn-banner.show { animation: bannerIn 2.1s cubic-bezier(.2,.9,.3,1) forwards; }
+.turn-banner.show { animation: bannerIn 1.7s cubic-bezier(.2,.9,.3,1) forwards; }
 @keyframes bannerIn {
   0% { opacity: 0; transform: scale(.55) rotate(-4deg); }
   12% { opacity: 1; transform: scale(1.08) rotate(1deg); }
@@ -873,7 +873,7 @@ body.shake #scene { animation: screenShake .45s; }
   .liar-btn { width: 150px; height: 56px; margin-left: -75px; font-size: 18px; bottom: calc(6px + var(--safe-b)); }
   .my-plate .avatar { width: 28px; height: 28px; }
   .turn-banner { top: 26%; }
-  .turn-banner .ribbon { font-size: 30px; padding: 8px 40px; }
+  .turn-banner .ribbon { font-size: 24px; padding: 6px 32px; }
   .lobby-panel { width: min(640px, 100%); display: grid; grid-template-columns: 1fr 1fr; column-gap: 18px; }
   .lobby-panel > .lobby-head, .lobby-panel > #btn-share { grid-column: 1; }
   .lobby-panel > .lobby-sub, .lobby-panel > .chalk-list, .lobby-panel > #btn-add-bot { grid-column: 2; }
@@ -1118,6 +1118,7 @@ body.shake #scene { animation: screenShake .45s; }
 .score-seq b { color: #ffe39a; font-size: 18px; }
 .opt-row.wide { flex-direction: column; align-items: stretch; gap: 5px; }
 .opt-row.wide .opt-seg { display: grid; grid-template-columns: 1fr 1fr; justify-content: stretch; }
+.opt-row.wide .opt-seg.three { grid-template-columns: 1fr 1fr 1fr; }
 .qr-wrap .chalk-tiny { max-width: 118px; text-align: center; line-height: 1.1; margin-top: 4px; }
 
 /* ---------------------------------------------------------------- plein ecran */
@@ -1526,7 +1527,35 @@ body.suspense::after {
   cursor: pointer;
 }
 .lang-btn span { letter-spacing: .05em; }
+.lang-btn { transition: opacity .2s; }
+.lang-btn.faded { opacity: 0; pointer-events: none; }
 body:has(#home:not(.hidden)) .lang-btn, body:has(#lobby:not(.hidden)) .lang-btn { display: inline-flex; }
 .lang-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .lang-grid .btn { margin: 0; }
 .lang-grid .btn.on { outline: 3px solid #f3d27a; }
+
+/* ma boisson, sous le bouton menu (option « Voir ma boisson ») : on la touche
+   pour la touiller */
+.my-drink {
+  pointer-events: auto;
+  position: absolute;
+  top: calc(58px + var(--safe-t));
+  left: 6px;
+  width: 54px;
+  height: 66px;
+  padding: 0;
+  border: 0;
+  background: radial-gradient(closest-side, rgba(255,200,120,.16), transparent);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,.5));
+}
+.my-drink canvas { width: 100%; height: 100%; display: block; }
+.my-drink:active { transform: scale(.94); }
+@media (max-height: 520px) {
+  .my-drink { top: calc(50px + var(--safe-t)); width: 42px; height: 52px; }
+}
+.drink-opt { margin-top: 12px; display: grid; gap: 8px; }
+.size-grid { display: grid; gap: 8px; }
+.size-grid .btn.on { outline: 3px solid #f3d27a; outline-offset: 2px; }
+.size-help { margin: 0 0 10px; font: 600 14px/1.35 "Nunito", sans-serif; color: var(--cream); opacity: .85; }

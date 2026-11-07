@@ -65,6 +65,11 @@ illustrées (figures dessinées, As ornés, dos au masque vénitien).
   jusqu'à 1. Dans le salon, le patron règle le maximum, le sens (monte puis
   descend, descend puis monte, monte seulement, descend seulement) et le pas
   (de 1 en 1 ou de 2 en 2).
+- Sommet : par défaut on joue **4 manches au nombre de cartes maximum** (13 à
+  4 joueurs), **sans atout**. Réglable dans le salon : 1 à 4 manches au
+  sommet, au maximum quel que soit le nombre de joueurs ou seulement à
+  13 cartes, et l'atout du sommet (sans atout, carte retournée, ou une couleur
+  par manche ♠ ♥ ♦ ♣).
 - On retourne la carte du dessus du talon : sa couleur est l'atout. S'il ne
   reste aucune carte, la manche est sans atout.
 - Chacun annonce à son tour le nombre de plis qu'il pense faire, en commençant
@@ -190,8 +195,16 @@ illustrées (figures dessinées, As ornés, dos au masque vénitien).
   alternative, bouton de tri.
 - Adversaires assis autour de la table (éventail de dos de cartes + étiquette
   avec nombre de cartes, bulle de dialogue « Deux Dames ! »).
-- Plaque en laiton qui affiche la valeur annoncée, bandeau « À toi de jouer ! »,
-  vibration du téléphone et petit carillon quand c'est ton tour.
+- Plaque en laiton qui affiche la valeur annoncée, bandeau « À toi de jouer ! »
+  (il se place à côté des cartes posées sur le tapis, jamais dessus ni sur la
+  main), vibration du téléphone et petit carillon quand c'est ton tour.
+- Taille des cartes (menu ☰ « 🔍 Taille des cartes ») : normales, grandes ou
+  très grandes, retenue sur le téléphone. La main grossit, les cartes du
+  tapis un peu ; les très grosses mains (Tarot) grossissent un peu moins.
+- Boissons : bière, whisky, vin rouge, cocktail, soda, café, chai latte. Ta
+  boisson s'affiche en petit sous le bouton ☰ (option « Voir ma boisson »
+  dans « Ma boisson ») ; touche-la pour la touiller (cuillère, pic, paille,
+  ou le verre qui tourne) : les autres voient ton verre bouger à ta place.
 - Salle d'attente sur ardoise avec QR code et bouton de partage du lien.
 - Historique de la manche, cartes sorties, règles, son on/off, revanche.
 - Reconnexion automatique si on recharge la page.

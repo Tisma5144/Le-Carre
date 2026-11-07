@@ -94,6 +94,10 @@ export class Sfx {
         this.noiseBurst({ freq: 2000, dur: 0.09, gain: 0.4 });
         this.tone({ freq: 180, dur: 0.12, gain: 0.15, type: "triangle" });
         break;
+      case "stir":
+        // petite cuillere contre la tasse : quelques tintements
+        for (let i = 0; i < 4; i += 1) this.tone({ freq: 2600 + (i % 2) * 500, dur: 0.06, gain: 0.05, type: "sine", delay: 0.2 + i * 0.36 });
+        break;
       case "select":
         this.tone({ freq: 1400, dur: 0.05, gain: 0.08, type: "triangle" });
         break;

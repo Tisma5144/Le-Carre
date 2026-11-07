@@ -246,7 +246,7 @@ function ascChoose(legal, trick, trumpSuit, id, need, fort) {
 function ascenseurSimBid(state, id, forbidden) {
   const n = state.sequence[state.roundIndex];
   const order = state.seatOrder;
-  const trumpSuit = state.trump ? state.trump.suit : null;
+  const trumpSuit = state.trumpSuit !== undefined ? state.trumpSuit : state.trump ? state.trump.suit : null;
   const known = new Set((state.hands[id] || []).map((c) => c.id).concat(state.trump ? [state.trump.id] : []));
   const pool = buildStandardDeck().filter((c) => !known.has(c.id));
   const dealerIdx = state.dealerIdx % order.length;
@@ -304,7 +304,7 @@ function ascenseurActions(state, id, level) {
   const { legalCards, forbiddenBid } = ascenseur._internals;
   if (state.currentTurn !== id) return [];
   const hand = state.hands[id] || [];
-  const trumpSuit = state.trump ? state.trump.suit : null;
+  const trumpSuit = state.trumpSuit !== undefined ? state.trumpSuit : state.trump ? state.trump.suit : null;
   const n = state.sequence[state.roundIndex];
 
   if (state.phase === "bidding") {

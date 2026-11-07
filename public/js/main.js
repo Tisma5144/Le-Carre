@@ -3,6 +3,7 @@
 import { World } from "./scene/world.js";
 import { LANGS, lang, setLang, loadDictionary, startPageTranslation, tr } from "./i18n.js";
 import { DRINKS } from "./scene/drinks.js";
+import { MyDrinkView } from "./ui/myDrink.js";
 import { woodCanvas } from "./scene/textures.js";
 import { CardTable } from "./game/cardTable.js";
 import { Hud } from "./ui/hud.js";
@@ -83,6 +84,52 @@ function chooseDrink(id) {
   const d = DRINKS.find((x) => x.id === id);
   app.emit("room:setDrink", { drink: id }, () => hud.toast(`${d.emoji} ${d.label} servi${d.id === "biere" ? "e" : ""} ! Ton verre est posé devant toi.`, 2000));
 }
+// Reglages de l'appareil : taille des cartes et boisson visible a l'ecran.
+const CARD_SIZES = [
+  { z: 1, label: "Normales" },
+  { z: 1.2, label: "Grandes" },
+  { z: 1.35, label: "Très grandes" }
+];
+function pref(key, def) {
+  try { const v = localStorage.getItem(key); return v === null ? def : v; } catch (e) { return def; }
+}
+function setPref(key, v) {
+  try { localStorage.setItem(key, v); } catch (e) { /* ignore */ }
+}
+function cardZoom() {
+  const z = parseFloat(pref("carreCardSize", "1"));
+  return CARD_SIZES.some((c) => c.z === z) ? z : 1;
+}
+function showMyDrink() {
+  return pref("carreShowDrink", "1") === "1";
+}
+let myDrinkView = null;
+function refreshMyDrink() {
+  const el = $("my-drink");
+  const on = showMyDrink();
+  el.classList.toggle("hidden", !on);
+  if (!on) return;
+  if (!myDrinkView) myDrinkView = new MyDrinkView(el.querySelector("canvas"));
+  myDrinkView.set(myDrink());
+}
+function stirMyDrink() {
+  if (!myDrinkView) return;
+  myDrinkView.stir();
+  sfx.play("stir");
+  if (socket) socket.emit("room:stir", {}, () => {});
+}
+function openCardSizePicker() {
+  const cur = cardZoom();
+  hud.openModal("Taille des cartes", `<p class="size-help">Des cartes plus grosses dans ta main (et un peu plus sur le tapis), plus faciles à lire.</p>
+    <div class="size-grid">${CARD_SIZES.map((c) => `<button class="btn wood${c.z === cur ? " on" : ""}" data-zoom="${c.z}">${c.z === 1 ? "🂠" : c.z === 1.2 ? "🔍" : "🔎"} ${c.label}</button>`).join("")}</div>`);
+  document.querySelectorAll("#modal-body [data-zoom]").forEach((b) => b.addEventListener("click", () => {
+    sfx.play("select");
+    setPref("carreCardSize", b.dataset.zoom);
+    table.setCardZoom(cardZoom());
+    hud.closeModal();
+  }));
+}
+
 function sendSavedDrink() {
   const d = savedDrink();
   if (d && socket) socket.emit("room:setDrink", { drink: d }, () => {});
@@ -194,6 +241,7 @@ function applySeats(orderedIds) {
     S.drinksKey = dk;
     world.setDrinks(drinks);
   }
+  refreshMyDrink();
   return seats;
 }
 
@@ -403,7 +451,7 @@ function refreshGameUi() {
   if (!table.drag) world.setPileRing(ring ? "idle" : "hidden");
 
   if (myTurn && !S.wasMyTurn) {
-    hud.showTurnBanner(A.turnBanner(g));
+    hud.showTurnBanner(A.turnBanner(g), "", table.tableCardRects());
     sfx.play("turn");
     if (navigator.vibrate) navigator.vibrate([70, 60, 70]);
   }
@@ -605,6 +653,12 @@ function bindUi() {
     $("btn-sound").textContent = sfx.toggle() ? "🔊" : "🔇";
   });
   $("announce").addEventListener("click", openHistory);
+  $("my-drink").addEventListener("click", stirMyDrink);
+  // le bouton de langue s'efface quand on fait defiler l'accueil ou le salon
+  // (il passerait sur les reglages)
+  for (const id of ["home", "lobby"]) {
+    $(id).addEventListener("scroll", () => $("lang-btn").classList.toggle("faded", $(id).scrollTop > 24), { passive: true });
+  }
   $("pile-chip").addEventListener("click", openHistory);
   $("tray-chip").addEventListener("click", openTray);
   $("btn-menu").addEventListener("click", () => {
@@ -616,6 +670,7 @@ function bindUi() {
       <button class="btn wood" data-act="rules">📖 Règles ${A ? ofGame(A.name) : ""}</button>
       <button class="btn wood" data-act="lang">🌐 Langue · ${(LANGS.find((l) => l.id === lang) || LANGS[0]).flag}</button>
       <button class="btn wood" data-act="drink">${(DRINKS.find((d) => d.id === myDrink()) || DRINKS[0]).emoji} Ma boisson</button>
+      <button class="btn wood" data-act="size">🔍 Taille des cartes</button>
       ${FS.isStandalone() ? "" : `<button class="btn wood" data-act="fs" data-no-fs>${fsLabel()}</button>`}
       ${isHost ? `<button class="btn wood" data-act="lobby">🎲 Changer de jeu</button>` : ""}
       <button class="btn brass" data-act="leave">🚪 Quitter la table</button>
@@ -628,7 +683,8 @@ function bindUi() {
       else if (act === "rules") hud.openModal(`Règles · ${A ? A.name : ""}`, A ? A.rulesHtml() : "");
       else if (act === "lang") openLanguagePicker();
       else if (act === "drink") {
-        hud.openModal("Ma boisson", `<p class="drink-help">Ton verre est posé devant toi, sur l'écran des autres joueurs.</p><div class="drink-grid"></div>`);
+        hud.openModal("Ma boisson", `<p class="drink-help">Ton verre est posé devant toi, sur l'écran des autres joueurs. Touche-le pour touiller !</p><div class="drink-grid"></div>
+          <div class="drink-opt"><button class="btn wood" data-show-drink>${showMyDrink() ? "🙈 Cacher ma boisson de mon écran" : "👀 Voir ma boisson à l'écran"}</button></div>`);
         const grid = document.querySelector("#modal-body .drink-grid");
         grid.innerHTML = DRINKS.map((d) => `<button class="btn wood${d.id === myDrink() ? " on" : ""}" data-drink="${d.id}">${d.emoji} ${d.label}</button>`).join("");
         grid.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
@@ -636,7 +692,14 @@ function bindUi() {
           chooseDrink(b.dataset.drink);
           hud.closeModal();
         }));
+        document.querySelector("#modal-body [data-show-drink]").addEventListener("click", () => {
+          sfx.play("select");
+          setPref("carreShowDrink", showMyDrink() ? "0" : "1");
+          refreshMyDrink();
+          hud.closeModal();
+        });
       }
+      else if (act === "size") openCardSizePicker();
       else if (act === "lobby") {
         hud.closeModal();
         app.emit("room:playAgain", {});
@@ -864,6 +927,7 @@ async function boot() {
       world.setPileRing(g && S.adapter && S.adapter.isPlaying(g) && g.you.isYourTurn ? "idle" : "hidden");
     }
   });
+  table.setCardZoom(cardZoom());
 
   app = {
     S,
@@ -917,6 +981,10 @@ async function boot() {
   socket = io({ reconnectionDelay: 500, reconnectionDelayMax: 3000, timeout: 8000 });
   socket.on("state", onState);
   setupConnectionWatch();
+  socket.on("stir", ({ playerId }) => {
+    if (S.screen !== "game" || !S.seatPhi || !S.seatPhi.has(playerId)) return;
+    world.stirDrink(S.seatPhi.get(playerId));
+  });
   socket.on("emote", ({ playerId, emoji }) => {
     if (S.screen !== "game") return;
     hud.floatEmote(playerId === S.me.id ? "me" : playerId, emoji);
@@ -931,6 +999,7 @@ async function boot() {
   // point d'acces pour le debogage (console du navigateur, tests automatises)
   window.__menteur = {
     tr,
+    get myDrink() { return myDrinkView; },
     S,
     world,
     table,

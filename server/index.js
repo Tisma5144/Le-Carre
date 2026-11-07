@@ -18,7 +18,7 @@ const GAMES = { [menteur.id]: menteur, [president.id]: president, [ascenseur.id]
 const PORT = process.env.PORT || 3000;
 // Facteur de vitesse des robots et des pauses (1 = rythme normal ; les tests l'accelerent).
 // boissons au choix (voir public/js/scene/drinks.js)
-const DRINKS = ["biere", "whisky", "vin", "cocktail", "soda", "cafe"];
+const DRINKS = ["biere", "whisky", "vin", "cocktail", "soda", "cafe", "chai"];
 const BOT_SPEED = Number(process.env.BOT_SPEED) > 0 ? Number(process.env.BOT_SPEED) : 1;
 const EMOTES = ["😂", "😱", "🔥", "👏", "😡", "🤡", "🍺", "🤔", "😎", "💀", "😭", "🙏"];
 
@@ -346,7 +346,7 @@ io.on("connection", (socket) => {
     if (room.status !== "lobby") return ack && ack({ ok: false, error: "Une partie est en cours." });
     if (!options || typeof options !== "object") return ack && ack({ ok: false, error: "Réglages invalides." });
     const clean = {};
-    for (const [k, v] of Object.entries(options).slice(0, 8)) {
+    for (const [k, v] of Object.entries(options).slice(0, 16)) {
       if (["number", "string", "boolean"].includes(typeof v)) clean[k] = typeof v === "string" ? v.slice(0, 20) : v;
     }
     room.options = room.options || {};
@@ -364,6 +364,18 @@ io.on("connection", (socket) => {
     if (now - lastEmoteAt < 700) return ack && ack({ ok: false, error: "Doucement 😅" });
     lastEmoteAt = now;
     io.to(link.room.code).emit("emote", { playerId: link.playerId, emoji });
+    ack && ack({ ok: true });
+  });
+
+  // On touille sa boisson : les autres voient le verre tourner a sa place.
+  let lastStirAt = 0;
+  socket.on("room:stir", (_payload, ack) => {
+    const link = rooms.getBySocket(socket.id);
+    if (!link) return ack && ack({ ok: false });
+    const now = Date.now();
+    if (now - lastStirAt < 1500) return ack && ack({ ok: false });
+    lastStirAt = now;
+    socket.to(link.room.code).emit("stir", { playerId: link.playerId });
     ack && ack({ ok: true });
   });
 
