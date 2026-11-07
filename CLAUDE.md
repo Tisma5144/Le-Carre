@@ -56,8 +56,9 @@ en commentaire en tête de chaque moteur `server/games/*.js`.
   rendu 3D à part sous le bouton ☰, option `carreShowDrink`) ; la toucher la
   touille (`userData.stir(t)` de chaque verre) et `room:stir` la fait
   tourner chez les autres (`world.stirDrink`).
-- Taille des cartes (menu ☰) : `table.setCardZoom(z)` (main × z, tapis ×
-  1 + (z−1)/2), retenue dans `carreCardSize`.
+- Taille des cartes (menu ☰) : `table.setCardZoom(main, tapis)` (`CARD_SIZES`
+  dans main.js : 1/1, 1,2/1,4, 1,35/1,75), retenue dans `carreCardSize`.
+  Le tableau du poker reste borné à la largeur du tapis.
 - PWA plein écran (`manifest.webmanifest`, `sw.js` network-first).
 - Langues (fr, en, it, ru) : bouton drapeau en haut à droite (accueil, salon)
   et « 🌐 Langue » dans le menu ☰ ; choix retenu dans le navigateur

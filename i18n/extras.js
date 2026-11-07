@@ -133,7 +133,7 @@ out.push(
   ["🂠 Normales", "🂠 Normal", "🂠 Normali", "🂠 Обычные"],
   ["🔍 Grandes", "🔍 Large", "🔍 Grandi", "🔍 Крупные"],
   ["🔎 Très grandes", "🔎 Extra large", "🔎 Molto grandi", "🔎 Очень крупные"],
-  ["Des cartes plus grosses dans ta main (et un peu plus sur le tapis), plus faciles à lire.", "Bigger cards in your hand (and a little bigger on the table), easier to read.", "Carte più grandi in mano (e un po' più grandi sul tavolo), più facili da leggere.", "Карты в руке крупнее (и чуть крупнее на столе) — их легче читать."],
+  ["Des cartes plus grosses sur le tapis et dans ta main, plus faciles à lire.", "Bigger cards on the table and in your hand, easier to read.", "Carte più grandi sul tavolo e in mano, più facili da leggere.", "Карты на столе и в руке крупнее — их легче читать."],
   ["Ton verre est posé devant toi, sur l'écran des autres joueurs. Touche-le pour touiller !", "Your drink sits in front of you, on the other players' screens. Tap it to stir!", "Il tuo bicchiere è davanti a te, sullo schermo degli altri giocatori. Toccalo per mescolare!", "Твой напиток стоит перед тобой на экранах других игроков. Коснись его, чтобы помешать!"],
   ["🙈 Cacher ma boisson de mon écran", "🙈 Hide my drink from my screen", "🙈 Nascondi il mio drink dal mio schermo", "🙈 Скрыть мой напиток с экрана"],
   ["👀 Voir ma boisson à l'écran", "👀 Show my drink on screen", "👀 Mostra il mio drink sullo schermo", "👀 Показывать мой напиток на экране"],

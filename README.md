@@ -199,8 +199,10 @@ illustrées (figures dessinées, As ornés, dos au masque vénitien).
   (il se place à côté des cartes posées sur le tapis, jamais dessus ni sur la
   main), vibration du téléphone et petit carillon quand c'est ton tour.
 - Taille des cartes (menu ☰ « 🔍 Taille des cartes ») : normales, grandes ou
-  très grandes, retenue sur le téléphone. La main grossit, les cartes du
-  tapis un peu ; les très grosses mains (Tarot) grossissent un peu moins.
+  très grandes, retenue sur le téléphone. Les cartes posées sur le tapis
+  (plis, pile du Président, tableau du poker, cartes montrées, chien)
+  grossissent fortement (×1,4 / ×1,75), la main un peu moins (×1,2 / ×1,35) ;
+  les très grosses mains (Tarot) grossissent un peu moins.
 - Boissons : bière, whisky, vin rouge, cocktail, soda, café, chai latte. Ta
   boisson s'affiche en petit sous le bouton ☰ (option « Voir ma boisson »
   dans « Ma boisson ») ; touche-la pour la touiller (cuillère, pic, paille,

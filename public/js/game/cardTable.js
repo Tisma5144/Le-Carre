@@ -52,8 +52,8 @@ export class CardTable {
     // 78 cartes (Tarot) ; les autres jeux n'en utilisent que 52, les autres
     // restent cachees (zone "spare")
     this.deckSize = 52;
-    // taille des cartes choisie par le joueur (menu ☰) : la main grossit
-    // franchement, les cartes posees sur le tapis un peu moins
+    // taille des cartes choisie par le joueur (menu ☰) : main et cartes
+    // posees sur le tapis (pli, tableau du poker, cartes montrees, chien…)
     this.handZoom = 1;
     this.tableZoom = 1;
     for (let i = 0; i < 78; i += 1) {
@@ -576,9 +576,11 @@ export class CardTable {
     this.zones = zones;
   }
 
-  setCardZoom(z) {
+  // z : main ; t : cartes posees sur le tapis (elles sont plus loin, donc
+  // elles grossissent plus fort pour rester lisibles)
+  setCardZoom(z, t = z) {
     this.handZoom = z;
-    this.tableZoom = 1 + (z - 1) * 0.5;
+    this.tableZoom = t;
     this.layoutAll();
   }
 
@@ -715,7 +717,7 @@ export class CardTable {
     const m = list.length;
     if (!m) return;
     const hm = this.world.handMetrics();
-    let cardH = hm.visH * 0.3;
+    let cardH = hm.visH * 0.3 * Math.min(this.tableZoom, 1.2);
     let cy = hm.visH * 0.07;
     const band = this.revealBand;
     if (band) {
@@ -849,7 +851,7 @@ export class CardTable {
     const fr = this.world.feltRadius;
     list.forEach((e, k) => {
       const phi = this.phiOf(e.owner);
-      const r = 0.6;
+      const r = 0.6 + (this.tableZoom - 1) * 0.22;
       e.space = "world";
       e.tPos.set(p.x + Math.sin(phi) * fr.x * r * 0.92 + e.jitter.dx * 0.5, 0.016 + k * 0.006, p.z + Math.cos(phi) * fr.z * r + e.jitter.dz * 0.5);
       e.tQuat.copy(yawQuat(phi * 0.25 + e.jitter.yaw * 0.6)).multiply(Q_FACE_UP);
@@ -911,7 +913,7 @@ export class CardTable {
       e.space = "world";
       e.tPos.copy(tray.position).add(local);
       e.tQuat.copy(rot).multiply(yawQuat(-0.12)).multiply(Q_FACE_UP);
-      e.tScale = 0.64;
+      e.tScale = 0.64 * Math.min(this.tableZoom, 1.3);
       e.emissive = 0.4;
       e.glowTarget = 0.45;
       e.glowColor.set(0xffd35a);
@@ -958,8 +960,11 @@ export class CardTable {
       e.space = "world";
       // carte "fantome" (ce qui serait tombe) : un peu decalee, assombrie,
       // halo bleute
-      const tz = this.tableZoom;
-      e.tPos.set(p.x + (i - 2) * 0.68 * tz, 0.016 + i * 0.002, p.z + 0.05 + (e.ghost ? 0.2 : 0));
+      // le tableau doit tenir dans la largeur du tapis
+      const tz = Math.min(this.tableZoom, 1.45);
+      const fr = this.world.feltRadius;
+      const step = Math.min(0.68 * tz, (2 * fr.x * 0.94 - CARD_WORLD_W * tz) / 4);
+      e.tPos.set(p.x + (i - 2) * step, 0.016 + i * 0.002, p.z + 0.05 + (e.ghost ? 0.2 : 0));
       e.tQuat.copy(Q_FACE_UP);
       e.tScale = (e.ghost ? 0.9 : 0.98) * tz;
       e.emissive = e.ghost ? 0.1 : e.win ? 0.45 : 0.28;
@@ -974,12 +979,13 @@ export class CardTable {
   layoutRow(list, faceUp) {
     const p = this.world.anchors.pile;
     const n = list.length;
-    const step = Math.min(0.56, 3.2 / Math.max(1, n));
+    const tz = faceUp ? this.tableZoom : 1;
+    const step = Math.min(0.56 * tz, 3.4 / Math.max(1, n));
     list.forEach((e, i) => {
       e.space = "world";
       e.tPos.set(p.x + (i - (n - 1) / 2) * step, 0.016 + i * 0.003, p.z);
       e.tQuat.copy(yawQuat((i - (n - 1) / 2) * 0.03)).multiply(faceUp ? Q_FACE_UP : Q_FACE_DOWN);
-      e.tScale = faceUp ? 0.92 : 0.8;
+      e.tScale = faceUp ? 0.92 * tz : 0.8;
       e.emissive = faceUp ? 0.34 : 0.12;
       e.glowTarget = faceUp ? 0.35 : 0;
       e.glowColor.set(0xffd35a);
@@ -1032,7 +1038,8 @@ export class CardTable {
       // on cherche (distance vers le joueur, decalage lateral, taille) le
       // placement qui ne chevauche rien, en restant le plus pres possible du
       // placement naturel
-      const place = (t, shift = 0, scale = 0.8) => cards.map((e) => {
+      const S0 = 0.8 * this.tableZoom;
+      const place = (t, shift = 0, scale = S0) => cards.map((e) => {
         const j = e.qj || 0;
         const c = V(p.x, 0, p.z).lerp(seat, t).addScaledVector(side, shift);
         const off = (j - mid) * step * (scale / 0.8);
@@ -1049,13 +1056,13 @@ export class CardTable {
         return o;
       };
       const t0 = n > 2 ? 0.55 : 0.62;
-      let best = { t: t0, shift: 0, scale: 0.8 };
-      let bestCost = overlapAt(t0, 0, 0.8) * 1000;
+      let best = { t: t0, shift: 0, scale: S0 };
+      let bestCost = overlapAt(t0, 0, S0) * 1000;
       if (bestCost > 0) {
-        for (const scale of [0.8, 0.72, 0.64, 0.56]) {
+        for (const scale of [S0, S0 * 0.9, S0 * 0.8, S0 * 0.7]) {
           for (let t = t0; t <= 0.97; t += 0.04) {
             for (const shift of [0, 0.2, -0.2, 0.4, -0.4, 0.6, -0.6, 0.8, -0.8]) {
-              const cost = overlapAt(t, shift, scale) * 1000 + (0.8 - scale) * 3 + (t - t0) + Math.abs(shift) * 0.8;
+              const cost = overlapAt(t, shift, scale) * 1000 + (S0 - scale) * 3 + (t - t0) + Math.abs(shift) * 0.8;
               if (cost < bestCost) {
                 bestCost = cost;
                 best = { t, shift, scale };

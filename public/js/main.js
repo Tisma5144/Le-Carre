@@ -86,9 +86,9 @@ function chooseDrink(id) {
 }
 // Reglages de l'appareil : taille des cartes et boisson visible a l'ecran.
 const CARD_SIZES = [
-  { z: 1, label: "Normales" },
-  { z: 1.2, label: "Grandes" },
-  { z: 1.35, label: "Très grandes" }
+  { z: 1, t: 1, label: "Normales" },
+  { z: 1.2, t: 1.4, label: "Grandes" },
+  { z: 1.35, t: 1.75, label: "Très grandes" }
 ];
 function pref(key, def) {
   try { const v = localStorage.getItem(key); return v === null ? def : v; } catch (e) { return def; }
@@ -99,6 +99,11 @@ function setPref(key, v) {
 function cardZoom() {
   const z = parseFloat(pref("carreCardSize", "1"));
   return CARD_SIZES.some((c) => c.z === z) ? z : 1;
+}
+// main et tapis
+function applyCardZoom() {
+  const c = CARD_SIZES.find((x) => x.z === cardZoom()) || CARD_SIZES[0];
+  table.setCardZoom(c.z, c.t);
 }
 function showMyDrink() {
   return pref("carreShowDrink", "1") === "1";
@@ -120,12 +125,12 @@ function stirMyDrink() {
 }
 function openCardSizePicker() {
   const cur = cardZoom();
-  hud.openModal("Taille des cartes", `<p class="size-help">Des cartes plus grosses dans ta main (et un peu plus sur le tapis), plus faciles à lire.</p>
+  hud.openModal("Taille des cartes", `<p class="size-help">Des cartes plus grosses sur le tapis et dans ta main, plus faciles à lire.</p>
     <div class="size-grid">${CARD_SIZES.map((c) => `<button class="btn wood${c.z === cur ? " on" : ""}" data-zoom="${c.z}">${c.z === 1 ? "🂠" : c.z === 1.2 ? "🔍" : "🔎"} ${c.label}</button>`).join("")}</div>`);
   document.querySelectorAll("#modal-body [data-zoom]").forEach((b) => b.addEventListener("click", () => {
     sfx.play("select");
     setPref("carreCardSize", b.dataset.zoom);
-    table.setCardZoom(cardZoom());
+    applyCardZoom();
     hud.closeModal();
   }));
 }
@@ -927,7 +932,7 @@ async function boot() {
       world.setPileRing(g && S.adapter && S.adapter.isPlaying(g) && g.you.isYourTurn ? "idle" : "hidden");
     }
   });
-  table.setCardZoom(cardZoom());
+  applyCardZoom();
 
   app = {
     S,
