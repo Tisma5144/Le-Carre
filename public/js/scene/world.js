@@ -340,6 +340,71 @@ export class World {
     this.stirs.push({ g: best, t: 0 });
   }
 
+  // Ma boisson, posee sur la table de mon cote (visible sur mon ecran).
+  // kind : id de boisson, ou null pour l'enlever. Elle reste cachee tant que
+  // placeMyDrink ne lui a pas trouve de place.
+  setMyDrink(kind) {
+    if (this.myDrinkKind === kind) return;
+    if (this.myDrinkGroup) this.scene.remove(this.myDrinkGroup);
+    this.myDrinkKind = kind;
+    this.myDrinkGroup = null;
+    if (!kind) {
+      this.myDrinkSpot = null;
+      return;
+    }
+    const g = new THREE.Group();
+    const coaster = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.36, 0.36, 0.02, 36),
+      [
+        new THREE.MeshStandardMaterial({ color: 0xd8c7a0, roughness: 0.9 }),
+        new THREE.MeshStandardMaterial({ map: toTexture(coasterCanvas(256, 0, ["LE", "CARRÉ"])), roughness: 0.85 }),
+        new THREE.MeshStandardMaterial({ color: 0xd8c7a0 })
+      ]
+    );
+    coaster.position.y = 0.012;
+    coaster.rotation.y = 0.6;
+    coaster.receiveShadow = true;
+    const drink = makeDrink(kind, 0);
+    drink.position.y = 0.02;
+    g.add(coaster, drink);
+    g.scale.setScalar(1.25); // un peu plus gros : facile a reperer et a toucher
+    g.userData.drink = drink;
+    g.visible = false;
+    if (this.myDrinkSpot) {
+      g.position.set(this.myDrinkSpot.x, 0, this.myDrinkSpot.z);
+      g.visible = true;
+    }
+    this.myDrinkGroup = g;
+    this.scene.add(g);
+  }
+
+  placeMyDrink(p) {
+    this.myDrinkSpot = p ? p.clone() : null;
+    const g = this.myDrinkGroup;
+    if (!g) return;
+    if (!p) {
+      g.visible = false;
+      return;
+    }
+    g.position.set(p.x, 0, p.z);
+    g.visible = true;
+  }
+
+  stirMyDrink() {
+    const g = this.myDrinkGroup;
+    if (!g || !g.visible || !g.userData.drink.userData.stir) return false;
+    const d = g.userData.drink;
+    this.stirs = (this.stirs || []).filter((x) => x.g !== d);
+    this.stirs.push({ g: d, t: 0 });
+    return true;
+  }
+
+  // le rayon (raycaster deja regle) touche-t-il ma boisson ?
+  hitsMyDrink(raycaster) {
+    const g = this.myDrinkGroup;
+    return !!(g && g.visible && raycaster.intersectObject(g, true).length);
+  }
+
   rebuildProps() {
     this.propsGroup.clear();
     this.drinkByPhi = new Map();

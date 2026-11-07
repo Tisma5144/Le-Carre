@@ -3,7 +3,6 @@
 import { World } from "./scene/world.js";
 import { LANGS, lang, setLang, loadDictionary, startPageTranslation, tr } from "./i18n.js";
 import { DRINKS } from "./scene/drinks.js";
-import { MyDrinkView } from "./ui/myDrink.js";
 import { woodCanvas } from "./scene/textures.js";
 import { CardTable } from "./game/cardTable.js";
 import { Hud } from "./ui/hud.js";
@@ -84,11 +83,12 @@ function chooseDrink(id) {
   const d = DRINKS.find((x) => x.id === id);
   app.emit("room:setDrink", { drink: id }, () => hud.toast(`${d.emoji} ${d.label} servi${d.id === "biere" ? "e" : ""} ! Ton verre est posé devant toi.`, 2000));
 }
-// Reglages de l'appareil : taille des cartes et boisson visible a l'ecran.
+// Reglages de l'appareil : taille des cartes posees sur le tapis (la main
+// garde sa taille) et boisson visible sur la table.
 const CARD_SIZES = [
-  { z: 1, t: 1, label: "Normales" },
-  { z: 1.2, t: 1.4, label: "Grandes" },
-  { z: 1.35, t: 1.75, label: "Très grandes" }
+  { t: 1, icon: "🂠", label: "Normales" },
+  { t: 1.4, icon: "🔍", label: "Grandes" },
+  { t: 1.75, icon: "🔎", label: "Très grandes" }
 ];
 function pref(key, def) {
   try { const v = localStorage.getItem(key); return v === null ? def : v; } catch (e) { return def; }
@@ -97,36 +97,100 @@ function setPref(key, v) {
   try { localStorage.setItem(key, v); } catch (e) { /* ignore */ }
 }
 function cardZoom() {
-  const z = parseFloat(pref("carreCardSize", "1"));
-  return CARD_SIZES.some((c) => c.z === z) ? z : 1;
+  let t = parseFloat(pref("carreCardSize", "1"));
+  // anciennes valeurs (v0.19 : taille de la main)
+  if (t === 1.2) t = 1.4;
+  if (t === 1.35) t = 1.75;
+  return CARD_SIZES.some((c) => c.t === t) ? t : 1;
 }
-// main et tapis
 function applyCardZoom() {
-  const c = CARD_SIZES.find((x) => x.z === cardZoom()) || CARD_SIZES[0];
-  table.setCardZoom(c.z, c.t);
+  table.setCardZoom(1, cardZoom());
 }
 function showMyDrink() {
   return pref("carreShowDrink", "1") === "1";
 }
-let myDrinkView = null;
 function refreshMyDrink() {
-  const el = $("my-drink");
-  const on = showMyDrink();
-  el.classList.toggle("hidden", !on);
-  if (!on) return;
-  if (!myDrinkView) myDrinkView = new MyDrinkView(el.querySelector("canvas"));
-  myDrinkView.set(myDrink());
+  world.setMyDrink(S.screen === "game" && showMyDrink() ? myDrink() : null);
 }
 function stirMyDrink() {
-  if (!myDrinkView) return;
-  myDrinkView.stir();
+  if (!world.stirMyDrink()) return;
   sfx.play("stir");
   if (socket) socket.emit("room:stir", {}, () => {});
 }
+
+// Place de ma boisson sur la table, de mon cote : visible au-dessus de ma
+// main, hors du tapis vert, sans recouvrir etiquettes, textes, plateau,
+// cartes ni verres des autres. Recalculee quand la disposition change.
+const DRINK_AVOID = ["announce", "hint", "pile-chip", "tray-chip", "action-bar", "bid-bar", "btn-liar", "btn-pass", "btn-play", "exchange"];
+let drinkSpotKey = "";
+let drinkSpotSince = 0;
+function placeMyDrink() {
+  if (S.screen !== "game" || !showMyDrink() || !world.dims) return world.placeMyDrink(null);
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  const handTop = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--hand-top")) || 280;
+  const key = `${S.seatsKey}|${W}x${H}|${Math.round(handTop / 24)}|${world.dims.ax.toFixed(2)}`;
+  const now = performance.now();
+  if (key !== drinkSpotKey) {
+    drinkSpotKey = key;
+    drinkSpotSince = now;
+  } else if (world.myDrinkSpot && now - drinkSpotSince > 2500) return;
+  const rects = [];
+  const addDom = (el) => {
+    if (!el || el.classList.contains("hidden")) return;
+    const r = el.getBoundingClientRect();
+    if (r.width && r.height) rects.push({ l: r.left - 4, r: r.right + 4, t: r.top - 4, b: r.bottom + 4 });
+  };
+  for (const el of hud.plates.values()) if (el.style.opacity !== "0") addDom(el);
+  for (const id of DRINK_AVOID) addDom($(id));
+  for (const b of document.querySelectorAll("#quad-bar > *, .topbar .icon-btn")) addDom(b);
+  rects.push({ l: 0, r: W, t: H - handTop - 6, b: H }); // ma main et le rebord
+  for (const r of table.tableCardRects()) rects.push({ l: r.left, r: r.right, t: r.top, b: r.bottom });
+  // emprise a l'ecran d'un objet pose sur la table (rayon r, hauteur h)
+  const box = (p, r, h) => {
+    const c = world.toScreen(p);
+    const e = world.toScreen(p.clone().setX(p.x + r));
+    const top = world.toScreen(p.clone().setY(p.y + h));
+    const hw = Math.abs(e.x - c.x);
+    return { l: c.x - hw, r: c.x + hw, t: Math.min(top.y, c.y - hw * 0.5), b: c.y + hw * 0.5, ok: c.visible };
+  };
+  rects.push(box(world.anchors.tray, 0.85, 0.2));
+  const others = [];
+  world.opponentPhis.forEach((phi, i) => {
+    rects.push(box(world.seatPoint(phi, 0.8), 0.6, 0.2));
+    if (i % 2 === 1 && world.opponentPhis.length > 4) return;
+    const side = phi < Math.PI ? 1 : -1;
+    others.push(world.seatPoint(phi + side * 0.42, 0.77));
+  });
+  const overlap = (a, b) => Math.max(0, Math.min(a.r, b.r) - Math.max(a.l, b.l)) * Math.max(0, Math.min(a.b, b.b) - Math.max(a.t, b.t));
+  const P = world.anchors.pile;
+  const fr = world.feltRadius;
+  let best = null;
+  const { ax, az } = world.dims;
+  for (const side of [1, -1]) {
+    for (let u = 0.5; u <= 0.97; u += 0.04) {
+      for (let w = -0.5; w <= 0.8; w += 0.05) {
+        const c = P.clone().set(side * ax * u, 0, az * w);
+        // sur le bois : dans la table, hors du tapis vert
+        if ((c.x / ax) ** 2 + (c.z / az) ** 2 > 0.86) continue;
+        if ((c.x / (fr.x + 0.4)) ** 2 + ((c.z - P.z) / (fr.z + 0.4)) ** 2 < 1) continue;
+        const b = box(c, 0.4, 1);
+        if (!b.ok) continue;
+        let cost = b.l < 4 || b.r > W - 4 || b.t < 4 ? 1e6 : 0;
+        for (const d of others) if (c.distanceTo(d) < 0.8) cost += 1e5;
+        for (const r of rects) cost += overlap(b, r);
+        cost += side < 0 ? 400 : 0; // plutot a droite (le plateau est a gauche)
+        cost += Math.abs(w - 0.3) * 60; // plutot de mon cote de la table
+        if (!best || cost < best.cost) best = { cost, c };
+      }
+    }
+  }
+  world.placeMyDrink(best ? best.c : null);
+}
 function openCardSizePicker() {
   const cur = cardZoom();
-  hud.openModal("Taille des cartes", `<p class="size-help">Des cartes plus grosses sur le tapis et dans ta main, plus faciles à lire.</p>
-    <div class="size-grid">${CARD_SIZES.map((c) => `<button class="btn wood${c.z === cur ? " on" : ""}" data-zoom="${c.z}">${c.z === 1 ? "🂠" : c.z === 1.2 ? "🔍" : "🔎"} ${c.label}</button>`).join("")}</div>`);
+  hud.openModal("Taille des cartes", `<p class="size-help">Les cartes posées sur le tapis en plus gros, plus faciles à lire. Ta main garde sa taille.</p>
+    <div class="size-grid">${CARD_SIZES.map((c) => `<button class="btn wood${c.t === cur ? " on" : ""}" data-zoom="${c.t}">${c.icon} ${c.label}</button>`).join("")}</div>`);
   document.querySelectorAll("#modal-body [data-zoom]").forEach((b) => b.addEventListener("click", () => {
     sfx.play("select");
     setPref("carreCardSize", b.dataset.zoom);
@@ -287,6 +351,8 @@ function noticeLeavers(prev, room) {
 
 function leaveGameUi() {
   if (S.adapter && S.adapter.hideOverlays) S.adapter.hideOverlays(app);
+  world.setMyDrink(null);
+  drinkSpotKey = "";
   S.adapter = null;
   S.lastUid = null;
   S.lastDealKey = null;
@@ -462,6 +528,7 @@ function refreshGameUi() {
   }
   S.wasMyTurn = myTurn;
 
+  placeMyDrink();
   A.refresh(g, app);
   // pendant la distribution, la bande d'aide est libre : astuce plein ecran
   if (dealing && FS.tipText()) hud.setHint(FS.tipText(), false);
@@ -658,7 +725,6 @@ function bindUi() {
     $("btn-sound").textContent = sfx.toggle() ? "🔊" : "🔇";
   });
   $("announce").addEventListener("click", openHistory);
-  $("my-drink").addEventListener("click", stirMyDrink);
   // le bouton de langue s'efface quand on fait defiler l'accueil ou le salon
   // (il passerait sur les reglages)
   for (const id of ["home", "lobby"]) {
@@ -688,8 +754,8 @@ function bindUi() {
       else if (act === "rules") hud.openModal(`Règles · ${A ? A.name : ""}`, A ? A.rulesHtml() : "");
       else if (act === "lang") openLanguagePicker();
       else if (act === "drink") {
-        hud.openModal("Ma boisson", `<p class="drink-help">Ton verre est posé devant toi, sur l'écran des autres joueurs. Touche-le pour touiller !</p><div class="drink-grid"></div>
-          <div class="drink-opt"><button class="btn wood" data-show-drink>${showMyDrink() ? "🙈 Cacher ma boisson de mon écran" : "👀 Voir ma boisson à l'écran"}</button></div>`);
+        hud.openModal("Ma boisson", `<p class="drink-help">Ton verre est posé sur la table, devant toi. Touche-le pour touiller !</p><div class="drink-grid"></div>
+          <div class="drink-opt"><button class="btn wood" data-show-drink>${showMyDrink() ? "🙈 Cacher ma boisson de mon écran" : "👀 Voir ma boisson sur la table"}</button></div>`);
         const grid = document.querySelector("#modal-body .drink-grid");
         grid.innerHTML = DRINKS.map((d) => `<button class="btn wood${d.id === myDrink() ? " on" : ""}" data-drink="${d.id}">${d.emoji} ${d.label}</button>`).join("");
         grid.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
@@ -701,6 +767,7 @@ function bindUi() {
           sfx.play("select");
           setPref("carreShowDrink", showMyDrink() ? "0" : "1");
           refreshMyDrink();
+          placeMyDrink();
           hud.closeModal();
         });
       }
@@ -925,6 +992,7 @@ async function boot() {
     },
     onSelectLimit: () => hud.toast(`${table.maxSelect} cartes maximum à la fois.`),
     onTrayClick: openTray,
+    onDrinkTap: stirMyDrink,
     onPileClick: openHistory,
     onLand: (sound, count) => sound && sfx.play(sound, count),
     onDragEnd: () => {
@@ -1004,7 +1072,6 @@ async function boot() {
   // point d'acces pour le debogage (console du navigateur, tests automatises)
   window.__menteur = {
     tr,
-    get myDrink() { return myDrinkView; },
     S,
     world,
     table,

@@ -199,14 +199,14 @@ illustrées (figures dessinées, As ornés, dos au masque vénitien).
   (il se place à côté des cartes posées sur le tapis, jamais dessus ni sur la
   main), vibration du téléphone et petit carillon quand c'est ton tour.
 - Taille des cartes (menu ☰ « 🔍 Taille des cartes ») : normales, grandes ou
-  très grandes, retenue sur le téléphone. Les cartes posées sur le tapis
-  (plis, pile du Président, tableau du poker, cartes montrées, chien)
-  grossissent fortement (×1,4 / ×1,75), la main un peu moins (×1,2 / ×1,35) ;
-  les très grosses mains (Tarot) grossissent un peu moins.
+  très grandes, retenue sur le téléphone. Seules les cartes posées sur le
+  tapis grossissent (plis, pile du Président, tableau du poker, cartes
+  montrées, chien) : ×1,4 / ×1,75. La main garde sa taille.
 - Boissons : bière, whisky, vin rouge, cocktail, soda, café, chai latte. Ta
-  boisson s'affiche en petit sous le bouton ☰ (option « Voir ma boisson »
-  dans « Ma boisson ») ; touche-la pour la touiller (cuillère, pic, paille,
-  ou le verre qui tourne) : les autres voient ton verre bouger à ta place.
+  boisson est posée sur la table de ton côté (sur le bois, à une place qui
+  ne cache ni ta main, ni les étiquettes, ni le plateau ; option dans « Ma
+  boisson ») ; touche-la pour la touiller (cuillère, pic, paille, ou le
+  verre qui tourne) : les autres voient ton verre bouger à ta place.
 - Salle d'attente sur ardoise avec QR code et bouton de partage du lien.
 - Historique de la manche, cartes sorties, règles, son on/off, revanche.
 - Reconnexion automatique si on recharge la page.

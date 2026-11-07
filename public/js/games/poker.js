@@ -347,7 +347,8 @@ export default {
     const W = window.innerWidth;
     const H = window.innerHeight;
     const ids = v.seats.map((s) => s.id);
-    const key = `${ids.join("|")}|${W}x${H}|${world.dims.ax}`;
+    const md = world.myDrinkSpot;
+    const key = `${ids.join("|")}|${W}x${H}|${world.dims.ax}|${md ? md.x.toFixed(2) + "," + md.z.toFixed(2) : "-"}`;
     // les etiquettes se placent pendant les premieres images : on recalcule
     // encore un peu apres chaque changement de disposition
     const now = performance.now();
@@ -392,6 +393,11 @@ export default {
       beers.set(phi, beer);
       rects.push(box(beer, 0.3, 0.9));
     });
+    // ma boisson posee sur la table
+    if (world.myDrinkSpot) {
+      beers.set("me", world.myDrinkSpot);
+      rects.push(box(world.myDrinkSpot, 0.3, 0.9));
+    }
     const overlap = (a, b) => Math.max(0, Math.min(a.r, b.r) - Math.max(a.l, b.l)) * Math.max(0, Math.min(a.b, b.b) - Math.max(a.t, b.t));
     const offScreen = (a) => (a.l < 4 || a.r > W - 4 || a.t < 4 ? 1e6 : 0);
     const out = new Map();

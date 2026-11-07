@@ -1113,6 +1113,11 @@ export class CardTable {
       if (e.space !== "world" || !(e.tScale > 0.05) || e.zone === "decor" || e.zone === "deck") continue;
       boxes.push(CardTable.cardBox(e.tPos, e.tQuat, e.tScale));
     }
+    // ma boisson posee sur la table
+    if (world.myDrinkSpot) {
+      const d = world.myDrinkSpot;
+      boxes.push({ minX: d.x - 0.46, maxX: d.x + 0.46, minZ: d.z - 0.46, maxZ: d.z + 0.46 });
+    }
     const { ax, az } = world.dims || { ax: 3, az: 2 };
     const handTopY = window.innerHeight * (1 - (this.handTopFrac || 0));
     // penalite d'un emplacement : 0 = parfait
@@ -1372,6 +1377,7 @@ export class CardTable {
 
   pickTable() {
     this.raycaster.setFromCamera(this.pointerNdc, this.world.camera);
+    if (this.world.hitsMyDrink(this.raycaster)) return "drink";
     if (this.world.tray) {
       const hits = this.raycaster.intersectObject(this.world.tray, true);
       if (hits.length) return "tray";
@@ -1438,7 +1444,8 @@ export class CardTable {
       }
     }
     const t = this.pickTable();
-    if (t === "tray" && this.hooks.onTrayClick) this.hooks.onTrayClick();
+    if (t === "drink" && this.hooks.onDrinkTap) this.hooks.onDrinkTap();
+    else if (t === "tray" && this.hooks.onTrayClick) this.hooks.onTrayClick();
     else if (t === "pile" && this.hooks.onPileClick) this.hooks.onPileClick();
   }
 
